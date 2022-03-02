@@ -364,7 +364,6 @@ namespace fc::node {
         storage::LevelDB::create(config.join("ipld_leveldb")).value();
     o.ipld_leveldb =
         std::make_shared<storage::ipfs::LeveldbDatastore>(o.ipld_leveldb_kv);
-    o.ipld = o.ipld_leveldb;
     o.ipld = *storage::cids_index::loadOrCreateWithProgress(
         config.genesisCar(), false, boost::none, o.ipld, log());
     auto snapshot_cids{loadSnapshot(config, o)};
