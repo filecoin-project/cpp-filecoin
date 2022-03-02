@@ -117,7 +117,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with: &step_docker_meta_with
-          images: ${{ env.DOCKERHUB_ORG }}/fuhon
+          images: docker.soramitsu.co.jp/fuhon/fuhon:latest
           tags: |
             type=raw,value=${{env.dockertag}}
             type=ref,event=branch
