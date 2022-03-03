@@ -6,6 +6,7 @@
 add_subdirectory(adt)
 add_subdirectory(api)
 add_subdirectory(blockchain)
+add_subdirectory(cli)
 add_subdirectory(clock)
 add_subdirectory(codec)
 add_subdirectory(common)
