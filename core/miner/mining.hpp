@@ -43,16 +43,14 @@ namespace fc::mining {
         const Address &miner);
     void start();
     void waitParent();
-    void reboot();
-    outcome::result<void> waitBeacon();
+    void reboot(uint64_t time);
+    void waitBeacon();
     outcome::result<void> waitInfo();
     outcome::result<void> prepare();
     outcome::result<void> submit(const BlockTemplate &block1);
     outcome::result<void> bestParent();
     ChainEpoch height() const;
-    void wait(uint64_t sec,
-              bool abs,
-              std::function<outcome::result<void>()> cb);
+    void wait(uint64_t sec, bool abs, Scheduler::Callback cb);
     outcome::result<boost::optional<BlockTemplate>> prepareBlock();
 
     std::shared_ptr<Scheduler> scheduler;

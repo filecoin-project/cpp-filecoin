@@ -19,12 +19,12 @@
     }                                                     \
   }
 
-#define OUTCOME_REBOOT(base, tag, r)                      \
+#define OUTCOME_REBOOT(base, tag, r, time)                \
   {                                                       \
     auto &&_r{r};                                         \
     if (!_r) {                                            \
       spdlog::error("{}: {}", tag, _r.error().message()); \
-      return base->reboot();                              \
+      return base->reboot(time);                          \
     }                                                     \
   }
 
@@ -55,37 +55,32 @@ namespace fc::mining {
     waitParent();
   }
 
-  void Mining::reboot() {
-    wait(sleep_time, false, [weak{weak_from_this()}] {
+  void Mining::reboot(uint64_t time) {
+    wait(time, false, [weak{weak_from_this()}] {
       if (auto self{weak.lock()}) {
         self->waitParent();
       }
-      return outcome::success();
     });
   }
 
   void Mining::waitParent() {
-    OUTCOME_REBOOT(this, "Mining::waitParent error", bestParent());
-    wait(ts->getMinTimestamp() + propagation,
-         true,
-         [weak{weak_from_this()}]() -> outcome::result<void> {
-           if (auto self{weak.lock()}) {
-             OUTCOME_TRY_LOG("Mining::waitBeacon error", self->waitBeacon());
-           }
-           return outcome::success();
-         });
+    OUTCOME_REBOOT(this, "Mining::waitParent error", bestParent(), 5);
+    wait(ts->getMinTimestamp() + propagation, true, [weak{weak_from_this()}] {
+      if (auto self{weak.lock()}) {
+        self->waitBeacon();
+      }
+    });
   }
 
-  outcome::result<void> Mining::waitBeacon() {
+  void Mining::waitBeacon() {
     api->BeaconGetEntry(
         [weak{weak_from_this()}](auto beacon) {
           if (auto self{weak.lock()}) {
-            OUTCOME_REBOOT(self, "Mining::waitBeacon error", beacon);
-            OUTCOME_REBOOT(self, "Mining::waitInfo error", self->waitInfo());
+            OUTCOME_REBOOT(self, "Mining::waitBeacon error", beacon, 1);
+            OUTCOME_REBOOT(self, "Mining::waitInfo error", self->waitInfo(), 1);
           }
         },
         height());
-    return outcome::success();
   }
 
   outcome::result<void> Mining::waitInfo() {
@@ -96,15 +91,15 @@ namespace fc::mining {
         if (auto self{weak.lock()}) {
           self->waitParent();
         }
-        return outcome::success();
       });
     } else {
       api->MinerGetBaseInfo(
           [weak{weak_from_this()}, mined{std::move(maybe_mined)}](auto _info) {
             if (auto self{weak.lock()}) {
-              OUTCOME_REBOOT(self, "Mining::waitInfo error", _info);
+              OUTCOME_REBOOT(self, "Mining::waitInfo error", _info, 1);
               self->info = std::move(_info.value());
-              OUTCOME_REBOOT(self, "Mining::prepare error", self->prepare());
+              OUTCOME_REBOOT(self, "Mining::prepare error", self->prepare(), 1);
+
               self->last_mined = mined;
             }
           },
@@ -120,22 +115,17 @@ namespace fc::mining {
     auto time{ts->getMinTimestamp() + (skip + 1) * block_delay};
     if (block1) {
       block1->timestamp = time;
-      wait(time,
-           true,
-           [weak{weak_from_this()},
-            block1{std::move(*block1)}]() -> outcome::result<void> {
-             if (auto self{weak.lock()}) {
-               OUTCOME_TRY_LOG("Mining::submit error", self->submit(block1));
-             }
-             return outcome::success();
-           });
+      wait(time, true, [weak{weak_from_this()}, block1{std::move(*block1)}]() {
+        if (auto self{weak.lock()}) {
+          OUTCOME_REBOOT(self, "Mining::submit error", self->submit(block1), 1);
+        }
+      });
     } else {
       ++skip;
       wait(time + propagation, true, [weak{weak_from_this()}] {
         if (auto self{weak.lock()}) {
           self->waitParent();
         }
-        return outcome::success();
       });
     }
     return outcome::success();
@@ -170,20 +160,11 @@ namespace fc::mining {
     return gsl::narrow<ChainEpoch>(ts->height() + skip + 1);
   }
 
-  void Mining::wait(uint64_t sec,
-                    bool abs,
-                    std::function<outcome::result<void>()> cb) {
+  void Mining::wait(uint64_t sec, bool abs, Scheduler::Callback cb) {
     if (abs) {
       sec -= clock->nowUTC().count();
     }
-    Scheduler::Callback wrap_cb = [cb{std::move(cb)}, weak{weak_from_this()}] {
-      if (cb().has_error()) {
-        if (auto self{weak.lock()}) {
-          self->reboot();
-        }
-      }
-    };
-    scheduler->schedule(std::move(wrap_cb),
+    scheduler->schedule(std::move(cb),
                         std::chrono::seconds{std::max<uint64_t>(0, sec)});
   }
 
