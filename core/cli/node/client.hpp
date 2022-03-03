@@ -5,6 +5,7 @@
 
 #pragma once
 #include <inttypes.h>
+#include "api/full_node/node_api.hpp"
 #include "cli/node/node.hpp"
 #include "markets/storage/mk_protocol.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -16,12 +17,14 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+#include "common/enum.hpp"
 
 namespace fc::cli::_node {
   using api::FileRef;
   using api::FullNodeApi;
   using api::ImportRes;
   using api::RetrievalOrder;
+  using api::StartDealParams;
   using boost::lexical_cast;
   using ::fc::storage::car::makeCar;
   using ::fc::storage::unixfs::wrapFile;
@@ -33,12 +36,13 @@ namespace fc::cli::_node {
   using primitives::piece::UnpaddedPieceSize;
   using proofs::padPiece;
   using storage::ipfs::ApiIpfsDatastore;
+  using vm::VMExitCode;
   using vm::actor::kVerifiedRegistryAddress;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
-  using vm::VMExitCode;
+  using markets::storage::StorageDealStatus;
+  using common::toString;
 
-  const ChainEpoch kLoopback = 100; // TODO: lookback
-
+  const ChainEpoch kLoopback = 100;  // TODO: lookback
 
   StoragePower checkNotary(std::shared_ptr<FullNodeApi> api,
                            const Address &vaddr) {
@@ -199,16 +203,42 @@ namespace fc::cli::_node {
       auto duration{cliArgv<ChainEpoch>(
           argv, 3, "is a period of storing the data for, in blocks")};
       Node::Api api{argm};
-      if (duration < kMinDealDuration) throw CliError("Minimal deal duration is {}", kMinDealDuration);
-      if (duration < kMaxDealDuration) throw CliError("Max deal duration is {}", kMaxDealDuration);
-
+      if (duration < kMinDealDuration)
+        throw CliError("Minimal deal duration is {}", kMinDealDuration);
+      if (duration < kMaxDealDuration)
+        throw CliError("Max deal duration is {}", kMaxDealDuration);
+      DataRef data_ref;
       Address address_from =
           args.from ? *args.from : cliTry(api._->WalletDefaultAddress());
-      UnpaddedPieceSize piece_size{*args.man_piece_size};
-      DataRef data_ref = {.transfer_type = "graphsync",
-                          .root = data_cid,
-                          .piece_cid = *args.man_piece_cid,
-                          .piece_size = piece_size};
+      if (args.man_piece_cid) {
+        UnpaddedPieceSize piece_size{*args.man_piece_size};
+        data_ref = {.transfer_type = "manual",
+                    .root = data_cid,
+                    .piece_cid = *args.man_piece_cid,
+                    .piece_size = piece_size};
+      } else {
+        data_ref = {.transfer_type = "graphsync", .root = data_cid};
+      }
+      auto dcap =
+          cliTry(api._->StateVerifiedClientStatus(address_from, TipsetKey()),
+                 "Failed to get status of {}",
+                 address_from);
+      bool isVerified = dcap.has_value();
+      if (args.verified_deal && !isVerified)
+        throw CliError(
+            "Cannot perform verified deal using unverified address {}",
+            address_from);
+      StartDealParams deal_params = {.data = data_ref,
+                                     .wallet = address_from,
+                                     .miner = miner,
+                                     .epoch_price = price,
+                                     .min_blocks_duration = duration,
+                                     .deal_start_epoch = *args.start_epoch,
+                                     .fast_retrieval = args.fast_ret,
+                                     .verified_deal = isVerified,
+                                     .provider_collateral = *args.collateral};
+     auto proposal_cid = cliTry(api._->ClientStartDeal(deal_params));
+     fmt::print("Deal proposal CID: {}\n", cliTry(proposal_cid.toString(), "Cannot extract CID"));
     }
   };
 
@@ -307,7 +337,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct Node_client_inspectDeal { //TODO: continue
+  struct Node_client_inspectDeal {  // TODO: continue
     struct Args {
       CLI_OPTIONAL("proposal-cid", "proposal cid of deal to be inspected", CID)
       proposal_cid;
@@ -324,25 +354,33 @@ namespace fc::cli::_node {
     }
   };
 
-  struct Node_client_dealStats{
+  struct Node_client_dealStats {
     struct Args {
       CLI_DEFAULT("newer-than",
                   "list all deals stas that was made after given period",
                   ChainEpoch,
-                  {0})newer;
-      CLI_OPTS(){
+                  {0})
+      newer;
+      CLI_OPTS() {
         Opts opts;
         newer(opts);
         return opts;
       }
     };
-    CLI_RUN(){
+    CLI_RUN() {
       Node::Api api{argm};
       auto deals = cliTry(api._->ClientListDeals());
-      for(const auto deal: deals){
-
-      }//TODO: Continue
-
+      uint64_t total_size{0};
+      std::map<StorageDealStatus, uint64_t> by_state;
+      for (const auto &deal : deals) {
+        //TODO(@Elestrias): [FIL-615] Check Creation time and since-epoch flag
+        total_size += deal.size;
+        by_state[deal.state] += deal.size;
+      }
+      fmt::print("Total: {} deals, {}", deals.size(), total_size);
+      for(const auto &[state, size]: by_state){
+          fmt::print("Deal with status {} allocates {} bytes", toString(state), size);
+      }
     }
   };
 
@@ -469,10 +507,13 @@ namespace fc::cli::_node {
            encoded_params},
           api::kPushNoSpec));
 
-          fmt::print("message sent, now waiting on cid: {}", signed_message.getCid());
-          auto mwait = cliTry(api._->StateWaitMsg(signed_message.getCid(), kMessageConfidence, kLoopback, false));
-         if (mwait.receipt.exit_code != VMExitCode::kOk) throw CliError("failed to add verified client");
-         fmt::print("Client {} was added successfully!", target);
+      fmt::print("message sent, now waiting on cid: {}",
+                 signed_message.getCid());
+      auto mwait = cliTry(api._->StateWaitMsg(
+          signed_message.getCid(), kMessageConfidence, kLoopback, false));
+      if (mwait.receipt.exit_code != VMExitCode::kOk)
+        throw CliError("failed to add verified client");
+      fmt::print("Client {} was added successfully!", target);
     }
   };
 
@@ -486,8 +527,8 @@ namespace fc::cli::_node {
     }
   };
 
-  struct Node_client_listNotaries: Empty{
-    CLI_RUN(){
+  struct Node_client_listNotaries : Empty {
+    CLI_RUN() {
       Node::Api api{argm};
       auto actor =
           cliTry(api._->StateGetActor(kVerifiedRegistryAddress, TipsetKey()),
@@ -498,16 +539,16 @@ namespace fc::cli::_node {
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
 
-      cliTry(state->verifiers.visit([=](auto &key, auto &value)->outcome::result<void>{
-        fmt::print("{}: {}", key, value);
-        return outcome::success();
-      }));
+      cliTry(state->verifiers.visit(
+          [=](auto &key, auto &value) -> outcome::result<void> {
+            fmt::print("{}: {}", key, value);
+            return outcome::success();
+          }));
     }
   };
 
-
-  struct Node_client_listClients: Empty{
-    CLI_RUN(){
+  struct Node_client_listClients : Empty {
+    CLI_RUN() {
       Node::Api api{argm};
       auto actor =
           cliTry(api._->StateGetActor(kVerifiedRegistryAddress, TipsetKey()),
@@ -518,16 +559,16 @@ namespace fc::cli::_node {
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
 
-      cliTry(state->verified_clients.visit([=](auto &key, auto &value)->outcome::result<void>{
-        fmt::print("{}: {}", key, value);
-        return outcome::success();
-      }));
+      cliTry(state->verified_clients.visit(
+          [=](auto &key, auto &value) -> outcome::result<void> {
+            fmt::print("{}: {}", key, value);
+            return outcome::success();
+          }));
     }
   };
 
-
-  struct Node_client_checkNotaryDataCap: Empty{
-    CLI_RUN(){
+  struct Node_client_checkNotaryDataCap : Empty {
+    CLI_RUN() {
       auto address{cliArgv<Address>(argv, 0, "address")};
       Node::Api api{argm};
       auto dcap = checkNotary(api._, address);

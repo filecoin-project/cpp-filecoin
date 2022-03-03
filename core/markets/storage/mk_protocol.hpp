@@ -135,6 +135,38 @@ namespace fc::markets::storage {
     /** deal failed with an unexpected error */
     STORAGE_DEAL_ERROR,
   };
+  inline auto &classConversionMap(StorageDealStatus &&) {
+    using E = StorageDealStatus;
+    static fc::common::ConversionTable<E, 26> table{{
+        {E::STORAGE_DEAL_UNKNOWN, "Unknown"},
+        {E::STORAGE_DEAL_PROPOSAL_NOT_FOUND, "NotFound"},
+        {E::STORAGE_DEAL_PROPOSAL_REJECTED, "ProposalRejected"},
+        {E::STORAGE_DEAL_PROPOSAL_ACCEPTED, "ProposalAccepted"},
+        {E::STORAGE_DEAL_STAGED, "Staged"},
+        {E::STORAGE_DEAL_SEALING, "Sealing"},
+        {E::STORAGE_DEAL_FINALIZING, "Finalizing"},
+        {E::STORAGE_DEAL_ACTIVE, "Active"},
+        {E::STORAGE_DEAL_EXPIRED, "Expired"},
+        {E::STORAGE_DEAL_SLASHED, "Slashed"},
+        {E::STORAGE_DEAL_REJECTING, "Rejecting"},
+        {E::STORAGE_DEAL_FAILING, "Falling"},
+        {E::STORAGE_DEAL_FUNDS_ENSURED, "FundsEnsured"},
+        {E::STORAGE_DEAL_CHECK_FOR_ACCEPTANCE, "CheckForAcceptance"},
+        {E::STORAGE_DEAL_VALIDATING, "DealValidating"},
+        {E::STORAGE_DEAL_ACCEPT_WAIT, "AcceptWait"},
+        {E::STORAGE_DEAL_START_DATA_TRANSFER, "StartDataTransfer"},
+        {E::STORAGE_DEAL_TRANSFERRING, "DealTransfering"},
+        {E::STORAGE_DEAL_WAITING_FOR_DATA, "WaitingForData"},
+        {E::STORAGE_DEAL_VERIFY_DATA, "VerifyData"},
+        {E::STORAGE_DEAL_ENSURE_PROVIDER_FUNDS, "EnsureProvidedFunds"},
+        {E::STORAGE_DEAL_PROVIDER_FUNDING, "ProviderFunding"},
+        {E::STORAGE_DEAL_CLIENT_FUNDING, "ClientFunding"},
+        {E::STORAGE_DEAL_PUBLISH, "DealPublish"},
+        {E::STORAGE_DEAL_PUBLISHING, "DealPublishing"},
+        {E::STORAGE_DEAL_ERROR, "Error"},
+    }};
+    return table;
+  }
 
   /**
    * StorageDeal is a local combination of a proposal and a current deal state
