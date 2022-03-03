@@ -141,9 +141,9 @@ namespace fc::cli {
     struct Column {
       std::string name;
       bool separate_line;
-      int lines = 0;
+      size_t lines = 0;
     };
-    using Row = std::map<int, std::string>;
+    using Row = std::map<size_t, std::string>;
 
     std::vector<Column> columns;
     std::vector<Row> rows;
@@ -159,12 +159,10 @@ namespace fc::cli {
       return column;
     }
 
-    explicit TableWriter(const std::vector<Column> &cols) {
-      columns = cols;
-    }
+    explicit TableWriter(const std::vector<Column> &cols) : columns(cols) {}
 
     void write(std::map<std::string, std::string> range) {
-      std::map<int, std::string> byColumnId;
+      std::map<size_t, std::string> byColumnId;
       bool flag = false;
 
       while (not flag) {
@@ -195,12 +193,11 @@ namespace fc::cli {
     }
 
     void flush() {
-      std::vector<int> colLenghts(columns.size());
-      // colLenghts.reserve(columns.size());
+      std::vector<size_t> col_lengths(columns.size());
 
-      std::map<int, std::string> header;
+      std::map<size_t, std::string> header;
       for (size_t i = 0; i < columns.size(); ++i) {
-        Column &column = columns[i];
+        const Column &column = columns[i];
         if (column.separate_line) {
           continue;
         }
@@ -210,19 +207,18 @@ namespace fc::cli {
       rows.insert(rows.begin(), header);
 
       for (size_t i = 0; i < columns.size(); ++i) {
-        Column &column = columns[i];
+        const Column &column = columns[i];
         if (column.lines == 0) {
           continue;
         }
 
-        for (size_t j = 0; j < rows.size(); ++j) {
-          Row &row = rows[j];
+        for (auto &row : rows) {
           if (row.find(i) == row.end()) {
             continue;
           }
           std::string value = row[i];
-          if (value.size() > colLenghts[i]) {
-            colLenghts[i] = value.size();
+          if (value.size() > col_lengths[i]) {
+            col_lengths[i] = value.size();
           }
         }
       }
@@ -231,27 +227,27 @@ namespace fc::cli {
         std::vector<std::string> cols;
         cols.reserve(cols.size());
 
-        for (int i = 0; i < columns.size(); ++i) {
-          Column &column = columns[i];
+        for (size_t i = 0; i < columns.size(); ++i) {
+          const Column &column = columns[i];
           if (column.lines == 0) {
             continue;
           }
 
-          std::string e = row[i];
-          int pad = colLenghts[i] - e.size() + 2;
+          std::string for_print = row[i];
+          int pad = col_lengths[i] + 2 - for_print.size();
           if (not column.separate_line && column.lines > 0) {
-            e += std::string(pad, ' ');
-            fmt::print(e);
+            for_print += std::string(pad, ' ');
+            fmt::print(for_print);
           }
 
-          cols.push_back(e);
+          cols.push_back(for_print);
         }
 
         fmt::print("\n");
 
         for (int i = 0; i < columns.size(); ++i) {
           Column &column = columns[i];
-          if (not column.separate_line || cols[i].size() == 0) {
+          if (not column.separate_line || cols[i].empty()) {
             continue;
           }
 
