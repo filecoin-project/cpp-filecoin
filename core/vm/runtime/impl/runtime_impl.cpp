@@ -181,11 +181,13 @@ namespace fc::vm::runtime {
 
   outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
       const {
-    if (auto circulating{execution_->env->env_context.circulating}) {
-      return circulating->circulating(execution_->state_tree,
-                                      getCurrentEpoch());
+    if (getNetworkVersion() <= NetworkVersion::kVersion14) {
+      if (const auto &circulating{execution_->env->env_context.circulating}) {
+        return circulating->circulating(execution_->state_tree,
+                                        getCurrentEpoch());
+      }
     }
-    return 0;
+    return execution_->env->base_circulating;
   }
 
   std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() const {

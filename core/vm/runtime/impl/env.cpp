@@ -110,23 +110,31 @@ namespace fc::vm::runtime {
     return storage::ipfs::IpfsDatastoreError::kNotFound;
   }
 
-  Env::Env(const EnvironmentContext &env_context,
-           TsBranchPtr ts_branch,
-           TipsetCPtr tipset)
-      : ipld{std::make_shared<IpldBuffered>(env_context.ipld)},
-        state_tree{std::make_shared<StateTreeImpl>(
-            this->ipld, tipset->getParentStateRoot())},
-        env_context{env_context},
-        epoch{tipset->height()},
-        ts_branch{std::move(ts_branch)},
-        tipset{std::move(tipset)},
-        pricelist{epoch} {
-    setHeight(epoch);
+  outcome::result<std::shared_ptr<Env>> Env::make(
+      const EnvironmentContext &env_context,
+      TsBranchPtr ts_branch,
+      TipsetCPtr tipset) {
+    auto env{std::make_shared<Env>()};
+    env->ipld = std::make_shared<IpldBuffered>(env_context.ipld);
+    env->state_tree = std::make_shared<StateTreeImpl>(
+        env->ipld, tipset->getParentStateRoot());
+    env->env_context = env_context;
+    env->epoch = tipset->height();
+    env->ts_branch = std::move(ts_branch);
+    env->tipset = std::move(tipset);
+    env->pricelist = Pricelist{env->epoch};
+    OUTCOME_TRY(env->setHeight(env->epoch));
+    return env;
   }
 
-  void Env::setHeight(ChainEpoch height) {
+  outcome::result<void> Env::setHeight(ChainEpoch height) {
     epoch = height;
     ipld->actor_version = actorVersion(height);
+    if (env_context.circulating) {
+      OUTCOME_TRYA(base_circulating,
+                   env_context.circulating->circulating(state_tree, height));
+    }
+    return outcome::success();
   }
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)

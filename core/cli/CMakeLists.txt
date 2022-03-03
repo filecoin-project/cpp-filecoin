@@ -9,4 +9,4 @@ target_link_libraries(cli INTERFACE
     fmt::fmt
     )
 
-add_subdirectory(example)
+add_subdirectory(node)

@@ -17,11 +17,10 @@ namespace fc::config {
   /**
    * Checks that profile name is expected one.
    */
-
   CLI_VALIDATE(Profile) {
     validateWith(out, values, [](const std::string &value) {
       if (value == "mainnet" || value == "2k" || value == "no-upgrades"
-          || value == "interopnet") {
+          || value == "interopnet" || value == "butterflynet") {
         return Profile{value};
       }
       throw std::exception{};

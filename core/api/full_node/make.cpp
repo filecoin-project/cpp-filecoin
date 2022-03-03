@@ -588,7 +588,7 @@ namespace fc::api {
       if (!message.gas_limit) {
         message.gas_limit = kBlockGasLimit;
       }
-      auto env = std::make_shared<Env>(env_context, ts_branch, context.tipset);
+      OUTCOME_TRY(env, Env::make(env_context, ts_branch, context.tipset));
       InvocResult result;
       result.message = message;
       OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
@@ -747,9 +747,8 @@ namespace fc::api {
           }));
       return map;
     };
-
-    api->MarketAddBalance = [=](auto &address, auto &wallet, auto &amount)
-        -> outcome::result<boost::optional<CID>> {
+    api->MarketAddBalance =
+        [=](auto &address, auto &wallet, auto &amount) -> outcome::result<CID> {
       OUTCOME_TRY(
           encoded_params,
           codec::cbor::encode(

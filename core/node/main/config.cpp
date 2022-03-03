@@ -9,7 +9,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
-#include "cli/validate/with.hpp"
+#include "cli/validate/peer_info.hpp"
 #include "config/profile_config.hpp"
 #include "node/node_version.hpp"
 #include "primitives/address/config.hpp"
@@ -22,16 +22,6 @@ namespace fc::common {
     });
   }
 }  // namespace fc::common
-
-namespace libp2p::peer {
-  CLI_VALIDATE(PeerInfo) {
-    fc::validateWith(out, values, [](const std::string &value) {
-      auto address{multi::Multiaddress::create(value).value()};
-      auto id{PeerId::fromBase58(*address.getPeerId()).value()};
-      return PeerInfo{std::move(id), {std::move(address)}};
-    });
-  }
-}  // namespace libp2p::peer
 
 namespace fc::node {
   using config::configProfile;

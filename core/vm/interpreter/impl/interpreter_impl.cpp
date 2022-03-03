@@ -146,7 +146,7 @@ namespace fc::vm::interpreter {
       return InterpreterError::kDuplicateMiner;
     }
 
-    auto env = std::make_shared<Env>(env_context_, ts_branch, tipset);
+    OUTCOME_TRY(env, Env::make(env_context_, ts_branch, tipset));
 
     auto cron{[&]() -> outcome::result<void> {
       OUTCOME_TRY(receipt,
@@ -171,10 +171,10 @@ namespace fc::vm::interpreter {
       OUTCOME_TRY(parent, env_context_.ts_load->load(tipset->getParents()));
       for (auto epoch{parent->height() + 1}; epoch < tipset->height();
            ++epoch) {
-        env->setHeight(epoch);
+        OUTCOME_TRY(env->setHeight(epoch));
         OUTCOME_TRY(cron());
       }
-      env->setHeight(tipset->height());
+      OUTCOME_TRY(env->setHeight(tipset->height()));
     }
 
     nextStep(&metricMessages);
