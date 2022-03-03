@@ -91,33 +91,15 @@ namespace fc::cli::_node {
           fmt::print("{}\n", encodeToString(address));
         } else {
           auto maybe_actor = api._->StateGetActor(
-              address, TipsetKey{});  // TODO this place input on console log of
+              address, TipsetKey{});
 
           Actor actor;
           if (maybe_actor.has_error()) {
-            TipsetCPtr chain_head =
-                cliTry(api._->ChainHead(), "Getting chain head...");
-            CID state_root = chain_head->getParentStateRoot();
-            /*
-            auto network_version =
-            cliTry(api._->StateNetworkVersion(chain_head->key), "Getting network
-            version..."); // TODO tipsetkey? auto ipfs =
-            std::make_shared<ApiIpfsDatastore>(api._); ipfs->actor_version =
-            actorVersion(network_version);
-             */
-            auto ipfs = std::make_shared<ApiIpfsDatastore>(api._);
-            StateTreeImpl tree{ipfs, state_root};
-            auto actor_exist = tree.tryGet(address);
-
-            if (not actor_exist.has_value()) {
               table_writer.write(
                   {{"Address", encodeToString(address)},
                    {"Error", "Error get actor"}});
               continue;
-            }
-            actor = maybe_actor.value();
 
-            actor.balance = 0;
           } else {
             actor = maybe_actor.value();
           }
@@ -301,7 +283,7 @@ namespace fc::cli::_node {
     CLI_RUN() {
       const Node::Api api{argm};
       const Address signing_address{cliArgv<Address>(argv, 0, "Signing address")};
-      const std::string hex_message{cliArgv<std::string>(argv, 0, "Hex message")};
+      const std::string hex_message{cliArgv<std::string>(argv, 1, "Hex message")};
 
       const Bytes decode_message =
           cliTry(unhex(hex_message), "Decoding hex message...");
@@ -381,6 +363,9 @@ namespace fc::cli::_node {
 
       const auto cid_signed_message = cliTry(api._->MarketAddBalance(address_from, address, amt),
                          "Add balance...");
+      const MsgWait message_wait =
+          cliTry(api._->StateWaitMsg(cid_signed_message.value(), 1, 10, false),
+                 "Wait message");
 
       fmt::print("Add balance message cid : {}\n", cid_signed_message.value());
     }
