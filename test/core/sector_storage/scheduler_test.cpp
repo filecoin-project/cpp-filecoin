@@ -11,6 +11,7 @@
 #include "sector_storage/schedulder_utils.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/mocks/sector_storage/selector_mock.hpp"
+#include "testutil/mocks/sector_storage/worker_mock.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::sector_storage {
@@ -72,9 +73,10 @@ namespace fc::sector_storage {
       scheduler_ = scheduler;
 
       std::unique_ptr<WorkerHandle> worker = std::make_unique<WorkerHandle>();
+      mock_worker_ = std::make_unique<WorkerMock>();
 
       worker_name_ = "worker";
-
+      worker->worker = mock_worker_;
       worker->info = WorkerInfo{
           .hostname = worker_name_,
           .resources = WorkerResources{.physical_memory = uint64_t(1) << 20,
@@ -89,7 +91,7 @@ namespace fc::sector_storage {
 
     std::string worker_name_;
     std::vector<WorkState> states_;
-
+    std::shared_ptr<WorkerMock> mock_worker_;
     std::shared_ptr<boost::asio::io_context> io_;
     RegisteredSealProof seal_proof_type_;
     std::shared_ptr<InMemoryStorage> kv_;
@@ -339,6 +341,9 @@ namespace fc::sector_storage {
     ReturnCb cb = [&](const outcome::result<CallResult> &) {
       is_first_called = true;
     };
+
+    EXPECT_CALL(*mock_worker_, isLocalWorker())
+        .WillOnce(testing::Return(false));
 
     EXPECT_CALL(
         *selector_,

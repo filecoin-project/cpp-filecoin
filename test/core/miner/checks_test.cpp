@@ -413,73 +413,6 @@ namespace fc::mining::checks {
   }
 
   /**
-   * @given info, valid pieces, expired ticket
-   * @when try to check precommit
-   * @then ChecksError::kExpiredTicket occurs
-   */
-  TEST_F(CheckPrecommit, ExpiredTicket) {
-    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
-    api::DealId deal_id = 1;
-
-    PieceInfo piece{.size = PaddedPieceSize(2048), .cid = "010001020001"_cid};
-    info->comm_d = "010001020001"_cid;
-    info->pieces = {
-        Piece{
-            .piece = piece,
-            .deal_info =
-                DealInfo{
-                    .publish_cid = "010001020002"_cid,
-                    .deal_id = deal_id,
-                    .deal_proposal = boost::none,
-                    .deal_schedule =
-                        DealSchedule{
-                            .start_epoch = 1,
-                            .end_epoch = 1,
-                        },
-                    .is_keep_unsealed = false,
-                },
-        },
-    };
-
-    MOCK_API(api_, ChainHead);
-    TipsetKey head_key;
-    auto head_tipset =
-        std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
-    EXPECT_CALL(mock_ChainHead, Call())
-        .WillOnce(testing::Return(outcome::success(head_tipset)));
-
-    MOCK_API(api_, StateMarketStorageDeal);
-    api::StorageDeal deal;
-    deal.proposal.provider = Address::makeFromId(miner_id_);
-    deal.proposal.piece_cid = piece.cid;
-    deal.proposal.piece_size = piece.size;
-    deal.proposal.start_epoch = 1;
-    EXPECT_CALL(mock_StateMarketStorageDeal, Call(deal_id, head_key))
-        .WillOnce(testing::Return(outcome::success(deal)));
-
-    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
-                             CbCid::hash("02"_unhex),
-                             CbCid::hash("03"_unhex)}};
-    MOCK_API(api_, StateCall);
-    EXPECT_CALL(
-        mock_StateCall,
-        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
-        .WillOnce(testing::Return(commD({{*info->comm_d}})));
-
-    MOCK_API(api_, StateNetworkVersion);
-    EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
-        .WillOnce(testing::Return(outcome::success(version_)));
-    EXPECT_OUTCOME_TRUE(duration,
-                        checks::getMaxProveCommitDuration(version_, info));
-    ChainEpoch height = duration
-                        + vm::actor::builtin::types::miner::kChainFinality
-                        + info->ticket_epoch + 1;
-    EXPECT_OUTCOME_ERROR(
-        ChecksError::kExpiredTicket,
-        checkPrecommit(miner_addr_, info, precommit_key, height, api_));
-  }
-
-  /**
    * @given info, valid pieces, ticket, precommit on chain
    * @when try to check precommit
    * @then ChecksError::kPrecommitOnChain occurs
@@ -544,13 +477,9 @@ namespace fc::mining::checks {
 
     MOCK_API(api_, StateNetworkVersion);
     EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
-        .Times(2)
         .WillRepeatedly(testing::Return(outcome::success(version_)));
-    EXPECT_OUTCOME_TRUE(duration,
-                        checks::getMaxProveCommitDuration(version_, info));
-    ChainEpoch height = duration
-                        + vm::actor::builtin::types::miner::kChainFinality
-                        + info->ticket_epoch;
+
+    ChainEpoch height;
 
     auto actor_key{"010001020003"_cid};
     SectorPreCommitOnChainInfo some_info;
@@ -651,13 +580,9 @@ namespace fc::mining::checks {
 
     MOCK_API(api_, StateNetworkVersion);
     EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
-        .Times(2)
         .WillRepeatedly(testing::Return(outcome::success(version_)));
-    EXPECT_OUTCOME_TRUE(duration,
-                        checks::getMaxProveCommitDuration(version_, info));
-    ChainEpoch height = duration
-                        + vm::actor::builtin::types::miner::kChainFinality
-                        + info->ticket_epoch;
+
+    ChainEpoch height;
 
     auto actor_key{"010001020003"_cid};
 
@@ -692,6 +617,112 @@ namespace fc::mining::checks {
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadTicketEpoch,
+        checkPrecommit(miner_addr_, info, precommit_key, height, api_));
+  }
+
+  /**
+   * @given info, valid pieces, expired ticket
+   * @when try to check precommit
+   * @then ChecksError::kExpiredTicket occurs
+   */
+  TEST_F(CheckPrecommit, ExpiredTicket) {
+    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
+    api::DealId deal_id = 1;
+
+    SectorNumber sector = 1;
+    PieceInfo piece{.size = PaddedPieceSize(2048), .cid = "010001020001"_cid};
+    info->comm_d = "010001020001"_cid;
+    info->sector_number = sector;
+    info->pieces = {
+        Piece{
+            .piece = piece,
+            .deal_info =
+                DealInfo{
+                    .publish_cid = "010001020002"_cid,
+                    .deal_id = deal_id,
+                    .deal_proposal = boost::none,
+                    .deal_schedule =
+                        DealSchedule{
+                            .start_epoch = 1,
+                            .end_epoch = 1,
+                        },
+                    .is_keep_unsealed = false,
+                },
+        },
+    };
+
+    TipsetKey head_key;
+    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
+      auto tip =
+          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+      return tip;
+    };
+
+    api_->StateMarketStorageDeal =
+        [&piece, id{miner_id_}, deal_id, &head_key](
+            api::DealId did,
+            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
+      if (did == deal_id and key == head_key) {
+        api::StorageDeal res;
+        res.proposal.provider = Address::makeFromId(id);
+        res.proposal.piece_cid = piece.cid;
+        res.proposal.piece_size = piece.size;
+        res.proposal.start_epoch = 1;
+        return res;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
+
+    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
+                             CbCid::hash("02"_unhex),
+                             CbCid::hash("03"_unhex)}};
+    MOCK_API(api_, StateCall);
+    EXPECT_CALL(
+        mock_StateCall,
+        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
+        .WillOnce(testing::Return(commD({{*info->comm_d}})));
+
+    MOCK_API(api_, StateNetworkVersion);
+    EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
+        .WillRepeatedly(testing::Return(outcome::success(version_)));
+
+    auto actor_key{"010001020003"_cid};
+
+    SectorPreCommitOnChainInfo some_info;
+    some_info.info.sealed_cid = "010001020006"_cid;
+    some_info.info.seal_epoch = info->ticket_epoch + 1;
+    EXPECT_OUTCOME_TRUE_1(
+        actor_state_->precommitted_sectors.set(sector + 1, some_info));
+    EXPECT_OUTCOME_TRUE(cid_root,
+                        actor_state_->precommitted_sectors.hamt.flush());
+
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state_);
+      }
+      if (key == cid_root) {
+        EXPECT_OUTCOME_TRUE(root,
+                            getCbor<storage::hamt::Node>(ipld_, cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state_->allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    Actor actor;
+    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.head = actor_key;
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
+
+    info->ticket_epoch = 0;
+    ChainEpoch height =
+        vm::actor::builtin::types::miner::kMaxPreCommitRandomnessLookback + 1;
+    EXPECT_OUTCOME_ERROR(
+        ChecksError::kExpiredTicket,
         checkPrecommit(miner_addr_, info, precommit_key, height, api_));
   }
 
