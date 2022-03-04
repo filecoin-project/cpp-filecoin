@@ -22,10 +22,10 @@ namespace fc::cli::_node {
       {GROUP("wallet")({
           CMD("new", Node_wallet_new),
           CMD("list", Node_wallet_list),
-          CMD("add-balance", Node_wallet_add_balance),
+          CMD("add-balance", Node_wallet_addBalance),
           CMD("balance", Node_wallet_balance),
           CMD("default", Node_wallet_default),
-          CMD("set-default", Node_wallet_set_default),
+          CMD("set-default", Node_wallet_setDefault),
           CMD("import", Node_wallet_import),
           CMD("sign", Node_wallet_sign),
           CMD("verify", Node_wallet_verify),

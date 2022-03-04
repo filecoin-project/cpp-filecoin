@@ -1,11 +1,11 @@
 /**
-* Copyright Soramitsu Co., Ltd. All Rights Reserved.
-* SPDX-License-Identifier: Apache-2.0
-*/
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 class TableWriter {
   struct Column {

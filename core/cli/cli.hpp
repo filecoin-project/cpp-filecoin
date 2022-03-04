@@ -10,7 +10,6 @@
 #include <map>
 #include <memory>
 #include <typeindex>
-#include <utility>
 
 #include "cli/try.hpp"
 
@@ -137,5 +136,4 @@ namespace fc::cli {
   using Group = Empty;
 
   struct ShowHelp {};
-
 }  // namespace fc::cli

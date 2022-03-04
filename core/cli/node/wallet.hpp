@@ -11,11 +11,11 @@
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
 #include "common/hexutil.hpp"
+#include "common/table_writer.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/big_int.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
-#include "common/table_writer.hpp"
 
 namespace fc::cli::_node {
   using api::KeyInfo;
@@ -41,9 +41,9 @@ namespace fc::cli::_node {
     CLI_RUN() {
       const Node::Api api{argm};
       const std::string type =
-          argv.empty() ? "secp256k1"
-                       : cliArgv(
-                           argv, 0, "[bls|secp256k1 (default secp256k1)]");
+          argv.empty()
+              ? "secp256k1"
+              : cliArgv(argv, 0, "[bls|secp256k1 (default secp256k1)]");
 
       const Address address =
           cliTry(api->WalletNew(type), "Creating new wallet...");
@@ -109,7 +109,8 @@ namespace fc::cli::_node {
 
           if (args.id) {
             auto maybe_id = api->StateLookupID(address, TipsetKey{});
-            row["ID"] = maybe_id.has_error() ? "n/a" : fmt::to_string(maybe_id.value());
+            row["ID"] =
+                maybe_id.has_error() ? "n/a" : fmt::to_string(maybe_id.value());
           }
 
           if (args.market) {
@@ -153,7 +154,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct Node_wallet_add_balance {
+  struct Node_wallet_addBalance {
     struct Args {
       CLI_OPTIONAL("from,f", "Address from take balance", Address) from;
       CLI_DEFAULT("gas-limit", "Limit of gas", GasAmount, {0}) gas_limit;
@@ -197,7 +198,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct Node_wallet_set_default : Empty {
+  struct Node_wallet_setDefault : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
       const Address address{
@@ -255,8 +256,7 @@ namespace fc::cli::_node {
           input_data.pop_back();
         }
         input_data =
-            cliTry(unhex(common::span::bytestr(input_data)),
-                   "Unhex data...");
+            cliTry(unhex(common::span::bytestr(input_data)), "Unhex data...");
       }
 
       const auto json =
@@ -279,8 +279,7 @@ namespace fc::cli::_node {
       const Node::Api api{argm};
       const Address signing_address{
           cliArgv<Address>(argv, 0, "Signing address")};
-      const std::string hex_message{
-          cliArgv(argv, 1, "Hex message")};
+      const std::string hex_message{cliArgv(argv, 1, "Hex message")};
 
       const Bytes decode_message =
           cliTry(unhex(hex_message), "Decoding hex message...");
@@ -297,8 +296,7 @@ namespace fc::cli::_node {
       const Node::Api api{argm};
       const Address signing_address{
           cliArgv<Address>(argv, 0, "Signing address")};
-      const std::string hex_message{
-          cliArgv(argv, 1, "Hex message")};
+      const std::string hex_message{cliArgv(argv, 1, "Hex message")};
       const std::string signature{cliArgv(argv, 2, "Signature")};
 
       const Bytes decode_message =
