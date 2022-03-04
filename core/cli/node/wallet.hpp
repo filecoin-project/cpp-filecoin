@@ -15,12 +15,12 @@
 #include "primitives/big_int.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "common/table_writer.hpp"
 
 namespace fc::cli::_node {
   using api::KeyInfo;
   using api::MarketBalance;
   using api::MsgWait;
-  using boost::lexical_cast;
   using common::hex_lower;
   using common::unhex;
   using crypto::signature::Signature;
@@ -31,29 +31,28 @@ namespace fc::cli::_node {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::address::decodeFromString;
-  using primitives::address::encodeToString;
   using primitives::tipset::TipsetCPtr;
   using storage::ipfs::ApiIpfsDatastore;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::state::StateTreeImpl;
 
-  struct walletNew : Empty {
+  struct Node_wallet_new : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
       const std::string type =
           argv.empty() ? "secp256k1"
-                       : cliArgv<std::string>(
+                       : cliArgv(
                            argv, 0, "[bls|secp256k1 (default secp256k1)]");
 
       const Address address =
           cliTry(api->WalletNew(type), "Creating new wallet...");
 
-      fmt::print("{}", encodeToString(address));
+      fmt::print("{}", address);
     }
   };
 
-  struct walletList {
+  struct Node_wallet_list {
     struct Args {
       CLI_BOOL("address-only,a", "only print addresses") address_only;
       CLI_BOOL("id,i", "Output ID addresses") id;
@@ -88,20 +87,20 @@ namespace fc::cli::_node {
 
       for (const Address &address : addresses) {
         if (args.address_only) {
-          fmt::print("{}\n", encodeToString(address));
+          fmt::print("{}\n", address);
         } else {
           auto maybe_actor = api->StateGetActor(address, TipsetKey{});
 
           if (maybe_actor.has_error()) {
-            table_writer.write({{"Address", encodeToString(address)},
+            table_writer.write({{"Address", fmt::to_string(address)},
                                 {"Error", "Error get actor"}});
             continue;
           }
           const Actor actor = maybe_actor.value();
 
           std::map<std::string, std::string> row{
-              {"Address", encodeToString(address)},
-              {"Balance", lexical_cast<std::string>(actor.balance)},
+              {"Address", fmt::to_string(address)},
+              {"Balance", fmt::to_string(actor.balance)},
               {"Nonce", std::to_string(actor.nonce)}};
 
           if (address == default_address) {
@@ -110,11 +109,7 @@ namespace fc::cli::_node {
 
           if (args.id) {
             auto maybe_id = api->StateLookupID(address, TipsetKey{});
-            if (maybe_id.has_error()) {
-              row["ID"] = "n/a";
-            } else {
-              row["ID"] = encodeToString(maybe_id.value());
-            }
+            row["ID"] = maybe_id.has_error() ? "n/a" : fmt::to_string(maybe_id.value());
           }
 
           if (args.market) {
@@ -123,8 +118,8 @@ namespace fc::cli::_node {
             if (maybe_balance.has_value()) {
               const MarketBalance balance = maybe_balance.value();
               row["Market(Avail)"] =
-                  lexical_cast<std::string>(balance.escrow - balance.locked);
-              row["Market(Locked)"] = lexical_cast<std::string>(balance.locked);
+                  fmt::to_string(balance.escrow - balance.locked);
+              row["Market(Locked)"] = fmt::to_string(balance.locked);
             }
           }
 
@@ -138,7 +133,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct walletBalance : Empty {
+  struct Node_wallet_balance : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
       const Address address = (argv.size() == 1)
@@ -158,7 +153,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct walletAddBalance {
+  struct Node_wallet_add_balance {
     struct Args {
       CLI_OPTIONAL("from,f", "Address from take balance", Address) from;
       CLI_DEFAULT("gas-limit", "Limit of gas", GasAmount, {0}) gas_limit;
@@ -193,16 +188,16 @@ namespace fc::cli::_node {
     }
   };
 
-  struct walletDefault : Empty {
+  struct Node_wallet_default : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
       const Address default_address =
           cliTry(api->WalletDefaultAddress(), "Getting default address...");
-      fmt::print("{}", encodeToString(default_address));
+      fmt::print("{}", default_address);
     }
   };
 
-  struct walletSetDefault : Empty {
+  struct Node_wallet_set_default : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
       const Address address{
@@ -212,7 +207,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct walletImport {
+  struct Node_wallet_import {
     struct Args {
       CLI_DEFAULT("format,f",
                   "specify input format for key [hex-lotus|json-lotus]",
@@ -236,7 +231,7 @@ namespace fc::cli::_node {
       }
 
       const std::string path =
-          (argv.size() == 1) ? cliArgv<std::string>(
+          (argv.size() == 1) ? cliArgv(
               argv, 0, "<path> (optional, will read from stdin if omitted)")
                              : "";
 
@@ -260,7 +255,7 @@ namespace fc::cli::_node {
           input_data.pop_back();
         }
         input_data =
-            cliTry(unhex(std::string(input_data.begin(), input_data.end())),
+            cliTry(unhex(common::span::bytestr(input_data)),
                    "Unhex data...");
       }
 
@@ -275,17 +270,17 @@ namespace fc::cli::_node {
         cliTry(api->WalletSetDefault(address), "Set-default...");
       }
 
-      fmt::print("Imported key {} successfully.\n", encodeToString(address));
+      fmt::print("Imported key {} successfully.\n", address);
     }
   };
 
-  struct walletSign : Empty {
+  struct Node_wallet_sign : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
       const Address signing_address{
           cliArgv<Address>(argv, 0, "Signing address")};
       const std::string hex_message{
-          cliArgv<std::string>(argv, 1, "Hex message")};
+          cliArgv(argv, 1, "Hex message")};
 
       const Bytes decode_message =
           cliTry(unhex(hex_message), "Decoding hex message...");
@@ -297,14 +292,14 @@ namespace fc::cli::_node {
     }
   };
 
-  struct walletVerify : Empty {
+  struct Node_wallet_verify : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
       const Address signing_address{
           cliArgv<Address>(argv, 0, "Signing address")};
       const std::string hex_message{
-          cliArgv<std::string>(argv, 1, "Hex message")};
-      const std::string signature{cliArgv<std::string>(argv, 2, "Signature")};
+          cliArgv(argv, 1, "Hex message")};
+      const std::string signature{cliArgv(argv, 2, "Signature")};
 
       const Bytes decode_message =
           cliTry(unhex(hex_message), "Decoding message...");
@@ -325,7 +320,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct walletDelete : Empty {
+  struct Node_wallet_delete : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
       const Address address{cliArgv<Address>(argv, 0, "Address for delete")};
@@ -334,7 +329,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct walletMarketAdd {
+  struct Node_wallet_market_add {
     struct Args {
       CLI_OPTIONAL("from,f",
                    "Specify address to move funds from, otherwise it will use "
@@ -367,7 +362,7 @@ namespace fc::cli::_node {
       fmt::print(
           "Submitting Add Balance message for amount {} for address {}\n",
           amt,
-          encodeToString(address));
+          address);
 
       const auto cid_signed_message = cliTry(
           api->MarketAddBalance(address_from, address, amt), "Add balance...");
