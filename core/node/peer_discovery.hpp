@@ -41,7 +41,6 @@ namespace fc::sync {
     events::Connection peer_disconnected_event_;
     events::Connection block_pubsub_event_;
     events::Connection message_pubsub_event_;
-    Scheduler::Handle timer_handle_;
     size_t n_connections_ = 0;
     std::unordered_set<libp2p::peer::PeerId> requests_in_progress_;
   };

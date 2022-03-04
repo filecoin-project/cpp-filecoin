@@ -244,7 +244,7 @@ namespace fc::storage::ipld {
   void CidsIpld::asyncFlush() {
     if (!flushing.test_and_set()) {
       if (io) {
-        io->post(weakCb0(weak_from_this(), [this] {
+        io->post(weakCb(*this, [this](std::shared_ptr<CidsIpld> &&self) {
           if (auto r{doFlush()}; !r) {
             spdlog::error("CidsIpld({}) async flush: {:#}", index_path, ~r);
           }

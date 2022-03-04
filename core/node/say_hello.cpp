@@ -6,8 +6,10 @@
 #include "node/say_hello.hpp"
 
 #include <cassert>
+
 #include "codec/cbor/cbor_decode_stream.hpp"
 #include "codec/cbor/cbor_encode_stream.hpp"
+#include "common/libp2p/timer_loop.hpp"
 #include "common/logger.hpp"
 #include "node/events.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -74,14 +76,11 @@ namespace fc::sync {
           }
         });
 
-    heartbeat_handle_ = scheduler_->scheduleWithHandle(
-        [wptr = weak_from_this()]() {
-          auto self = wptr.lock();
-          if (self) {
-            self->onHeartbeat();
-          }
-        },
-        kHeartbeatInterval);
+    timerLoop(scheduler_,
+              kHeartbeatInterval,
+              weakCb(*this, [](std::shared_ptr<SayHello> &&self) {
+                self->onHeartbeat();
+              }));
 
     log()->debug("started");
   }

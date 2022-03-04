@@ -10,6 +10,7 @@
 #include <libp2p/security/noise/crypto/state.hpp>
 
 #include "common/libp2p/stream_read_buffer.hpp"
+#include "common/ptr.hpp"
 #include "message_queue.hpp"
 #include "message_reader.hpp"
 #include "outbound_endpoint.hpp"
@@ -121,14 +122,7 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (streams_.empty()) {
-      timer_ = scheduler_.scheduleWithHandle(
-          [wptr{weak_from_this()}]() {
-            auto self = wptr.lock();
-            if (self) {
-              self->onStreamCleanupTimer();
-            }
-          },
-          kStreamCloseDelayMsec);
+      scheduleCleanup(kStreamCloseDelayMsec);
     }
 
     auto [it, _] = streams_.emplace(stream, std::move(stream_ctx));
@@ -231,15 +225,11 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (status != RS_REJECTED_LOCALLY) {
-      timer_ = scheduler_.scheduleWithHandle(
-          [wptr{weak_from_this()}]() {
-            auto self = wptr.lock();
-            if (self) {
-              self->network_feedback_.peerClosed(self->peer_,
-                                                 self->close_status_);
-            }
-          },
-          std::chrono::milliseconds::zero());
+      scheduler_.schedule(
+          weakCb(*this, [](std::shared_ptr<PeerContext> &&self) {
+            self->network_feedback_.peerClosed(self->peer_,
+                                               self->close_status_);
+          }));
     } else {
       network_feedback_.peerClosed(peer_, RS_REJECTED_LOCALLY);
     }
@@ -247,8 +237,7 @@ namespace fc::storage::ipfs::graphsync {
 
   // here stream should copy, because streams_.erase will reset original one
   // NOLINTNEXTLINE
-  void PeerContext::closeStream(StreamPtr stream,
-                                ResponseStatusCode status) {
+  void PeerContext::closeStream(StreamPtr stream, ResponseStatusCode status) {
     auto it = streams_.find(stream);
     if (it == streams_.end()) {
       logger()->error("closeStream: stream not found, peer={}", str_);
@@ -394,6 +383,10 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void PeerContext::onStreamCleanupTimer() {
+    if (closed_) {
+      return;
+    }
+
     std::chrono::milliseconds max_expire_time =
         std::chrono::milliseconds::zero();
 
@@ -421,11 +414,10 @@ namespace fc::storage::ipfs::graphsync {
       closeStream(stream, RS_TIMEOUT);
     }
 
-    // reschedule during scheduler callback, will not throw
     if (!streams_.empty() && max_expire_time > now) {
-      timer_.reschedule(max_expire_time - now).value();
+      scheduleCleanup(max_expire_time - now);
     } else {
-      timer_.reschedule(kPeerCloseDelayMsec).value();
+      scheduleCleanup(kPeerCloseDelayMsec);
     }
   }
 
@@ -444,5 +436,13 @@ namespace fc::storage::ipfs::graphsync {
         break;
       }
     }
+  }
+
+  void PeerContext::scheduleCleanup(std::chrono::milliseconds delay) {
+    scheduler_.schedule(weakCb(*this,
+                               [](std::shared_ptr<PeerContext> &&self) {
+                                 self->onStreamCleanupTimer();
+                               }),
+                        delay);
   }
 }  // namespace fc::storage::ipfs::graphsync
