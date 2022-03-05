@@ -88,11 +88,6 @@ namespace fc::storage::ipfs::graphsync {
                                outcome::result<void> result) = 0;
   };
 
-  /// Operators needed to find a PeerContext in a set by peer id
-  bool operator<(const PeerContextPtr &ctx, const PeerId &peer);
-  bool operator<(const PeerId &peer, const PeerContextPtr &ctx);
-  bool operator<(const PeerContextPtr &a, const PeerContextPtr &b);
-
   /// Protocol version
   constexpr std::string_view kProtocolVersion = "/ipfs/graphsync/1.0.0";
 

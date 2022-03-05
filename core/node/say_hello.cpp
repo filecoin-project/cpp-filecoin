@@ -217,7 +217,9 @@ namespace fc::sync {
       auto it2 = active_requests_.find(peer_id);
       assert(it2 != active_requests_.end());
 
-      it2->second.stream->close();
+      if (it2->second.stream) {
+        it2->second.stream->close();
+      }
       active_requests_.erase(it2);
 
       log()->debug("request timed out for peer {}", peer_id.toBase58());
