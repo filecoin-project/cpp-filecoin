@@ -238,7 +238,7 @@ namespace fc::sync::blocksync {
             put_block_header_{put_block_header} {}
 
       ~BlocksyncRequestImpl() override {
-        cancel();
+        done();
       }
 
       void makeRequest(PeerId peer,
@@ -324,10 +324,6 @@ namespace fc::sync::blocksync {
                      }),
               std::chrono::milliseconds(timeoutMsec + depth * 100));
         }
-      }
-
-      void cancel() override {
-        done();
       }
 
      private:
