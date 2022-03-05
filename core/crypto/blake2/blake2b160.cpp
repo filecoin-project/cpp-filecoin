@@ -5,8 +5,11 @@
 
 #include "crypto/blake2/blake2b160.hpp"
 
-#include <fstream>
 #include "common/span.hpp"
+
+#include <openssl/evp.h>
+#include <fstream>
+#include <array>
 
 #ifndef ROTR64
 #define ROTR64(x, y) (((x) >> (y)) ^ ((x) << (64 - (y))))
@@ -142,24 +145,30 @@ namespace fc::crypto::blake2b {
     return res;
   }
 
-  Blake2b512Hash blake2b_512_from_file(std::ifstream &file_stream) {
-    if (!file_stream.is_open()) return {};
+  Blake2b512Hash blake2b_512_from_file(const std::string &path) {
+    std::ifstream file_stream(path, std::ios::binary | std::ios::in);
 
-    Ctx ctx{BLAKE2B512_HASH_LENGTH};
+    if (!file_stream.is_open()) return {};
+    auto ctx = EVP_MD_CTX_new();
+    const auto type = EVP_blake2b512();
+
+    if (EVP_DigestInit(ctx, type) == 0) return {};
 
     constexpr size_t buffer_size = 32 * 1024;
-    std::string bytes(buffer_size, ' ');
+    std::array<char, buffer_size> bytes{};
     file_stream.read(bytes.data(), buffer_size);
     auto currently_read = file_stream.gcount();
     while (currently_read != 0) {
-      ctx.update(gsl::make_span(common::span::cast<const uint8_t>(bytes.data()),
-                                currently_read));
+      EVP_DigestUpdate(ctx, (const uint8_t *)bytes.data(), currently_read);
       file_stream.read(bytes.data(), buffer_size);
       currently_read = file_stream.gcount();
     }
 
     Blake2b512Hash hash;
-    ctx.final(hash);
+    unsigned int s;
+    EVP_DigestFinal(ctx, (unsigned char *)hash.data(), &s);
+    EVP_MD_CTX_free(ctx);
+    assert(hash.size() == s);
     return hash;
   }
 

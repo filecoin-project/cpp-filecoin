@@ -148,13 +148,9 @@ namespace fc::proofs {
       return outcome::success();
     }
 
-    std::ifstream ifs(path, std::ios::binary);
+    const auto sum = crypto::blake2b::blake2b_512_from_file(path);
 
-    if (!ifs.is_open()) return ProofParamProviderError::kFileDoesNotOpen;
-
-    auto sum = crypto::blake2b::blake2b_512_from_file(ifs);
-
-    auto our_some = common::hex_lower(gsl::make_span(sum).subspan(0, 16));
+    const auto our_some = common::hex_lower(gsl::make_span(sum).subspan(0, 16));
     if (our_some != info.digest) {
       return ProofParamProviderError::kChecksumMismatch;
     }

@@ -48,6 +48,6 @@ namespace fc::crypto::blake2b {
    */
   Blake2b256Hash blake2b_256(gsl::span<const uint8_t> to_hash);
 
-  Blake2b512Hash blake2b_512_from_file(std::ifstream &file_stream);
+  Blake2b512Hash blake2b_512_from_file(const std::string &path);
 
 }  // namespace fc::crypto::blake2b
