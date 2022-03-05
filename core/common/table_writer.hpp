@@ -3,125 +3,106 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <map>
+#pragma once
+
+#include <list>
 #include <string>
+#include <string_view>
 #include <vector>
 
-class TableWriter {
-  struct Column {
-    std::string name;
-    bool separate_line;
-    size_t lines = 0;
-  };
-  using Row = std::map<size_t, std::string>;
+namespace fc {
+  // TODO: string character count (e.g. ansi escape codes, or unicode)
+  struct TableWriter {
+    struct Column {
+      std::string name;
+      // note: (l)eft, (r)ight, (n)ewline
+      char align;
+      // NOLINTNEXTLINE(google-explicit-constructor)
+      Column(const char *name, char align = 'l') : name{name}, align{align} {
+        assert(align == 'l' || align == 'r' || align == 'n');
+      }
+    };
 
-  std::vector<Column> columns;
-  std::vector<Row> rows;
+    using Rows = std::list<std::vector<std::string>>;
 
- public:
-  static Column newColumn(const std::string &name) {
-    Column column{.name = name, .separate_line = false};
-    return column;
-  }
+    struct Row {
+      const TableWriter &table;
+      Rows::iterator row;
 
-  static Column newLineColumn(const std::string &name) {
-    Column column{.name = name, .separate_line = true};
-    return column;
-  }
+      std::string &operator[](std::string_view name) {
+        return row->at(table.index(name));
+      }
+    };
 
-  explicit TableWriter(std::vector<Column> cols) : columns(std::move(cols)) {}
+    std::vector<Column> columns;
+    Rows rows;
 
-  void write(std::map<std::string, std::string> range) {
-    std::map<size_t, std::string> by_column_id;
-    bool flag = false;
+    explicit TableWriter(std::initializer_list<Column> columns)
+        : columns{columns} {}
 
-    while (not flag) {
-      for (auto &[columnName, value] : range) {
-        for (size_t i = 0; i < columns.size(); ++i) {
-          Column &column = columns[i];
-          if (column.name == columnName) {
-            by_column_id[i] = std::move(value);
-            range.erase(columnName);
-            column.lines++;
-            flag = true;
-            break;
+    size_t index(std::string_view name) const {
+      const auto it{std::find_if(
+          columns.begin(), columns.end(), [&](const Column &column) {
+            return column.name == name;
+          })};
+      assert(it != columns.end());
+      return it - columns.begin();
+    }
+
+    Row row() {
+      return Row{*this, rows.emplace(rows.end(), columns.size())};
+    }
+
+    void write(std::ostream &os) const {
+      std::vector<size_t> count;
+      count.resize(columns.size());
+      std::vector<size_t> width;
+      width.resize(columns.size());
+      for (const auto &row : rows) {
+        for (size_t i{0}; i < columns.size(); ++i) {
+          if (!row.at(i).empty()) {
+            ++count.at(i);
+            width.at(i) = std::max(width.at(i), row.at(i).size());
           }
         }
-
-        if (flag) {
-          break;
+      }
+      std::vector<std::string> header;
+      for (size_t i{0}; i < columns.size(); ++i) {
+        width.at(i) = std::max(width.at(i), columns.at(i).name.size());
+        header.emplace_back(columns.at(i).name);
+      }
+      const auto writeColumns{[&](const std::vector<std::string> &row) {
+        auto first{true};
+        for (size_t i{0}; i < columns.size(); ++i) {
+          if (columns.at(i).align == 'n' || count.at(i) == 0) {
+            continue;
+          }
+          if (!first) {
+            // note: column separator
+            os << "  ";
+          }
+          first = false;
+          if (columns.at(i).align == 'l') {
+            os << row.at(i);
+          }
+          for (size_t pad{width.at(i) - row.at(i).size()}; pad != 0; --pad) {
+            os << ' ';
+          }
+          if (columns.at(i).align == 'r') {
+            os << row.at(i);
+          }
         }
-        by_column_id[columns.size()] = std::move(value);
-        range.erase(columnName);
-        columns.push_back(
-            Column{.name = columnName, .separate_line = false, .lines = 1});
-      }
-      flag = not flag;
-    }
-
-    rows.push_back(by_column_id);
-  }
-
-  void flush() {
-    std::vector<size_t> col_lengths(columns.size());
-
-    std::map<size_t, std::string> header;
-    for (size_t i = 0; i < columns.size(); ++i) {
-      const Column &column = columns[i];
-      if (column.separate_line) {
-        continue;
-      }
-      header[i] = column.name;
-    }
-
-    rows.insert(rows.begin(), header);
-
-    for (size_t i = 0; i < columns.size(); ++i) {
-      const Column &column = columns[i];
-      if (column.lines == 0) {
-        continue;
-      }
-
-      for (auto &row : rows) {
-        if (row.find(i) == row.end()) {
-          continue;
-        }
-        std::string value = row[i];
-        if (value.size() > col_lengths[i]) {
-          col_lengths[i] = value.size();
+        os << "\n";
+      }};
+      writeColumns(header);
+      for (const auto &row : rows) {
+        writeColumns(row);
+        for (size_t i{0}; i < columns.size(); ++i) {
+          if (columns.at(i).align == 'n' && !row.at(i).empty()) {
+            os << "  " << columns.at(i).name << ": " << row.at(i) << "\n";
+          }
         }
       }
     }
-
-    for (Row &row : rows) {
-      std::vector<std::string> cols(columns.size());
-
-      for (size_t i = 0; i < columns.size(); ++i) {
-        const Column &column = columns[i];
-        if (column.lines == 0) {
-          continue;
-        }
-
-        std::string for_print = row[i];
-        const size_t pad = col_lengths[i] + 2 - for_print.size();
-        if (not column.separate_line && column.lines > 0) {
-          for_print += std::string(pad, ' ');
-          fmt::print(for_print);
-        }
-
-        cols.push_back(for_print);
-      }
-
-      fmt::print("\n");
-
-      for (size_t i = 0; i < columns.size(); ++i) {
-        const Column &column = columns[i];
-        if (not column.separate_line || cols[i].empty()) {
-          continue;
-        }
-
-        fmt::print("  {}: {}\n", column.name, cols[i]);
-      }
-    }
-  }
-};
+  };
+}  // namespace fc
