@@ -17,14 +17,13 @@
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
-namespace fc::cli::_node {
+namespace fc::cli::cli_node {
   using api::KeyInfo;
   using api::MarketBalance;
   using api::MsgWait;
   using common::hex_lower;
   using common::unhex;
   using crypto::signature::Signature;
-  using fc::vm::actor::Actor;
   using primitives::BigInt;
   using primitives::GasAmount;
   using primitives::Nonce;
@@ -33,6 +32,7 @@ namespace fc::cli::_node {
   using primitives::address::decodeFromString;
   using primitives::tipset::TipsetCPtr;
   using storage::ipfs::ApiIpfsDatastore;
+  using vm::actor::Actor;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::state::StateTreeImpl;
@@ -96,37 +96,36 @@ namespace fc::cli::_node {
       for (const Address &address : addresses) {
         auto row{table_writer.row()};
         row["Address"] = fmt::to_string(address);
-        {  // TODO: remove this brace, used for diff
-          auto maybe_actor = api->StateGetActor(address, TipsetKey{});
 
-          if (maybe_actor.has_error()) {
-            row["Error"] = maybe_actor.error().message();
-            continue;
-          }
-          const Actor actor = maybe_actor.value();
+        auto maybe_actor = api->StateGetActor(address, TipsetKey{});
 
-          row["Balance"] = fmt::to_string(actor.balance);
-          row["Nonce"] = fmt::to_string(actor.nonce);
+        if (maybe_actor.has_error()) {
+          row["Error"] = maybe_actor.error().message();
+          continue;
+        }
+        const Actor actor = maybe_actor.value();
 
-          if (address == default_address) {
-            row["Default"] = "X";
-          }
+        row["Balance"] = fmt::to_string(actor.balance);
+        row["Nonce"] = fmt::to_string(actor.nonce);
 
-          if (args.id) {
-            auto maybe_id = api->StateLookupID(address, TipsetKey{});
-            row["ID"] =
-                maybe_id.has_error() ? "n/a" : fmt::to_string(maybe_id.value());
-          }
+        if (address == default_address) {
+          row["Default"] = "X";
+        }
 
-          if (args.market) {
-            const auto maybe_balance =
-                api->StateMarketBalance(address, TipsetKey{});
-            if (maybe_balance.has_value()) {
-              const MarketBalance balance = maybe_balance.value();
-              row["Market(Avail)"] =
-                  fmt::to_string(balance.escrow - balance.locked);
-              row["Market(Locked)"] = fmt::to_string(balance.locked);
-            }
+        if (args.id) {
+          auto maybe_id = api->StateLookupID(address, TipsetKey{});
+          row["ID"] =
+              maybe_id.has_error() ? "n/a" : fmt::to_string(maybe_id.value());
+        }
+
+        if (args.market) {
+          const auto maybe_balance =
+              api->StateMarketBalance(address, TipsetKey{});
+          if (maybe_balance.has_value()) {
+            const MarketBalance &balance = maybe_balance.value();
+            row["Market(Avail)"] =
+                fmt::to_string(balance.escrow - balance.locked);
+            row["Market(Locked)"] = fmt::to_string(balance.locked);
           }
         }
       }
@@ -371,4 +370,4 @@ namespace fc::cli::_node {
       fmt::print("Add balance message cid : {}\n", cid_signed_message);
     }
   };
-}  // namespace fc::cli::_node
+}  // namespace fc::cli::cli_node

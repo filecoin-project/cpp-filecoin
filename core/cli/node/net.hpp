@@ -7,7 +7,7 @@
 
 #include "cli/node/node.hpp"
 
-namespace fc::cli::_node {
+namespace fc::cli::cli_node {
   inline void printPeer(const PeerInfo &peer) {
     for (const auto &addr : peer.addresses) {
       fmt::print("{}/p2p/{}\n", addr.getStringAddress(), peer.id.toBase58());
@@ -41,4 +41,4 @@ namespace fc::cli::_node {
       }
     }
   };
-}  // namespace fc::cli::_node
+}  // namespace fc::cli::cli_node
