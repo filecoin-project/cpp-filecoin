@@ -72,36 +72,41 @@ namespace fc::cli::_node {
       const std::vector<Address> addresses =
           cliTry(api->WalletList(), "Getting list of wallets...");
 
+      if (args.address_only) {
+        for (const Address &address : addresses) {
+          fmt::print("{}\n", address);
+        }
+        return;
+      }
+
       const Address default_address = cliTry(
           api->WalletDefaultAddress(), "Getting default address of wallet...");
 
-      TableWriter table_writer =
-          TableWriter({TableWriter::newColumn("Address"),
-                       TableWriter::newColumn("ID"),
-                       TableWriter::newColumn("Balance"),
-                       TableWriter::newColumn("Market(Avail)"),
-                       TableWriter::newColumn("Market(Locked)"),
-                       TableWriter::newColumn("Nonce"),
-                       TableWriter::newColumn("Default"),
-                       TableWriter::newColumn("Error")});
+      TableWriter table_writer{
+          "Address",
+          "ID",
+          {"Balance", 'r'},
+          {"Market(Avail)", 'r'},
+          {"Market(Locked)", 'r'},
+          {"Nonce", 'r'},
+          "Default",
+          {"Error", 'n'},
+      };
 
       for (const Address &address : addresses) {
-        if (args.address_only) {
-          fmt::print("{}\n", address);
-        } else {
+        auto row{table_writer.row()};
+        row["Address"] = fmt::to_string(address);
+        {  // TODO: remove this brace, used for diff
           auto maybe_actor = api->StateGetActor(address, TipsetKey{});
 
           if (maybe_actor.has_error()) {
-            table_writer.write({{"Address", fmt::to_string(address)},
-                                {"Error", "Error get actor"}});
+            row["Error"] = maybe_actor.error().message();
             continue;
           }
           const Actor actor = maybe_actor.value();
 
-          std::map<std::string, std::string> row{
-              {"Address", fmt::to_string(address)},
-              {"Balance", fmt::to_string(actor.balance)},
-              {"Nonce", std::to_string(actor.nonce)}};
+          row["Balance"] = fmt::to_string(actor.balance);
+          row["Nonce"] = fmt::to_string(actor.nonce);
 
           if (address == default_address) {
             row["Default"] = "X";
@@ -123,14 +128,10 @@ namespace fc::cli::_node {
               row["Market(Locked)"] = fmt::to_string(balance.locked);
             }
           }
-
-          table_writer.write(row);
         }
       }
 
-      if (not args.address_only) {
-        table_writer.flush();
-      }
+      table_writer.write(std::cout);
     }
   };
 
