@@ -111,7 +111,7 @@ namespace fc::proofs {
       return outcome::success();
     }
 
-    const auto sum = crypto::blake2b::blake2b_512_from_file(path);
+    OUTCOME_TRY(sum, crypto::blake2b::blake2b_512_from_file(path));
 
     const auto our_some = common::hex_lower(gsl::make_span(sum).subspan(0, 16));
     if (our_some != info.digest) {
