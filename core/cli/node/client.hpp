@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include "api/full_node/node_api.hpp"
 #include "cli/node/node.hpp"
+#include "common/enum.hpp"
 #include "markets/storage/mk_protocol.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/piece/piece.hpp"
@@ -17,7 +18,6 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
-#include "common/enum.hpp"
 
 namespace fc::cli::_node {
   using api::FileRef;
@@ -26,9 +26,11 @@ namespace fc::cli::_node {
   using api::RetrievalOrder;
   using api::StartDealParams;
   using boost::lexical_cast;
+  using common::toString;
   using ::fc::storage::car::makeCar;
   using ::fc::storage::unixfs::wrapFile;
   using markets::storage::DataRef;
+  using markets::storage::StorageDealStatus;
   using primitives::ChainEpoch;
   using primitives::StoragePower;
   using primitives::address::Address;
@@ -39,8 +41,6 @@ namespace fc::cli::_node {
   using vm::VMExitCode;
   using vm::actor::kVerifiedRegistryAddress;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
-  using markets::storage::StorageDealStatus;
-  using common::toString;
 
   const ChainEpoch kLoopback = 100;  // TODO: lookback
 
@@ -237,8 +237,9 @@ namespace fc::cli::_node {
                                      .fast_retrieval = args.fast_ret,
                                      .verified_deal = isVerified,
                                      .provider_collateral = *args.collateral};
-     auto proposal_cid = cliTry(api._->ClientStartDeal(deal_params));
-     fmt::print("Deal proposal CID: {}\n", cliTry(proposal_cid.toString(), "Cannot extract CID"));
+      auto proposal_cid = cliTry(api._->ClientStartDeal(deal_params));
+      fmt::print("Deal proposal CID: {}\n",
+                 cliTry(proposal_cid.toString(), "Cannot extract CID"));
     }
   };
 
@@ -373,13 +374,14 @@ namespace fc::cli::_node {
       uint64_t total_size{0};
       std::map<StorageDealStatus, uint64_t> by_state;
       for (const auto &deal : deals) {
-        //TODO(@Elestrias): [FIL-615] Check Creation time and since-epoch flag
+        // TODO(@Elestrias): [FIL-615] Check Creation time and since-epoch flag
         total_size += deal.size;
         by_state[deal.state] += deal.size;
       }
       fmt::print("Total: {} deals, {}", deals.size(), total_size);
-      for(const auto &[state, size]: by_state){
-          fmt::print("Deal with status {} allocates {} bytes", toString(state), size);
+      for (const auto &[state, size] : by_state) {
+        fmt::print(
+            "Deal with status {} allocates {} bytes", toString(state), size);
       }
     }
   };

@@ -15,7 +15,7 @@ namespace fc::cli {
       Opts opts;
     };
     std::function<Args()> args;
-    std::function<RunResult(const ArgsMap &argm, const Argv &argv)> run;
+    std::function<RunResult(ArgsMap &argm, Argv &&argv)> run;
     Sub sub;
   };
   template <typename Cmd>
@@ -25,11 +25,12 @@ namespace fc::cli {
       const auto ptr{std::make_shared<typename Cmd::Args>()};
       return Tree::Args{{typeid(typename Cmd::Args), ptr}, ptr->opts()};
     };
-    constexpr auto run{!std::is_same_v<decltype(Cmd::run), const nullptr_t>};
+    constexpr auto run{
+        !std::is_same_v<decltype(Cmd::run), const std::nullptr_t>};
     if constexpr (run) {
-      t.run = [](const ArgsMap &argm, const Argv &argv) {
+      t.run = [](ArgsMap &argm, Argv &&argv) {
         if constexpr (run) {
-          return Cmd::run(argm, const_cast<typename Cmd::Args &>(argm.of<Cmd>()), argv);
+          return Cmd::run(argm, argm.of<Cmd>(), std::move(argv));
         }
       };
     }

@@ -9,9 +9,8 @@
 #include <boost/program_options/variables_map.hpp>
 
 #include "cli/tree.hpp"
-#include "cli/try.hpp"
 
-namespace fc::cli {
+    namespace fc::cli {
   inline bool isDash(const std::string &s) {
     return !s.empty() && s[0] == '-';
   }
@@ -19,15 +18,12 @@ namespace fc::cli {
     return s.size() == 2 && s[0] == '-' && s[1] == '-';
   }
   // note: returns first positional arg or end
-  inline Argv::iterator hackBoost(po::variables_map &vm,
-                                  const Opts &opts,
-                                  Argv::iterator begin,
-                                  Argv::iterator end) {
+  inline Argv::iterator boostWorkaround(po::variables_map &vm,
+                                        const Opts &opts,
+                                        Argv::iterator begin,
+                                        Argv::iterator end) {
     po::parsed_options parsed{&opts};
-    while (true) {
-      if (begin == end) {
-        break;
-      }
+    while (begin != end) {
       if (!isDash(*begin)) {
         break;
       }
@@ -65,7 +61,7 @@ namespace fc::cli {
       option("help,h", "print help");
       po::variables_map vm;
       try {
-        argv_it = hackBoost(vm, args.opts, argv_it, argv.end());
+        argv_it = boostWorkaround(vm, args.opts, argv_it, argv.end());
       } catch (po::error &e) {
         fmt::print("{}: {}\n", fmt::join(cmds, " "), e.what());
         return;
@@ -87,6 +83,7 @@ namespace fc::cli {
           try {
             return tree->run(argm, {argv_it, argv.end()});
           } catch (ShowHelp &) {
+            // note: show help
           } catch (po::error &e) {
             fmt::print("{}: {}\n", fmt::join(cmds, " "), e.what());
             return;
@@ -107,10 +104,8 @@ namespace fc::cli {
       return;
     }
   }
-  inline RunResult run(std::string app,
-                       const Tree &tree,
-                       int argc,
-                       const char *argv[]) {
+  inline RunResult run(
+      std::string app, const Tree &tree, int argc, const char *argv[]) {
     return run(std::move(app), tree, {argv + 1, argv + argc});
   }
 }  // namespace fc::cli

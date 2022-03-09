@@ -253,7 +253,8 @@ namespace fc::mining {
       if (sector_and_padding.padding.size != 0) {
         OUTCOME_TRY(
             sealer_->addPieceSync(sector_ref,
-                                  unsealed_sector.piece_sizes,
+                                  VectorCoW(gsl::span<const UnpaddedPieceSize>(
+                                      unsealed_sector.piece_sizes)),
                                   sector_and_padding.padding.size.unpadded(),
                                   PieceData::makeNull(),
                                   kDealSectorPriority));
@@ -281,12 +282,14 @@ namespace fc::mining {
       piece_location.offset = unsealed_sector.stored;
 
       logger_->info("Add piece to sector {}", piece_location.sector);
-      OUTCOME_TRY(piece_info,
-                  sealer_->addPieceSync(sector_ref,
-                                        unsealed_sector.piece_sizes,
-                                        size,
-                                        std::move(piece_data),
-                                        kDealSectorPriority));
+      OUTCOME_TRY(
+          piece_info,
+          sealer_->addPieceSync(sector_ref,
+                                VectorCoW(gsl::span<const UnpaddedPieceSize>(
+                                    unsealed_sector.piece_sizes)),
+                                size,
+                                std::move(piece_data),
+                                kDealSectorPriority));
 
       context->pieces.push_back(Piece{
           .piece = piece_info,
@@ -620,14 +623,15 @@ namespace fc::mining {
             .to(SealingState::kPreCommit2)
             .action(CALLBACK_ACTION),
         SealingTransition(SealingEvent::kSectorSealPreCommit1Failed)
-            .fromMany(SealingState::kPreCommit1, SealingState::kPreCommitting)
+            .fromMany(SealingState::kPreCommit1,
+                      SealingState::kPreCommitting,
+                      SealingState::kPreCommitFail,
+                      SealingState::kCommitFail,
+                      SealingState::kComputeProofFail,
+                      SealingState::kSubmitPreCommitBatch)
             .to(SealingState::kSealPreCommit1Fail)
             .action(
                 [](auto info, auto event, auto context, auto from, auto to) {
-                  if (from == SealingState::kCommitting) {
-                    return;
-                  }
-
                   info->invalid_proofs = 0;
                   info->precommit2_fails = 0;
                 }),
@@ -972,7 +976,7 @@ namespace fc::mining {
 
     sealer_->addPiece(
         sector,
-        existing_piece_sizes,
+        VectorCoW(std::move(existing_piece_sizes)),
         filler,
         PieceData::makeNull(),
         [fill = std::move(result), cb](const auto &maybe_error) -> void {

@@ -11,62 +11,66 @@
 #include <memory>
 #include <typeindex>
 
-#define CLI_TRY(valueName, maybeResult)                                    \
-  auto valueName##OUTCOME_TRY = maybeResult;                               \
-  if (valueName##OUTCOME_TRY.has_error()) throw std::invalid_argument(""); \
-  auto valueName = valueName##OUTCOME_TRY.value();
-
-#define CLI_TRY_TEXT(valueName, maybeResult, textError) \
-  auto valueName##OUTCOME_TRY = maybeResult;            \
-  if (valueName##OUTCOME_TRY.has_error())               \
-    throw std::invalid_argument(textError);             \
-  auto valueName = valueName##OUTCOME_TRY.value();
-
 #include "cli/try.hpp"
 
 #define CLI_BOOL(NAME, DESCRIPTION)                               \
   struct {                                                        \
-    bool _{};                                                     \
+    bool v{};                                                     \
     void operator()(Opts &opts) {                                 \
-      opts.add_options()(NAME, po::bool_switch(&_), DESCRIPTION); \
+      opts.add_options()(NAME, po::bool_switch(&v), DESCRIPTION); \
     }                                                             \
     operator bool() const {                                       \
-      return _;                                                   \
+      return v;                                                   \
     }                                                             \
   }
+
 #define CLI_DEFAULT(NAME, DESCRIPTION, TYPE, INIT)          \
   struct {                                                  \
-    TYPE _ INIT;                                            \
+    TYPE v INIT;                                            \
     void operator()(Opts &opts) {                           \
-      opts.add_options()(NAME, po::value(&_), DESCRIPTION); \
+      opts.add_options()(NAME, po::value(&v), DESCRIPTION); \
     }                                                       \
     auto &operator*() const {                               \
-      return _;                                             \
+      return v;                                             \
+    }                                                       \
+    auto &operator*() {                                     \
+      return v;                                             \
     }                                                       \
     auto *operator->() const {                              \
-      return &_;                                            \
+      return &v;                                            \
+    }                                                       \
+    auto *operator->() {                                    \
+      return &v;                                            \
     }                                                       \
   }
+
 #define CLI_OPTIONAL(NAME, DESCRIPTION, TYPE)                              \
   struct {                                                                 \
-    boost::optional<TYPE> _;                                               \
+    boost::optional<TYPE> v;                                               \
     void operator()(Opts &opts) {                                          \
-      opts.add_options()(NAME, po::value(&_), DESCRIPTION);                \
-    }                                                                      \
-    void operator=(TYPE &&rhs) {                                           \
-      _ = std::move(rhs);                                                  \
+      opts.add_options()(NAME, po::value(&v), DESCRIPTION);                \
     }                                                                      \
     operator bool() const {                                                \
-      return _.operator bool();                                            \
+      return v.operator bool();                                            \
     }                                                                      \
-    auto &operator*() const {                                              \
-      if (!_) {                                                            \
+    void check() const {                                                   \
+      if (!v) {                                                            \
         throw ::fc::cli::CliError{"--{} argument is required but missing", \
                                   NAME};                                   \
       }                                                                    \
-      return *_;                                                           \
+    }                                                                      \
+    auto &operator*() const {                                              \
+      check();                                                             \
+      return *v;                                                           \
+    }                                                                      \
+    auto &operator*() {                                                    \
+      check();                                                             \
+      return *v;                                                           \
     }                                                                      \
     auto *operator->() const {                                             \
+      return &**this;                                                      \
+    }                                                                      \
+    auto *operator->() {                                                   \
       return &**this;                                                      \
     }                                                                      \
   }
@@ -74,8 +78,8 @@
 #define CLI_OPTS() ::fc::cli::Opts opts()
 #define CLI_RUN()                  \
   static ::fc::cli::RunResult run( \
-      const ::fc::cli::ArgsMap &argm, Args &args, const ::fc::cli::Argv &argv)
-#define CLI_NO_RUN() constexpr static nullptr_t run{nullptr};
+      ::fc::cli::ArgsMap &argm, Args &args, ::fc::cli::Argv &&argv)
+#define CLI_NO_RUN() constexpr static std::nullptr_t run{nullptr};
 
 namespace fc::cli {
   namespace po = boost::program_options;
@@ -83,14 +87,14 @@ namespace fc::cli {
 
   using RunResult = void;
   struct ArgsMap {
-    mutable std::map<std::type_index, std::shared_ptr<void>> _;
+    std::map<std::type_index, std::shared_ptr<void>> _;
     template <typename Args>
     void add(Args &&v) {
       _.emplace(typeid(Args), std::make_shared<Args>(std::forward<Args>(v)));
     }
     template <typename Cmd>
-    const typename Cmd::Args &of() const {
-      return *reinterpret_cast<const typename Cmd::Args *>(
+    typename Cmd::Args &of() {
+      return *reinterpret_cast<typename Cmd::Args *>(
           _.at(typeid(typename Cmd::Args)).get());
     }
   };

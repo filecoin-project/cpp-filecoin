@@ -85,21 +85,22 @@ namespace fc::sector_storage {
 
     MOCK_METHOD2(finalizeSector,
                  outcome::result<CallId>(const SectorRef &,
-                                         const gsl::span<const Range> &));
+                                         std::vector<Range>));
 
-    outcome::result<CallId> addPiece(
-        const SectorRef &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
-        const UnpaddedPieceSize &new_piece_size,
-        PieceData piece_data) override {
+    outcome::result<CallId> addPiece(const SectorRef &sector,
+                                     VectorCoW<UnpaddedPieceSize> piece_sizes,
+                                     const UnpaddedPieceSize &new_piece_size,
+                                     PieceData piece_data) override {
       return doAddPiece(
-          sector, piece_sizes, new_piece_size, piece_data.getFd());
+          sector, piece_sizes.mut(), new_piece_size, piece_data.getFd());
     }
 
     MOCK_METHOD4(doAddPiece,
                  outcome::result<CallId>(const SectorRef &,
-                                         gsl::span<const UnpaddedPieceSize>,
+                                         const std::vector<UnpaddedPieceSize> &,
                                          const UnpaddedPieceSize &,
                                          int));
+
+    MOCK_CONST_METHOD0(isLocalWorker, bool());
   };
 }  // namespace fc::sector_storage

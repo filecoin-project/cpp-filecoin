@@ -23,10 +23,11 @@ namespace fc::api::rpc {
       std::string_view info{_info};
       auto i{info.find(":")};
       if (i == info.npos) {
-        return {};
+        address = info;
+      } else {
+        token = info.substr(0, i);
+        address = info.substr(i + 1);
       }
-      address = info.substr(0, i);
-      token = info.substr(i + 1);
     } else if (!repo.empty()) {
       try {
         boost::filesystem::load_string_file(repo / "api", address);

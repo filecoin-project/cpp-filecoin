@@ -8,7 +8,6 @@
 #include "cli/node/client.hpp"
 #include "cli/node/net.hpp"
 #include "cli/tree.hpp"
-#include "cli/node/client.hpp"
 
 namespace fc::cli::_node {
   const auto _tree{tree<Node>({

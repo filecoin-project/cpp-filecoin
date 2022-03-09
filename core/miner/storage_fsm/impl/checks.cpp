@@ -33,6 +33,7 @@ namespace fc::mining::checks {
   using vm::actor::MethodParams;
   using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::types::miner::kChainFinality;
+  using vm::actor::builtin::types::miner::kMaxPreCommitRandomnessLookback;
   using vm::actor::builtin::types::miner::kMaxProveCommitDuration;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::maxSealDuration;
@@ -78,10 +79,13 @@ namespace fc::mining::checks {
         continue;
       }
 
-      OUTCOME_TRY(proposal,
-                  api->StateMarketStorageDeal(piece.deal_info->deal_id,
-                                              chain_head->key));
+      const auto maybe_proposal = api->StateMarketStorageDeal(
+          piece.deal_info->deal_id, chain_head->key);
+      if (maybe_proposal.has_error()) {
+        return ChecksError::kInvalidDeal;
+      }
 
+      const auto &proposal{maybe_proposal.value()};
       if (miner_address != proposal.proposal.provider) {
         return ChecksError::kInvalidDeal;
       }
@@ -192,21 +196,22 @@ namespace fc::mining::checks {
       return ChecksError::kBadCommD;
     }
 
-    OUTCOME_TRY(network, api->StateNetworkVersion(tipset_key));
-    OUTCOME_TRY(seal_duration, getMaxProveCommitDuration(network, sector_info));
-    if (height - (sector_info->ticket_epoch + kChainFinality) > seal_duration) {
-      return ChecksError::kExpiredTicket;
-    }
-
     OUTCOME_TRY(state_sector_precommit_info,
                 getStateSectorPreCommitInfo(
                     miner_address, sector_info, tipset_key, api));
+
     if (state_sector_precommit_info.has_value()) {
       if (state_sector_precommit_info->info.seal_epoch
           != sector_info->ticket_epoch) {
         return ChecksError::kBadTicketEpoch;
       }
       return ChecksError::kPrecommitOnChain;
+    }
+
+    const ChainEpoch ticket_earliest = height - kMaxPreCommitRandomnessLookback;
+
+    if (sector_info->ticket_epoch < ticket_earliest) {
+      return ChecksError::kExpiredTicket;
     }
 
     return outcome::success();

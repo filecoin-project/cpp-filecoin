@@ -37,7 +37,8 @@ namespace fc::vm::runtime {
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
-    Env(const EnvironmentContext &env_context,
+    static outcome::result<std::shared_ptr<Env>> make(
+        const EnvironmentContext &env_context,
         TsBranchPtr ts_branch,
         TipsetCPtr tipset);
 
@@ -47,7 +48,7 @@ namespace fc::vm::runtime {
       TokenAmount reward;
     };
 
-    void setHeight(ChainEpoch height);
+    outcome::result<void> setHeight(ChainEpoch height);
 
     outcome::result<Apply> applyMessage(const UnsignedMessage &message,
                                         size_t size);
@@ -61,7 +62,8 @@ namespace fc::vm::runtime {
     ChainEpoch epoch;  // mutable epoch for cron()
     TsBranchPtr ts_branch;
     TipsetCPtr tipset;
-    Pricelist pricelist;
+    Pricelist pricelist{0};
+    TokenAmount base_circulating;
   };
 
   struct Execution : std::enable_shared_from_this<Execution> {

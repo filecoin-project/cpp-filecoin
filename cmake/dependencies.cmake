@@ -1,12 +1,16 @@
 # hunter dependencies
 # https://docs.hunter.sh/en/latest/packages/
 
-# https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
-hunter_add_package(GTest)
-find_package(GTest CONFIG REQUIRED)
+# Append local modules path if Hunter is not enabled
+if (NOT HUNTER_ENABLED)
+  list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
+endif()
 
-hunter_add_package(libarchive)
-find_package(libarchive CONFIG REQUIRED)
+if (TESTING)
+  # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
+  hunter_add_package(GTest)
+  find_package(GTest CONFIG REQUIRED)
+endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS date_time filesystem iostreams random program_options thread)
@@ -42,14 +46,16 @@ find_package(Boost.DI CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/leveldb.html
 hunter_add_package(leveldb)
-find_package(leveldb CONFIG REQUIRED)
+if (HUNTER_ENABLED)
+  find_package(leveldb CONFIG REQUIRED)
+else()
+  find_package(leveldb REQUIRED)
+  include_directories(${LEVELDB_INCLUDE_DIRS})
+endif()
 
 # https://github.com/soramitsu/libp2p
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
-
-hunter_add_package(c-ares)
-find_package(c-ares CONFIG REQUIRED)
 
 hunter_add_package(soralog)
 find_package(soralog CONFIG REQUIRED)
@@ -62,7 +68,12 @@ find_package(fmt CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/cppcodec.html
 hunter_add_package(cppcodec)
-find_package(cppcodec CONFIG REQUIRED)
+if (HUNTER_ENABLED)
+  find_package(cppcodec CONFIG REQUIRED)
+else()
+  find_package(cppcodec REQUIRED)
+  include_directories(${CPPCODEC_INCLUDE_DIRS})
+endif()
 
 # http://rapidjson.org
 hunter_add_package(RapidJSON)
@@ -72,5 +83,14 @@ find_package(RapidJSON CONFIG REQUIRED)
 hunter_add_package(jwt-cpp)
 find_package(jwt-cpp CONFIG REQUIRED)
 
+hunter_add_package(libarchive)
+find_package(libarchive CONFIG REQUIRED)
+
 hunter_add_package(prometheus-cpp)
 find_package(prometheus-cpp CONFIG REQUIRED)
+
+# Add filecoin_ffi target if building without git submodules
+if (NOT BUILD_INTERNAL_DEPS)
+  find_package(filecoin_ffi REQUIRED)
+  include_directories(${FILECOIN_FFI_INCLUDE_DIRS})
+endif()

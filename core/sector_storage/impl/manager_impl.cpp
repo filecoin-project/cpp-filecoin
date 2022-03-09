@@ -17,6 +17,7 @@
 #include "api/storage_miner/return_api.hpp"
 #include "codec/json/json.hpp"
 #include "common/outcome_fmt.hpp"
+#include "common/put_in_function.hpp"
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/local_worker.hpp"
@@ -25,6 +26,7 @@
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
+  using common::PutInFunction;
   using primitives::sector::SectorInfo;
   using primitives::sector::toSectorInfo;
   using primitives::sector_file::SectorFileType;
@@ -700,7 +702,7 @@ namespace fc::sector_storage {
 
   void ManagerImpl::finalizeSector(
       const SectorRef &sector,
-      const gsl::span<const Range> &keep_unsealed,
+      std::vector<Range> keep_unsealed,
       const std::function<void(outcome::result<void>)> &cb,
       uint64_t priority) {
     OUTCOME_CB(auto lock,
@@ -726,7 +728,7 @@ namespace fc::sector_storage {
         [cb,
          index{index_},
          unsealed,
-         keep_unsealed,
+         need_unsealed{not keep_unsealed.empty()},
          scheduler{scheduler_},
          sector,
          lock{std::move(lock)},
@@ -740,10 +742,8 @@ namespace fc::sector_storage {
                                           | SectorFileType::FTCache),
               PathType::kStorage);
 
-          auto moveUnsealed = unsealed;
-          if (keep_unsealed.empty()) {
-            moveUnsealed = SectorFileType::FTNone;
-          }
+          const auto moveUnsealed =
+              need_unsealed ? unsealed : SectorFileType::FTNone;
 
           OUTCOME_CB1(scheduler->schedule(
               sector,
@@ -787,9 +787,9 @@ namespace fc::sector_storage {
                                         | SectorFileType::FTCache | unsealed),
             PathType::kSealing,
             AcquireMode::kMove),
-        [sector, keep_unsealed](
+        [sector, keep_unsealed{std::move(keep_unsealed)}](
             const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
-          return worker->finalizeSector(sector, keep_unsealed);
+          return worker->finalizeSector(sector, std::move(keep_unsealed));
         },
         callbackWrapper(std::move(next_cb)),
         priority,
@@ -922,7 +922,7 @@ namespace fc::sector_storage {
 
   void ManagerImpl::addPiece(
       const SectorRef &sector,
-      gsl::span<const UnpaddedPieceSize> piece_sizes,
+      VectorCoW<UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       proofs::PieceData piece_data,
       const std::function<void(outcome::result<PieceInfo>)> &cb,
@@ -946,15 +946,16 @@ namespace fc::sector_storage {
         primitives::kTTAddPiece,
         selector,
         schedNothing(),
-        [sector,
-         piece_sizes,
-         new_piece_size,
-         data = std::make_shared<PieceData>(std::move(piece_data)),
-         lock = std::move(lock)](
-            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
+        PutInFunction([sector,
+                       exist_sizes = std::move(piece_sizes),
+                       new_piece_size,
+                       data = std::move(piece_data),
+                       lock = std::move(lock)](
+                          const std::shared_ptr<Worker> &worker) mutable
+                      -> outcome::result<CallId> {
           return worker->addPiece(
-              sector, piece_sizes, new_piece_size, std::move(*data));
-        },
+              sector, std::move(exist_sizes), new_piece_size, std::move(data));
+        }),
         callbackWrapper(cb),
         priority,
         boost::none));
@@ -962,7 +963,7 @@ namespace fc::sector_storage {
 
   outcome::result<PieceInfo> ManagerImpl::addPieceSync(
       const SectorRef &sector,
-      gsl::span<const UnpaddedPieceSize> piece_sizes,
+      VectorCoW<UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       proofs::PieceData piece_data,
       uint64_t priority) {
@@ -970,7 +971,7 @@ namespace fc::sector_storage {
 
     addPiece(
         sector,
-        piece_sizes,
+        std::move(piece_sizes),
         new_piece_size,
         std::move(piece_data),
         [&wait_result](const outcome::result<PieceInfo> &maybe_pi) -> void {
