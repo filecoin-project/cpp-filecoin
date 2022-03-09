@@ -19,6 +19,10 @@ namespace fc::mining {
       case SealingState::kCommitting:
       case SealingState::kCommitWait:
       case SealingState::kFinalizeSector:
+      case SealingState::kSnapDealsPacking:
+      case SealingState::kUpdateReplica:
+      case SealingState::kProveReplicaUpdate:
+      case SealingState::kFinalizeReplicaUpdate:
         return StatState::kSealing;
       case SealingState::kProving:
       case SealingState::kRemoved:

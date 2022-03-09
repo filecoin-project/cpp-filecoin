@@ -19,6 +19,8 @@ namespace fc::mining {
     kSectorStart = 1,
     kSectorStartWithPieces,
     kSectorAddPieces,
+    kSectorPieceAdded,
+    kSectorRetryWaitDeals,
     kSectorStartPacking,
     kSectorPacked,
     kSectorPreCommit1,
@@ -32,7 +34,9 @@ namespace fc::mining {
     kSectorCommitted,
     kSectorProving,
     kSectorFinalized,
+    kSectorUpdateDealIDs,
 
+    kSectorAddPieceFailed,
     kSectorSealPreCommit1Failed,
     kSectorSealPreCommit2Failed,
     kSectorChainPreCommitFailed,
@@ -63,6 +67,24 @@ namespace fc::mining {
 
     kSectorForce,
     kUpdateDealIds,
+
+    // Snap Deals
+    kSectorStartCCUpdate,
+    kSectorReplicaUpdate,
+    kSectorProveReplicaUpdate,
+    kSectorReplicaUpdateSubmitted,
+    kSectorReplicaUpdateLanded,
+    kSectorRetryReplicaUpdate,
+    kSectorRetryProveReplicaUpdate,
+
+    // Snap Deals failure and recovery
+    kSectorUpdateReplicaFailed,
+    kSectorProveReplicaUpdateFailed,
+    kSectorAbortUpgrade,
+    kSectorRevertUpgradeToProving,
+    kSectorRetrySubmitReplicaUpdateWait,
+    kSectorRetrySubmitReplicaUpdate,
+    kSectorSubmitReplicaUpdateFailed,
   };
 
   class SealingEventContext {

@@ -787,6 +787,120 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kUpdateDealIds)
             .from(SealingState::kRecoverDealIDs)
             .to(SealingState::kForce),
+
+        // Snap Deals
+        SealingTransition(SealingEvent::kSectorAddPieces)
+            .from(SealingState::kSnapDealsWaitDeals)
+            .to(SealingState::kSnapDealsAddPiece),
+        SealingTransition(SealingEvent::kSectorStartPacking)
+            .from(SealingState::kSnapDealsWaitDeals)
+            .to(SealingState::kSnapDealsPacking),
+
+        SealingTransition(SealingEvent::kSectorPieceAdded)
+            .from(SealingState::kSnapDealsAddPiece)
+            .to(SealingState::kSnapDealsWaitDeals),
+        SealingTransition(SealingEvent::kSectorAddPieceFailed)
+            .from(SealingState::kSnapDealsAddPiece)
+            .to(SealingState::kSnapDealsAddPieceFailed),
+
+        SealingTransition(SealingEvent::kSectorPacked)
+            .from(SealingState::kSnapDealsPacking)
+            .to(SealingState::kUpdateReplica),
+
+        SealingTransition(SealingEvent::kSectorReplicaUpdate)
+            .from(SealingState::kUpdateReplica)
+            .to(SealingState::kProveReplicaUpdate),
+        SealingTransition(SealingEvent::kSectorUpdateReplicaFailed)
+            .from(SealingState::kUpdateReplica)
+            .to(SealingState::kReplicaUpdateFailed),
+        SealingTransition(SealingEvent::kSectorDealsExpired)
+            .from(SealingState::kUpdateReplica)
+            .to(SealingState::kSnapDealsDealsExpired),
+        SealingTransition(SealingEvent::kSectorInvalidDealIDs)
+            .from(SealingState::kUpdateReplica)
+            .to(SealingState::kSnapDealsRecoverDealIDs),
+
+        SealingTransition(SealingEvent::kSectorProveReplicaUpdate)
+            .from(SealingState::kProveReplicaUpdate)
+            .to(SealingState::kSubmitReplicaUpdate),
+        SealingTransition(SealingEvent::kSectorProveReplicaUpdateFailed)
+            .from(SealingState::kProveReplicaUpdate)
+            .to(SealingState::kReplicaUpdateFailed),
+        SealingTransition(SealingEvent::kSectorDealsExpired)
+            .from(SealingState::kProveReplicaUpdate)
+            .to(SealingState::kSnapDealsDealsExpired),
+        SealingTransition(SealingEvent::kSectorInvalidDealIDs)
+            .from(SealingState::kProveReplicaUpdate)
+            .to(SealingState::kSnapDealsRecoverDealIDs),
+        SealingTransition(SealingEvent::kSectorInvalidDealIDs)
+            .from(SealingState::kProveReplicaUpdate)
+            .to(SealingState::kSnapDealsRecoverDealIDs),
+
+        SealingTransition(SealingEvent::kSectorReplicaUpdateSubmitted)
+            .from(SealingState::kSubmitReplicaUpdate)
+            .to(SealingState::kReplicaUpdateWait),
+        SealingTransition(SealingEvent::kSectorSubmitReplicaUpdateFailed)
+            .from(SealingState::kSubmitReplicaUpdate)
+            .to(SealingState::kReplicaUpdateFailed),
+
+        SealingTransition(SealingEvent::kSectorReplicaUpdateLanded)
+            .from(SealingState::kReplicaUpdateWait)
+            .to(SealingState::kFinalizeReplicaUpdate),
+        SealingTransition(SealingEvent::kSectorSubmitReplicaUpdateFailed)
+            .from(SealingState::kReplicaUpdateWait)
+            .to(SealingState::kReplicaUpdateFailed),
+        SealingTransition(SealingEvent::kSectorAbortUpgrade)
+            .from(SealingState::kReplicaUpdateWait)
+            .to(SealingState::kAbortUpgrade),
+
+        SealingTransition(SealingEvent::kSectorFinalized)
+            .from(SealingState::kFinalizeReplicaUpdate)
+            .to(SealingState::kProving),
+
+        SealingTransition(SealingEvent::kSectorRetryWaitDeals)
+            .from(SealingState::kSnapDealsAddPieceFailed)
+            .to(SealingState::kSnapDealsWaitDeals),
+
+        SealingTransition(SealingEvent::kSectorAbortUpgrade)
+            .from(SealingState::kSnapDealsDealsExpired)
+            .to(SealingState::kAbortUpgrade),
+
+        SealingTransition(SealingEvent::kSectorUpdateDealIDs)
+            .from(SealingState::kSnapDealsRecoverDealIDs)
+            .to(SealingState::kSubmitReplicaUpdate),
+        SealingTransition(SealingEvent::kSectorAbortUpgrade)
+            .from(SealingState::kSnapDealsRecoverDealIDs)
+            .to(SealingState::kAbortUpgrade),
+
+        SealingTransition(SealingEvent::kSectorAbortUpgrade)
+            .from(SealingState::kSectorRevertUpgradeToProving)
+            .to(SealingState::kProving),
+
+        SealingTransition(SealingEvent::kSectorRetrySubmitReplicaUpdateWait)
+            .from(SealingState::kReplicaUpdateFailed)
+            .to(SealingState::kReplicaUpdateWait),
+        SealingTransition(SealingEvent::kSectorRetrySubmitReplicaUpdate)
+            .from(SealingState::kReplicaUpdateFailed)
+            .to(SealingState::kSubmitReplicaUpdate),
+        SealingTransition(SealingEvent::kSectorRetryReplicaUpdate)
+            .from(SealingState::kReplicaUpdateFailed)
+            .to(SealingState::kUpdateReplica),
+        SealingTransition(SealingEvent::kSectorRetryProveReplicaUpdate)
+            .from(SealingState::kReplicaUpdateFailed)
+            .to(SealingState::kProveReplicaUpdate),
+        SealingTransition(SealingEvent::kSectorInvalidDealIDs)
+            .from(SealingState::kReplicaUpdateFailed)
+            .to(SealingState::kSnapDealsRecoverDealIDs),
+        SealingTransition(SealingEvent::kSectorDealsExpired)
+            .from(SealingState::kReplicaUpdateFailed)
+            .to(SealingState::kSnapDealsDealsExpired),
+
+        SealingTransition(SealingEvent::kSectorStartCCUpdate)
+            .from(SealingState::kProving)
+            .to(SealingState::kSnapDealsWaitDeals),
+        SealingTransition(SealingEvent::kSectorReplicaUpdate)
+            .from(SealingState::kUpdateReplica)
+            .to(SealingState::kProveReplicaUpdate),
     };
   }
 
