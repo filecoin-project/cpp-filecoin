@@ -12,7 +12,7 @@
 #include "common/git_commit_version/git_commit_version.hpp"
 #include "common/libp2p/multi/multiaddress_fmt.hpp"
 
-    namespace fc::cli::_node {
+namespace fc::cli::_node {
   using libp2p::peer::PeerInfo;
 
   struct Node {

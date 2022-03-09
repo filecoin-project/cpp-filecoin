@@ -12,7 +12,7 @@
 #include "common/outcome2.hpp"
 #include "common/outcome_fmt.hpp"
 
-    namespace fc::cli {
+namespace fc::cli {
   struct CliError : std::runtime_error {
     template <typename... Args>
     CliError(const std::string_view &format, const Args &...args)
@@ -20,7 +20,7 @@
   };
 
   template <typename R, typename... Args>
-  auto cliTry(outcome::result<R> && o,
+  auto cliTry(outcome::result<R> &&o,
               const std::string_view &format,
               const Args &...args) {
     if (o) {
@@ -31,23 +31,24 @@
   }
 
   template <typename R>
-  auto cliTry(outcome::result<R> && o) {
+  auto cliTry(outcome::result<R> &&o) {
     return cliTry(std::move(o), "outcome::result");
   }
 
   template <typename R, typename... Args>
-  auto cliTry(
-      Outcome<R> && o, const std::string_view &format, const Args &...args) {
+  auto cliTry(Outcome<R> &&o,
+              const std::string_view &format,
+              const Args &...args) {
     return cliTry(std::move(o.o), format, args...);
   }
 
   template <typename R>
-  auto cliTry(Outcome<R> && o) {
+  auto cliTry(Outcome<R> &&o) {
     return cliTry(std::move(o.o));
   }
 
   template <typename R, typename... Args>
-  auto cliTry(boost::optional<R> && o,
+  auto cliTry(boost::optional<R> &&o,
               const std::string_view &format,
               const Args &...args) {
     if (o) {
@@ -57,7 +58,7 @@
   }
 
   template <typename R>
-  auto cliTry(boost::optional<R> && o) {
+  auto cliTry(boost::optional<R> &&o) {
     return cliTry(std::move(o), "boost::optional");
   }
 }  // namespace fc::cli

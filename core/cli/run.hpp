@@ -10,7 +10,7 @@
 
 #include "cli/tree.hpp"
 
-    namespace fc::cli {
+namespace fc::cli {
   inline bool isDash(const std::string &s) {
     return !s.empty() && s[0] == '-';
   }
@@ -104,8 +104,10 @@
       return;
     }
   }
-  inline RunResult run(
-      std::string app, const Tree &tree, int argc, const char *argv[]) {
+  inline RunResult run(std::string app,
+                       const Tree &tree,
+                       int argc,
+                       const char *argv[]) {
     return run(std::move(app), tree, {argv + 1, argv + argc});
   }
 }  // namespace fc::cli
