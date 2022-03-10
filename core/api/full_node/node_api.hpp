@@ -13,8 +13,10 @@
 #include "const.hpp"
 #include "data_transfer/types.hpp"
 #include "drand/messages.hpp"
+#include "markets/retrieval/client/retrieval_client.hpp"
 #include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
+#include "markets/storage/client/client_deal.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/mk_protocol.hpp"
 #include "primitives/block/block.hpp"
@@ -37,10 +39,12 @@ namespace fc::api {
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
   using markets::retrieval::RetrievalPeer;
+  using markets::retrieval::client::RetrievalDeal;
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAskV1_1_0;
   using markets::storage::StorageDeal;
   using markets::storage::StorageDealStatus;
+  using markets::storage::client::ClientDeal;
   using markets::storage::client::import_manager::Import;
   using primitives::BigInt;
   using primitives::ChainEpoch;
@@ -386,6 +390,14 @@ namespace fc::api {
                jwt::kWritePermission,
                std::vector<StorageMarketDealInfo>)
 
+    API_METHOD(ClientGetDealInfo,
+               jwt::kWritePermission,
+               StorageMarketDealInfo,
+               const CID &)
+
+    API_METHOD(ClietListRetrievals,
+               jwt::kWritePermission,
+               std::vector<std::shared_ptr<RetrievalDeal>>)
     /**
      * Lists imported files and their root CIDs
      */

@@ -9,6 +9,7 @@
 
 #include <libp2p/peer/peer_info.hpp>
 #include "common/outcome.hpp"
+#include "data_transfer/dt.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "primitives/address/address.hpp"
@@ -19,6 +20,35 @@ namespace fc::markets::retrieval::client {
   using QueryResponseHandler =
       std::function<void(outcome::result<QueryResponseV1_0_0>)>;
   using RetrieveResponseHandler = std::function<void(outcome::result<void>)>;
+  using data_transfer::PeerDtId;
+
+  struct RetrievalDeal {
+    RetrievalDeal(const DealProposalV1_0_0 &proposal,
+                  Address client_wallet,
+                  Address miner_wallet,
+                  TokenAmount total_funds)
+        : proposal(proposal),
+          state{proposal.params},
+          client_wallet(client_wallet),
+          miner_wallet(miner_wallet),
+          total_funds(total_funds){};
+
+    DealProposalV1_0_0 proposal;
+    State state;
+    PeerDtId pdtid;
+    bool accepted{}, all_blocks{};
+    Address client_wallet;
+    Address miner_wallet;
+
+    /** total cost of deal  */
+    TokenAmount total_funds;
+
+    /** Payment channel actor address */
+    Address payment_channel_address;
+
+    /** Payment channel lane */
+    LaneId lane_id{};
+  };
 
   /*
    * @class Retrieval market client
@@ -66,6 +96,9 @@ namespace fc::markets::retrieval::client {
         const Address &client_wallet,
         const Address &miner_wallet,
         const RetrieveResponseHandler &handler) = 0;
+
+    virtual outcome::result<std::vector<std::shared_ptr<RetrievalDeal>>>
+    getRetrievals() = 0;
   };
 
 }  // namespace fc::markets::retrieval::client

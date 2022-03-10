@@ -22,7 +22,6 @@ namespace fc::markets::retrieval::client {
   using api::FullNodeApi;
   using common::libp2p::CborStream;
   using data_transfer::DataTransfer;
-  using data_transfer::PeerDtId;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::ipld::traverser::Traverser;
   using libp2p::Host;
@@ -32,7 +31,7 @@ namespace fc::markets::retrieval::client {
   /**
    * State of ongoing retrieval deal.
    */
-  struct DealState {
+  struct DealState : public RetrievalDeal {
     DealState(const DealProposalV1_0_0 &proposal,
               const IpldPtr &ipld,
               RetrieveResponseHandler handler,
@@ -40,27 +39,11 @@ namespace fc::markets::retrieval::client {
               Address miner_wallet,
               TokenAmount total_funds);
 
-    DealProposalV1_0_0 proposal;
-    State state;
-    PeerDtId pdtid;
-    bool accepted{}, all_blocks{};
-    RetrieveResponseHandler handler;
-    Address client_wallet;
-    Address miner_wallet;
-
-    /** total cost of deal  */
-    TokenAmount total_funds;
-
-    /** Payment channel actor address */
-    Address payment_channel_address;
-
-    /** Payment channel lane */
-    LaneId lane_id{};
-
     /**
      * Received ipld blocks verifier
      */
     Traverser traverser;
+    RetrieveResponseHandler handler;
 
     mutable std::mutex pending_mutex;
     std::optional<std::vector<DealResponse>> pending;
@@ -121,11 +104,15 @@ namespace fc::markets::retrieval::client {
     void failDeal(const std::shared_ptr<DealState> &deal_state,
                   const std::error_code &error);
 
+    outcome::result<std::vector<std::shared_ptr<RetrievalDeal>>> getRetrievals()
+        override;
+
     DealId next_deal_id{};
     std::shared_ptr<Host> host_;
     std::shared_ptr<DataTransfer> datatransfer_;
     std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<IpfsDatastore> ipfs_;
+    std::vector<std::shared_ptr<DealState>> deals;
     common::Logger logger_ = common::createLogger("RetrievalMarketClient");
   };
 
