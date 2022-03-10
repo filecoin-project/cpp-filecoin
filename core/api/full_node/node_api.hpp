@@ -391,7 +391,7 @@ namespace fc::api {
                std::vector<StorageMarketDealInfo>)
 
     API_METHOD(ClientGetDealInfo,
-               jwt::kWritePermission,
+               jwt::kReadPermission,
                StorageMarketDealInfo,
                const CID &)
 
