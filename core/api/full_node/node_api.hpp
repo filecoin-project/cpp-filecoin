@@ -44,7 +44,6 @@ namespace fc::api {
   using markets::storage::SignedStorageAskV1_1_0;
   using markets::storage::StorageDeal;
   using markets::storage::StorageDealStatus;
-  using markets::storage::client::ClientDeal;
   using markets::storage::client::import_manager::Import;
   using primitives::BigInt;
   using primitives::ChainEpoch;
