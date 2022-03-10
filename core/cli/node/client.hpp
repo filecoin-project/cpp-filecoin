@@ -22,7 +22,7 @@
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 
-namespace fc::cli::_node {
+namespace fc::cli::cli_node {
   using api::FileRef;
   using api::FullNodeApi;
   using api::ImportRes;
@@ -384,8 +384,9 @@ namespace fc::cli::_node {
       }
       fmt::print("Total: {} deals, {}", deals.size(), total_size);
       for (const auto &[state, size] : by_state) {
-        fmt::print(
-            "Deal with status {} allocates {} bytes", toString(state).value(), size);
+        fmt::print("Deal with status {} allocates {} bytes",
+                   toString(state).value(),
+                   size);
       }
     }
   };
@@ -582,4 +583,4 @@ namespace fc::cli::_node {
     }
   };
 
-}  // namespace fc::cli::_node
+}  // namespace fc::cli::cli_node
