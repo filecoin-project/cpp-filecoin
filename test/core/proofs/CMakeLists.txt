@@ -13,6 +13,4 @@ target_link_libraries(proofs_test
         piece
         base_fs_test
         piece_data
-        rpc
-        file
   )
