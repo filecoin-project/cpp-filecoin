@@ -390,7 +390,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct Node_client_list_deals {
+  struct Node_client_listDeals {
     struct Args {
       CLI_BOOL("show-failed", "show failed/failing deals") failed_show;
       CLI_OPTS() {
