@@ -140,7 +140,7 @@ namespace fc {
       return result;
     };
 
-    // HERE Ruslan
+ 
     node_objects.api->ClientGetDealInfo =
         [&node_objects](auto &cid) -> outcome::result<StorageMarketDealInfo> {
       OUTCOME_TRY(deal, node_objects.storage_market_client->getLocalDeal(cid));
