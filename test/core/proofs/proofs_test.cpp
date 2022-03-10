@@ -69,13 +69,8 @@ namespace fc::proofs {
     SectorNumber sector_num = 42;
     EXPECT_OUTCOME_TRUE(sector_size,
                         primitives::sector::getSectorSize(seal_proof_type));
-    EXPECT_OUTCOME_TRUE(
-        data,
-        common::readFile("/var/tmp/filecoin-proof-parameters/parameters.json"));
-    EXPECT_OUTCOME_TRUE(jdoc, codec::json::parse(data));
-    auto maybe_params = api::decode<std::map<std::string, ParamFile>>(jdoc);
-    EXPECT_OUTCOME_TRUE(params, maybe_params);
-    EXPECT_OUTCOME_TRUE_1(getParams(params, sector_size));
+    EXPECT_OUTCOME_TRUE_1(getParams(
+        "/var/tmp/filecoin-proof-parameters/parameters.json", sector_size));
 
     Ticket ticket{{5, 4, 2}};
 

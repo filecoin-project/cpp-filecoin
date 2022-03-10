@@ -16,6 +16,9 @@
 #include <boost/filesystem.hpp>
 #include <iostream>
 
+#include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
+#include "common/file.hpp"
 #include "common/outcome.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "proofs/proof_param_provider_error.hpp"
@@ -154,10 +157,14 @@ namespace fc::proofs {
     return outcome::success();
   }
 
-  outcome::result<void> getParams(
-      const std::map<std::string, ParamFile> &param_files,
-      uint64_t storage_size) {
-    boost::system::error_code ec;
+  outcome::result<void> getParams(const std::string &proof_param,
+                                  uint64_t storage_size) {
+    OUTCOME_TRY(data, common::readFile(proof_param));
+    OUTCOME_TRY(jdoc, codec::json::parse(data));
+    OUTCOME_TRY(param_files,
+                api::decode<std::map<std::string, proofs::ParamFile>>(jdoc));
+
+    boost::system::error_code ec{};
     boost::filesystem::create_directories(getParamDir(), ec);
 
     if (ec.failed()) {

@@ -19,8 +19,7 @@ namespace fc::proofs {
     uint64_t sector_size = 0;
   };
 
-  outcome::result<void> getParams(
-      const std::map<std::string, ParamFile> &param_files,
-      uint64_t storage_size);
+  outcome::result<void> getParams(const std::string &param_file,
+                                  uint64_t storage_size);
 
 }  // namespace fc::proofs

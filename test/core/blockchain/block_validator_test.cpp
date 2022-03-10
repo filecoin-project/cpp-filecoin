@@ -19,14 +19,11 @@
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::blockchain::block_validator {
-  using proofs::ProofParamProvider;
   using storage::InMemoryStorage;
 
   TEST(BlockValidator, Interopnet) {
-    const auto params{ProofParamProvider::readJson(
-                          "/var/tmp/filecoin-proof-parameters/parameters.json")
-                          .value()};
-    ProofParamProvider::getParams(params, 0).value();
+    EXPECT_OUTCOME_TRUE(proofs::getParams(
+        "/var/tmp/filecoin-proof-parameters/parameters.json", 0));
 
     // Works on network version 13
     setParamsInteropnet();

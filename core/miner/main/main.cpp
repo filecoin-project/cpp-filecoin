@@ -331,12 +331,8 @@ namespace fc {
           true);
     }
 
-    OUTCOME_TRY(data, common::readFile(config.join("proof-params.json")));
-    OUTCOME_TRY(jdoc, codec::json::parse(data));
-    OUTCOME_TRY(params,
-                api::decode<std::map<std::string, proofs::ParamFile>>(jdoc));
-
-    return proofs::getParams(params, minfo.sector_size);
+    return proofs::getParams(config.join("proof-params.json"),
+                             minfo.sector_size);
   }
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
