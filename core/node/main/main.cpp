@@ -160,8 +160,8 @@ namespace fc {
       };  // TODO(@Elestrias): [FIL-614] Creation time
     };
 
-    node_objects.api->ClietListRetrievals = [&node_objects]()
-        -> outcome::result<std::vector<std::shared_ptr<api::RetrievalDeal>>> {
+    node_objects.api->ClientListRetrievals = [&node_objects]()
+        -> outcome::result<std::vector<api::RetrievalDeal>> {
       return node_objects.retrieval_market_client->getRetrievals();
     };
 

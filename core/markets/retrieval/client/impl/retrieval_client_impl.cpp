@@ -226,10 +226,14 @@ namespace fc::markets::retrieval::client {
     datatransfer_->pulling_out.erase(deal_state->pdtid);
   }
 
-  outcome::result<std::vector<std::shared_ptr<RetrievalDeal>>>
+  outcome::result<std::vector<RetrievalDeal>>
   RetrievalClientImpl::getRetrievals() {
-    return std::vector<std::shared_ptr<RetrievalDeal>>{deals.begin(),
-                                                       deals.end()};
+    std::vector<RetrievalDeal> result ;
+    for(const auto &deal: deals){
+      result.push_back(*deal);
+    }
+    return result;
+
   }
 
 }  // namespace fc::markets::retrieval::client

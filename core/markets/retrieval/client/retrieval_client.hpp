@@ -97,7 +97,7 @@ namespace fc::markets::retrieval::client {
         const Address &miner_wallet,
         const RetrieveResponseHandler &handler) = 0;
 
-    virtual outcome::result<std::vector<std::shared_ptr<RetrievalDeal>>>
+    virtual outcome::result<std::vector<RetrievalDeal>>
     getRetrievals() = 0;
   };
 

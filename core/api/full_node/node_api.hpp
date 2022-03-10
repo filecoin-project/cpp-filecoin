@@ -394,9 +394,9 @@ namespace fc::api {
                StorageMarketDealInfo,
                const CID &)
 
-    API_METHOD(ClietListRetrievals,
+    API_METHOD(ClientListRetrievals,
                jwt::kWritePermission,
-               std::vector<std::shared_ptr<RetrievalDeal>>)
+               std::vector<RetrievalDeal>)
     /**
      * Lists imported files and their root CIDs
      */

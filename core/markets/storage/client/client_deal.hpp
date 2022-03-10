@@ -10,9 +10,7 @@
 
 namespace fc::markets::storage::client {
   using vm::actor::builtin::types::market::ClientDealProposal;
-  using markets::storage::StorageDealStatus;
-  using markets::storage::DataRef;
-  using api::PeerInfo;
+  using libp2p::peer::PeerInfo;
   using primitives::DealId;
 
   /** Internal state of a deal on the client side. */
