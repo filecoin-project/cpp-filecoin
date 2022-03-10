@@ -18,6 +18,8 @@
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
 #include "testutil/storage/base_fs_test.hpp"
+#include "codec/json/json.hpp"
+#include "api/rpc/json.hpp"
 
 namespace fc::proofs {
   using common::Blob;
@@ -44,17 +46,11 @@ namespace fc::proofs {
   class ProofsTest : public test::BaseFS_Test {
    public:
     ProofsTest() : test::BaseFS_Test("fc_proofs_test") {
-      auto res = ProofParamProvider::readJson(
-          "/var/tmp/filecoin-proof-parameters/parameters.json");
-      if (!res.has_error()) {
-        params_ = std::move(res.value());
-      }
 
       proofs_ = std::make_shared<ProofEngineImpl>();
     }
 
    protected:
-    std::vector<ParamFile> params_;
 
     std::shared_ptr<ProofEngine> proofs_;
   };
@@ -74,7 +70,11 @@ namespace fc::proofs {
     SectorNumber sector_num = 42;
     EXPECT_OUTCOME_TRUE(sector_size,
                         primitives::sector::getSectorSize(seal_proof_type));
-    EXPECT_OUTCOME_TRUE_1(ProofParamProvider::getParams(params_, sector_size));
+    OUTCOME_TRY(data, common::readFile(config.join("/var/tmp/filecoin-proof-parameters/parameters.json")));
+    OUTCOME_TRY(jdoc, codec::json::parse(data));
+    OUTCOME_TRY(params,
+                api::decode<std::map<std::string, proofs::ParamFile>>(jdoc));
+    EXPECT_OUTCOME_TRUE_1(getParams(params, sector_size));
 
     Ticket ticket{{5, 4, 2}};
 
