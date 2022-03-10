@@ -12,6 +12,7 @@
 
 #include <curl/curl.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/filesystem.hpp>
 #include <iostream>
 
@@ -172,28 +173,23 @@ namespace fc::proofs {
       cpus = sysconf(_SC_NPROCESSORS_ONLN);
     }
 
-    std::map<std::string, ParamFile> to_fetch;
+    auto io = std::make_shared<boost::asio::io_context>();
     for (const auto &entry : param_files) {
       if (entry.second.sector_size != storage_size
           && boost::ends_with(entry.first, ".params")) {
         continue;
       }
-      to_fetch[entry.first] = entry.second;
-    }
-
-    const uint64_t parallelism = to_fetch.size() / cpus;
-    std::vector<std::thread> threads;
-    threads.reserve(cpus);
-    for (size_t index = 0; index < cpus; index++) {
-      threads.emplace_back([index, parallelism, &to_fetch, &errors]() {
-        const auto begin = std::next(to_fetch.begin(), index * parallelism);
-        const auto end = std::next(begin, parallelism);
-        for (auto it = begin; it != end; it++) {
-          if (fetch(it->first, it->second).has_error()) {
-            errors = true;
-          }
+      io->post([entry, &errors]() {
+        auto result = fetch(entry.first, entry.second);
+        if (result.has_error() && not errors) {
+          errors = true;
         }
       });
+    }
+
+    std::vector<std::thread> threads(cpus);
+    for (size_t index = 0; index < cpus; index++) {
+      threads[index] = std::thread([io]() { io->run(); });
     }
 
     for (auto &thread : threads) {
