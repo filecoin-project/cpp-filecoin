@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "cli/node/client.hpp"
 #include "cli/node/net.hpp"
 #include "cli/run.hpp"
 
@@ -17,6 +18,12 @@ namespace fc::cli::_node {
           CMD("connect", Node_net_connect),
           CMD("listen", Node_net_listen),
           CMD("peers", Node_net_peers),
+      })},
+      {GROUP("client")({
+          CMD("retrieve", Node_client_retrieve),
+          CMD("import", Node_client_importData),
+          CMD("generate-car", Node_client_generateCar),
+          CMD("local", Node_client_local),
       })},
       CMD("version", Node_version),
   })};

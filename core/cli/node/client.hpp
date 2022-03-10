@@ -7,8 +7,11 @@
 #include <inttypes.h>
 #include "api/full_node/node_api.hpp"
 #include "cli/node/node.hpp"
+#include "cli/validate/address.hpp"
+#include "cli/validate/cid.hpp"
 #include "common/enum.hpp"
 #include "markets/storage/mk_protocol.hpp"
+#include "primitives/atto_fil.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/piece/piece.hpp"
 #include "storage/car/car.hpp"
@@ -31,6 +34,7 @@ namespace fc::cli::_node {
   using ::fc::storage::unixfs::wrapFile;
   using markets::storage::DataRef;
   using markets::storage::StorageDealStatus;
+  using primitives::AttoFil;
   using primitives::ChainEpoch;
   using primitives::StoragePower;
   using primitives::address::Address;
@@ -67,7 +71,7 @@ namespace fc::cli::_node {
     struct Args {
       CLI_OPTIONAL("from", "", Address) from;
       CLI_OPTIONAL("provider", "", Address) provider;
-      CLI_OPTIONAL("pieceCid", "", CID) piece_cid;
+      CLI_OPTIONAL("pieceCid", "", std::string) piece_cid;
       CLI_OPTIONAL("maxPrice", "", AttoFil) max_price;
       CLI_OPTIONAL("data-selector", "", std::string) data_selector;
       CLI_BOOL("car", "") car;
@@ -95,7 +99,7 @@ namespace fc::cli::_node {
       auto path{cliArgv<boost::filesystem::path>(argv, 1, "path")};
       order.client =
           (args.from ? *args.from
-                     : cliTry(api._->WalletDefaultAddress(),
+                     : cliTry(api->WalletDefaultAddress(),
                               "Getting address of default wallet..."));
       order.miner = (args.provider ? *args.provider : Address{});
       if (args.max_price) {
@@ -128,7 +132,7 @@ namespace fc::cli::_node {
       auto path{cliArgv<std::string>(argv, 0, "path to file to import")};
       FileRef file_ref{path, args.car};
       auto result =
-          cliTry(api._->ClientImport(file_ref), "Processing data import");
+          cliTry(api->ClientImport(file_ref), "Processing data import");
       fmt::print("File Root CID: " + result.root.toString().value());
       fmt::print("Data Import Success");
     }
@@ -209,7 +213,7 @@ namespace fc::cli::_node {
         throw CliError("Max deal duration is {}", kMaxDealDuration);
       DataRef data_ref;
       Address address_from =
-          args.from ? *args.from : cliTry(api._->WalletDefaultAddress());
+          args.from ? *args.from : cliTry(api->WalletDefaultAddress());
       if (args.man_piece_cid) {
         UnpaddedPieceSize piece_size{*args.man_piece_size};
         data_ref = {.transfer_type = "manual",
@@ -220,7 +224,7 @@ namespace fc::cli::_node {
         data_ref = {.transfer_type = "graphsync", .root = data_cid};
       }
       auto dcap =
-          cliTry(api._->StateVerifiedClientStatus(address_from, TipsetKey()),
+          cliTry(api->StateVerifiedClientStatus(address_from, TipsetKey()),
                  "Failed to get status of {}",
                  address_from);
       bool isVerified = dcap.has_value();
@@ -237,7 +241,7 @@ namespace fc::cli::_node {
                                      .fast_retrieval = args.fast_ret,
                                      .verified_deal = isVerified,
                                      .provider_collateral = *args.collateral};
-      auto proposal_cid = cliTry(api._->ClientStartDeal(deal_params));
+      auto proposal_cid = cliTry(api->ClientStartDeal(deal_params));
       fmt::print("Deal proposal CID: {}\n",
                  cliTry(proposal_cid.toString(), "Cannot extract CID"));
     }
@@ -264,7 +268,7 @@ namespace fc::cli::_node {
   struct Node_client_local : Empty {
     CLI_RUN() {
       Node::Api api{argm};
-      auto result = cliTry(api._->ClientListImports(), "Getting imports list");
+      auto result = cliTry(api->ClientListImports(), "Getting imports list");
       for (auto it = result.begin(); it != result.end(); it++) {
         fmt::print("Root CID: {} \n", it->root.toString().value());
         fmt::print("Source: {}\n", it->source);
@@ -288,7 +292,7 @@ namespace fc::cli::_node {
       auto data_cid{cliArgv<CID>(argv, 0, "data-cid")};
       Node::Api api{argm};
       auto querry_offers =
-          cliTry(api._->ClientFindData(data_cid, *args.piece_cid));
+          cliTry(api->ClientFindData(data_cid, *args.piece_cid));
       for (const auto &offer : querry_offers) {
         if (offer.error == "") {
           fmt::print("ERROR: {}@{}: {}\n",
@@ -370,7 +374,7 @@ namespace fc::cli::_node {
     };
     CLI_RUN() {
       Node::Api api{argm};
-      auto deals = cliTry(api._->ClientListDeals());
+      auto deals = cliTry(api->ClientListDeals());
       uint64_t total_size{0};
       std::map<StorageDealStatus, uint64_t> by_state;
       for (const auto &deal : deals) {
@@ -381,7 +385,7 @@ namespace fc::cli::_node {
       fmt::print("Total: {} deals, {}", deals.size(), total_size);
       for (const auto &[state, size] : by_state) {
         fmt::print(
-            "Deal with status {} allocates {} bytes", toString(state), size);
+            "Deal with status {} allocates {} bytes", toString(state).value(), size);
       }
     }
   };
@@ -400,7 +404,7 @@ namespace fc::cli::_node {
       Node::Api api{argm};
       fmt::print("Not supported yet\n");
       auto local_deals =
-          cliTry(api._->ClientListDeals(), "Getting local client deals...");
+          cliTry(api->ClientListDeals(), "Getting local client deals...");
       // TODO(Markuus): make output;
     }
   };
@@ -419,9 +423,9 @@ namespace fc::cli::_node {
       Node::Api api{argm};
       Address addr =
           (args.client ? *args.client
-                       : cliTry(api._->WalletDefaultAddress(),
+                       : cliTry(api->WalletDefaultAddress(),
                                 "Getting address of default wallet..."));
-      auto balance = cliTry(api._->StateMarketBalance(addr, TipsetKey()));
+      auto balance = cliTry(api->StateMarketBalance(addr, TipsetKey()));
 
       fmt::print("  Escrowed Funds:        {}\n",
                  lexical_cast<std::string>(balance.escrow));
@@ -444,7 +448,7 @@ namespace fc::cli::_node {
     CLI_RUN() {
       Node::Api api{argm};
       auto cid{cliArgv<CID>(argv, 0, " cid of localy stored file")};
-      // auto deal_size = cliTry(api._->);
+      // auto deal_size = cliTry(api->);
       // TODO: CLientDealSize;
     }
   };
@@ -489,7 +493,7 @@ namespace fc::cli::_node {
       auto target{cliArgv<Address>(argv, 0, "target address")};
       auto allowness{cliArgv<TokenAmount>(argv, 1, "amount")};
       Node::Api api{argm};
-      auto dcap = checkNotary(api._, *args.from);
+      auto dcap = checkNotary(api.api, *args.from);
       if (dcap < allowness)
         throw CliError(
             "cannot allot more allowance than notary data cap: {} < {}",
@@ -498,7 +502,7 @@ namespace fc::cli::_node {
       auto encoded_params = cliTry(codec::cbor::encode(
           vm::actor::builtin::v0::verified_registry::AddVerifiedClient::Params{
               target, allowness}));
-      auto signed_message = cliTry(api._->MpoolPushMessage(
+      auto signed_message = cliTry(api->MpoolPushMessage(
           {kVerifiedRegistryAddress,
            *args.from,
            {},
@@ -511,7 +515,7 @@ namespace fc::cli::_node {
 
       fmt::print("message sent, now waiting on cid: {}",
                  signed_message.getCid());
-      auto mwait = cliTry(api._->StateWaitMsg(
+      auto mwait = cliTry(api->StateWaitMsg(
           signed_message.getCid(), kMessageConfidence, kLoopback, false));
       if (mwait.receipt.exit_code != VMExitCode::kOk)
         throw CliError("failed to add verified client");
@@ -523,9 +527,9 @@ namespace fc::cli::_node {
     CLI_RUN() {
       auto address{cliArgv<Address>(argv, 0, "address of client")};
       Node::Api api{argm};
-      auto res = cliTry(api._->StateVerifiedClientStatus(address, TipsetKey()),
+      auto res = cliTry(api->StateVerifiedClientStatus(address, TipsetKey()),
                         "Getting Verified Client info...");
-      fmt::print("Client {} info: {}", encodeToString(address), res);
+      fmt::print("Client {} info: {}", encodeToString(address), res.value());
     }
   };
 
@@ -533,10 +537,10 @@ namespace fc::cli::_node {
     CLI_RUN() {
       Node::Api api{argm};
       auto actor =
-          cliTry(api._->StateGetActor(kVerifiedRegistryAddress, TipsetKey()),
+          cliTry(api->StateGetActor(kVerifiedRegistryAddress, TipsetKey()),
                  "Getting VerifierActor");
-      auto ipfs = std::make_shared<ApiIpfsDatastore>(api._);
-      auto version = cliTry(api._->StateNetworkVersion(TipsetKey()),
+      auto ipfs = std::make_shared<ApiIpfsDatastore>(api.api);
+      auto version = cliTry(api->StateNetworkVersion(TipsetKey()),
                             "Getting Chain Version...");
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
@@ -553,10 +557,10 @@ namespace fc::cli::_node {
     CLI_RUN() {
       Node::Api api{argm};
       auto actor =
-          cliTry(api._->StateGetActor(kVerifiedRegistryAddress, TipsetKey()),
+          cliTry(api->StateGetActor(kVerifiedRegistryAddress, TipsetKey()),
                  "Getting VerifierActor");
-      auto ipfs = std::make_shared<ApiIpfsDatastore>(api._);
-      auto version = cliTry(api._->StateNetworkVersion(TipsetKey()),
+      auto ipfs = std::make_shared<ApiIpfsDatastore>(api.api);
+      auto version = cliTry(api->StateNetworkVersion(TipsetKey()),
                             "Getting Chain Version...");
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
@@ -573,7 +577,7 @@ namespace fc::cli::_node {
     CLI_RUN() {
       auto address{cliArgv<Address>(argv, 0, "address")};
       Node::Api api{argm};
-      auto dcap = checkNotary(api._, address);
+      auto dcap = checkNotary(api.api, address);
       fmt::print("DataCap amount: {}", dcap);
     }
   };
