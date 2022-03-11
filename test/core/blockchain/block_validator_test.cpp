@@ -22,8 +22,8 @@ namespace fc::blockchain::block_validator {
   using storage::InMemoryStorage;
 
   TEST(BlockValidator, Interopnet) {
-    EXPECT_OUTCOME_TRUE(proofs::getParams(
-        "/var/tmp/filecoin-proof-parameters/parameters.json", 0));
+    proofs::getParams("/var/tmp/filecoin-proof-parameters/parameters.json", 0)
+        .value();
 
     // Works on network version 13
     setParamsInteropnet();
