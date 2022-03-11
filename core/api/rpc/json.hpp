@@ -2027,7 +2027,6 @@ namespace fc::api {
 
     ENCODE(DealProposalParams) {
       Value j{rapidjson::kObjectType};
-
       Set(j, "Piece", v.piece);
       Set(j, "PricePerByte", v.price_per_byte);
       Set(j, "PaymentIterval", v.payment_interval);
