@@ -331,13 +331,8 @@ namespace fc {
           true);
     }
 
-    OUTCOME_TRY(
-        params,
-        proofs::ProofParamProvider::readJson(config.join("proof-params.json")));
-    OUTCOME_TRY(
-        proofs::ProofParamProvider::getParams(params, minfo.sector_size));
-
-    return outcome::success();
+    return proofs::getParams(config.join("proof-params.json"),
+                             minfo.sector_size);
   }
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)

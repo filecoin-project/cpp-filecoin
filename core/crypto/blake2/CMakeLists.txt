@@ -7,6 +7,7 @@ add_library(blake2
     blake2b160.cpp
     )
 target_link_libraries(blake2
+    OpenSSL::Crypto
     blob
     outcome
     )
