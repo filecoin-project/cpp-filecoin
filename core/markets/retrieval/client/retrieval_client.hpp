@@ -36,7 +36,8 @@ namespace fc::markets::retrieval::client {
     DealProposalV1_0_0 proposal;
     State state;
     PeerDtId pdtid;
-    bool accepted{}, all_blocks{};
+    bool accepted{false};
+    bool all_blocks{false};
     Address client_wallet;
     Address miner_wallet;
 
@@ -97,8 +98,7 @@ namespace fc::markets::retrieval::client {
         const Address &miner_wallet,
         const RetrieveResponseHandler &handler) = 0;
 
-    virtual outcome::result<std::vector<RetrievalDeal>>
-    getRetrievals() = 0;
+    virtual std::vector<RetrievalDeal> getRetrievals() const = 0;
   };
 
 }  // namespace fc::markets::retrieval::client

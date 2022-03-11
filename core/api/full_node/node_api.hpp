@@ -802,6 +802,8 @@ namespace fc::api {
     f(a.ChainGetBlockMessages);
     f(a.ChainGetGenesis);
     f(a.ChainGetMessage);
+    f(a.ClientListRetrievals);
+    f(a.ClientGetDealInfo);
     f(a.ChainGetNode);
     f(a.ChainGetPath);
     f(a.ChainGetParentMessages);

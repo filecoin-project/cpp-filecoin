@@ -104,8 +104,7 @@ namespace fc::markets::retrieval::client {
     void failDeal(const std::shared_ptr<DealState> &deal_state,
                   const std::error_code &error);
 
-    outcome::result<std::vector<RetrievalDeal>> getRetrievals()
-        override;
+    std::vector<RetrievalDeal> getRetrievals() const override;
 
     DealId next_deal_id{};
     std::shared_ptr<Host> host_;

@@ -95,6 +95,8 @@ namespace fc::api {
   using base64 = cppcodec::base64_rfc4648;
   using common::fromString;
   using common::toString;
+  using markets::retrieval::DealProposalParams;
+  using markets::retrieval::DealProposalV1_0_0;
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
@@ -2012,6 +2014,38 @@ namespace fc::api {
       decode(v.verified, Get(j, "Verified"));
       decode(v.transfer_channel_id, Get(j, "TransferChannelID"));
       decode(v.data_transfer, Get(j, "DataTransfer"));
+    }
+
+    ENCODE(DealProposalV1_0_0) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PayloadCid", v.payload_cid);
+      Set(j, "DealId", v.deal_id);
+      Set(j, "Params", v.params);
+      Set(j, "Type", v.getType());
+      return j;
+    }
+
+    ENCODE(DealProposalParams) {
+      Value j{rapidjson::kObjectType};
+
+      Set(j, "Piece", v.piece);
+      Set(j, "PricePerByte", v.price_per_byte);
+      Set(j, "PaymentIterval", v.payment_interval);
+      Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
+      Set(j, "UnsealPrice", v.unseal_price);
+      return j;
+    }
+
+    ENCODE(RetrievalDeal) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Proposal", v.proposal);
+      Set(j, "PeerId", v.pdtid.peer);
+      Set(j, "Accepted", v.accepted);
+      Set(j, "AllBlocks", v.all_blocks);
+      Set(j, "ClientWallet", v.client_wallet);
+      Set(j, "MinerWallet", v.miner_wallet);
+      Set(j, "TotalFunds", v.total_funds);
+      return j;
     }
 
     ENCODE(ImportRes) {
