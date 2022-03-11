@@ -301,7 +301,6 @@ namespace fc {
           } else {
             log()->warn("drand config {}: {:#}", host, _info.error());
           }
-          exit(EXIT_FAILURE);
         });
       }
     });

@@ -6,8 +6,10 @@
 #include "node/say_hello.hpp"
 
 #include <cassert>
+
 #include "codec/cbor/cbor_decode_stream.hpp"
 #include "codec/cbor/cbor_encode_stream.hpp"
+#include "common/libp2p/timer_loop.hpp"
 #include "common/logger.hpp"
 #include "node/events.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -74,14 +76,11 @@ namespace fc::sync {
           }
         });
 
-    heartbeat_handle_ = scheduler_->scheduleWithHandle(
-        [wptr = weak_from_this()]() {
-          auto self = wptr.lock();
-          if (self) {
-            self->onHeartbeat();
-          }
-        },
-        kHeartbeatInterval);
+    timerLoop(scheduler_,
+              kHeartbeatInterval,
+              weakCb(*this, [](std::shared_ptr<SayHello> &&self) {
+                self->onHeartbeat();
+              }));
 
     log()->debug("started");
   }
@@ -218,7 +217,9 @@ namespace fc::sync {
       auto it2 = active_requests_.find(peer_id);
       assert(it2 != active_requests_.end());
 
-      it2->second.stream->close();
+      if (it2->second.stream) {
+        it2->second.stream->close();
+      }
       active_requests_.erase(it2);
 
       log()->debug("request timed out for peer {}", peer_id.toBase58());

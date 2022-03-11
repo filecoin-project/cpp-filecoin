@@ -21,7 +21,8 @@
       || code == vm::actor::builtin::v3::name                                  \
       || code == vm::actor::builtin::v4::name                                  \
       || code == vm::actor::builtin::v5::name                                  \
-      || code == vm::actor::builtin::v6::name
+      || code == vm::actor::builtin::v6::name                                  \
+      || code == vm::actor::builtin::v7::name
 
 // TODO(turuslan): keep own miner sectors
 namespace fc::storage::compacter {
