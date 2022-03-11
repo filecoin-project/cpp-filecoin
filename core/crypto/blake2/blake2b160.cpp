@@ -161,10 +161,8 @@ namespace fc::crypto::blake2b {
     constexpr size_t buffer_size = 32 * 1024;
     std::array<char, buffer_size> bytes{};
     file_stream.read(bytes.data(), buffer_size);
-    if (not file_stream.good()) {
-      if (not file_stream.eof()) {
-        return ERROR_TEXT("Read error");
-      }
+    if (not file_stream.good() && not file_stream.eof()) {
+      return ERROR_TEXT("Read error");
     }
     auto currently_read = file_stream.gcount();
     while (currently_read != 0) {
@@ -174,10 +172,8 @@ namespace fc::crypto::blake2b {
         break;
       }
       file_stream.read(bytes.data(), buffer_size);
-      if (not file_stream.good()) {
-        if (not file_stream.eof()) {
-          return ERROR_TEXT("Read error");
-        }
+      if (not file_stream.good() && not file_stream.eof()) {
+        return ERROR_TEXT("Read error");
       }
       currently_read = file_stream.gcount();
     }
