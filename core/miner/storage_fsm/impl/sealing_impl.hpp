@@ -279,6 +279,17 @@ namespace fc::mining {
     outcome::result<void> handleRemoving(
         const std::shared_ptr<SectorInfo> &info);
 
+    /**
+     * @brief Handle incoming in kSnapDealsAddPieceFailed state
+     */
+    outcome::result<void> handleSnapDealsAddPieceFailed(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kReplicaUpdateFailed state
+     */
+    outcome::result<void> handleReplicaUpdateFailed(
+        const std::shared_ptr<SectorInfo> &info);
+
     outcome::result<RegisteredSealProof> getCurrentSealProof() const;
 
     struct TicketInfo {
@@ -324,6 +335,7 @@ namespace fc::mining {
     /** State machine */
     std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<StorageFSM> fsm_;
+    std::shared_ptr<boost::asio::io_context> context_;
 
     std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<Events> events_;

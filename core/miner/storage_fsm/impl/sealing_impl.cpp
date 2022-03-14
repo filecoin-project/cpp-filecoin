@@ -59,6 +59,21 @@ namespace fc::mining {
     return std::chrono::milliseconds(60000);  // 1 minute
   }
 
+  outcome::result<bool> sectorActive(std::shared_ptr<FullNodeApi> api,
+                                     const Address &miner_address,
+                                     const TipsetKey &tipset_key,
+                                     SectorNumber sector) {
+    OUTCOME_TRY(active,
+                api->StateMinerActiveSectors(miner_address, tipset_key));
+
+    for (const auto &sector_info : active) {
+      if (sector_info.sector == sector) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   SealingImpl::SealingImpl(
       std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<Events> events,
@@ -74,6 +89,7 @@ namespace fc::mining {
       std::shared_ptr<FeeConfig> fee_config,
       Config config)
       : scheduler_{std::move(scheduler)},
+        context_(std::move(context)),
         api_(std::move(api)),
         events_(std::move(events)),
         policy_(std::move(policy)),
@@ -959,6 +975,10 @@ namespace fc::mining {
           return handleDealsExpired(info);
         case SealingState::kRecoverDealIDs:
           return handleRecoverDeal(info);
+        case SealingState::kSnapDealsAddPieceFailed:
+          return handleSnapDealsAddPieceFailed(info);
+        case SealingState::kReplicaUpdateFailed:
+          return handleReplicaUpdateFailed(info);
 
         case SealingState::kProving:
           return handleProvingSector(info);
@@ -2379,6 +2399,131 @@ namespace fc::mining {
 
     FSM_SEND(info, SealingEvent::kSectorRemoved);
     return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleSnapDealsAddPieceFailed(
+      const std::shared_ptr<SectorInfo> &info) {
+    FSM_SEND(info, SealingEvent::kSectorRetryWaitDeals);
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleReplicaUpdateFailed(
+      const std::shared_ptr<SectorInfo> &info) {
+    auto cb = [self{shared_from_this()}, info]() -> outcome::result<void> {
+      auto maybe_head = self->api_->ChainHead();
+      if (maybe_head.has_error()) {
+        self->logger_->error(
+            "handleReplicaUpdateFailed: api error, not proceeding: {}",
+            maybe_head.error().message());
+        return outcome::success();
+      }
+      const auto &head{maybe_head.value()};
+
+      auto maybe_error = checks::checkUpdate(self->miner_address_,
+                                             info,
+                                             head->key,
+                                             self->api_,
+                                             self->sealer_->getProofEngine());
+      if (maybe_error.has_error()) {
+        if (maybe_error
+            == outcome::failure(checks::ChecksError::kBadUpdateReplica)) {
+          return self->fsm_->send(
+              info, SealingEvent::kSectorRetryReplicaUpdate, {});
+        }
+        if (maybe_error
+            == outcome::failure(checks::ChecksError::kBadUpdateProof)) {
+          return self->fsm_->send(
+              info, SealingEvent::kSectorRetryProveReplicaUpdate, {});
+        }
+        if (maybe_error
+            == outcome::failure(checks::ChecksError::kInvalidDeal)) {
+          return self->fsm_->send(
+              info, SealingEvent::kSectorInvalidDealIDs, {});
+        }
+        if (maybe_error
+            == outcome::failure(checks::ChecksError::kExpiredDeal)) {
+          return self->fsm_->send(info, SealingEvent::kSectorDealsExpired, {});
+        }
+        self->logger_->error("sanity check error, not proceeding: {}",
+                             maybe_error.error().message());
+        return outcome::success();
+      }
+      auto maybe_active = sectorActive(
+          self->api_, self->miner_address_, head->key, info->sector_number);
+      if (maybe_active.has_error()) {
+        self->logger_->error(
+            "sector active check: api error, not proceeding: {}",
+            maybe_active.error().message());
+        return outcome::success();
+      }
+      if (not maybe_active.value()) {
+        self->logger_->error(
+            "sector marked for upgrade {} no longer active, aborting upgrade",
+            info->sector_number);
+        return self->fsm_->send(info, SealingEvent::kSectorAbortUpgrade, {});
+      }
+
+      self->scheduler_->schedule(
+          [self, info] {
+            OUTCOME_EXCEPT(self->fsm_->send(
+                info, SealingEvent::kSectorRetrySubmitReplicaUpdate, {}));
+          },
+          getWaitingTime());
+      return outcome::success();
+    };
+
+    if (info->update_message.has_value()) {
+      api_->StateSearchMsg(
+          [self{shared_from_this()}, cb, info](const auto &value) {
+            if (value.has_error()) {
+              self->scheduler_->schedule(
+                  [self, info] {
+                    OUTCOME_EXCEPT(self->fsm_->send(
+                        info,
+                        SealingEvent::kSectorRetrySubmitReplicaUpdateWait,
+                        {}));
+                  },
+                  getWaitingTime());
+              return;
+            }
+
+            if (not value.value().has_value()) {
+              OUTCOME_EXCEPT(self->fsm_->send(
+                  info, SealingEvent::kSectorRetrySubmitReplicaUpdateWait, {}));
+              return;
+            }
+            const auto &msg{value.value().value()};
+            switch (msg.receipt.exit_code) {
+              case vm::VMExitCode::kOk:
+                OUTCOME_EXCEPT(self->fsm_->send(
+                    info,
+                    SealingEvent::kSectorRetrySubmitReplicaUpdateWait,
+                    {}));
+                return;
+              case vm::VMExitCode::kSysErrOutOfGas:
+                OUTCOME_EXCEPT(self->fsm_->send(
+                    info, SealingEvent::kSectorRetrySubmitReplicaUpdate, {}));
+                return;
+              default:
+                break;  // something else goes wrong
+            }
+
+            self->context_->post([self, cb]() {
+              auto maybe_error = cb();
+              if (maybe_error.has_error()) {
+                self->logger_->error("fsm error: {}",
+                                     maybe_error.error().message());
+              }
+            });
+          },
+          TipsetKey{},
+          info->update_message.get(),
+          api::kLookbackNoLimit,
+          true);
+      return outcome::success();
+    }
+
+    return cb();
   }
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(
