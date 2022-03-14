@@ -2018,8 +2018,8 @@ namespace fc::api {
 
     ENCODE(DealProposalV1_0_0) {
       Value j{rapidjson::kObjectType};
-      Set(j, "PayloadCid", v.payload_cid);
-      Set(j, "DealId", v.deal_id);
+      Set(j, "PayloadCID", v.payload_cid);
+      Set(j, "ID", v.deal_id);
       Set(j, "Params", v.params);
       Set(j, "Type", v.getType());
       return j;
@@ -2027,7 +2027,6 @@ namespace fc::api {
 
     ENCODE(DealProposalParams) {
       Value j{rapidjson::kObjectType};
-
       Set(j, "Piece", v.piece);
       Set(j, "PricePerByte", v.price_per_byte);
       Set(j, "PaymentIterval", v.payment_interval);
@@ -2039,11 +2038,11 @@ namespace fc::api {
     ENCODE(RetrievalDeal) {
       Value j{rapidjson::kObjectType};
       Set(j, "Proposal", v.proposal);
-      Set(j, "PeerId", v.pdtid.peer);
+      Set(j, "PeerID", v.pdtid.peer);
       Set(j, "Accepted", v.accepted);
       Set(j, "AllBlocks", v.all_blocks);
-      Set(j, "ClientWallet", v.client_wallet);
-      Set(j, "MinerWallet", v.miner_wallet);
+      Set(j, "Client", v.client_wallet);
+      Set(j, "Provider", v.miner_wallet);
       Set(j, "TotalFunds", v.total_funds);
       return j;
     }
