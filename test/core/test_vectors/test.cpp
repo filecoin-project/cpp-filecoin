@@ -59,7 +59,6 @@ using fc::primitives::sector::getSectorSize;
 using fc::primitives::sector::RegisteredSealProof;
 using fc::primitives::tipset::put;
 using fc::primitives::tipset::Tipset;
-using fc::proofs::ProofParamProvider;
 using fc::vm::actor::Invoker;
 using fc::vm::actor::InvokerImpl;
 using fc::vm::message::UnsignedMessage;
@@ -268,10 +267,8 @@ auto search() {
 struct TestVectors : testing::TestWithParam<MessageVector> {
   static void SetUpTestCase() {
     // Download proofs needed for tests
-    OUTCOME_EXCEPT(params,
-                   ProofParamProvider::readJson(
-                       "/var/tmp/filecoin-proof-parameters/parameters.json"));
-    OUTCOME_EXCEPT(ProofParamProvider::getParams(params, 0));
+    OUTCOME_EXCEPT(fc::proofs::getParams(
+        "/var/tmp/filecoin-proof-parameters/parameters.json", 0));
   }
 };
 
@@ -363,7 +360,7 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
     std::shared_ptr<RuntimeRandomness> randomness =
         std::make_shared<ReplayingRandomness>(mv.randomness);
     fc::vm::runtime::EnvironmentContext env_context{ipld, invoker, randomness};
-    auto env{std::make_shared<fc::vm::runtime::Env>(env_context, nullptr, ts)};
+    auto env{fc::vm::runtime::Env::make(env_context, nullptr, ts).value()};
     auto i{0};
     for (const auto &[epoch_offset, message] : mv.messages) {
       const auto &receipt{mv.receipts[i]};

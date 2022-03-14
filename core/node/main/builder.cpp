@@ -36,6 +36,7 @@
 #include "codec/json/json.hpp"
 #include "common/api_secret.hpp"
 #include "common/error_text.hpp"
+#include "common/libp2p/timer_loop.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
@@ -261,23 +262,6 @@ namespace fc::node {
   }
 
   /**
-   * Run timer loop
-   * @param scheduler - timer scheduler
-   * @param tick - timer tick
-   * @param cb - callback to call
-   */
-  void timerLoop(const std::shared_ptr<Scheduler> &scheduler,
-                 const std::chrono::milliseconds &tick,
-                 const std::function<void()> &cb) {
-    scheduler->schedule(
-        [scheduler, tick, cb]() {
-          cb();
-          timerLoop(scheduler, tick, cb);
-        },
-        tick);
-  }
-
-  /**
    * Creates and initializes message pool and sets timer for republishing.
    * @param node_objects
    * @return
@@ -364,7 +348,6 @@ namespace fc::node {
         storage::LevelDB::create(config.join("ipld_leveldb")).value();
     o.ipld_leveldb =
         std::make_shared<storage::ipfs::LeveldbDatastore>(o.ipld_leveldb_kv);
-    o.ipld = o.ipld_leveldb;
     o.ipld = *storage::cids_index::loadOrCreateWithProgress(
         config.genesisCar(), false, boost::none, o.ipld, log());
     auto snapshot_cids{loadSnapshot(config, o)};

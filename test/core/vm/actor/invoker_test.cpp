@@ -29,7 +29,7 @@ namespace fc::vm::actor {
     ts->blks.emplace_back();
     auto execution{std::make_shared<Execution>()};
     execution->env =
-        std::make_shared<Env>(runtime::EnvironmentContext{}, nullptr, ts);
+        Env::make(runtime::EnvironmentContext{}, nullptr, ts).value();
 
     InvokerImpl invoker;
 

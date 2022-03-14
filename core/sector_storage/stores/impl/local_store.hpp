@@ -82,7 +82,6 @@ namespace fc::sector_storage::stores {
     std::vector<std::string> urls_;
     std::unordered_map<StorageID, std::shared_ptr<Path>> paths_;
     fc::common::Logger logger_;
-    Scheduler::Handle handler_;
     std::chrono::milliseconds heartbeat_interval_;
     mutable std::shared_mutex mutex_;
   };

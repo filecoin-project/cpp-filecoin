@@ -908,4 +908,8 @@ namespace fc::sector_storage {
 
     return call_id;
   }
+
+  bool LocalWorker::isLocalWorker() const {
+    return true;
+  }
 }  // namespace fc::sector_storage

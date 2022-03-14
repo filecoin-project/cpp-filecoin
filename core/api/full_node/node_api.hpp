@@ -635,6 +635,12 @@ namespace fc::api {
                jwt::kReadPermission,
                MarketDealMap,
                const TipsetKey &)
+    API_METHOD(MarketAddBalance,
+               jwt::kSignPermission,
+               CID,
+               const Address &,
+               const Address &,
+               const TokenAmount &)
     API_METHOD(StateLookupID,
                jwt::kReadPermission,
                Address,
@@ -830,6 +836,7 @@ namespace fc::api {
     f(a.GasEstimateGasPremium);
     f(a.GasEstimateMessageGas);
     f(a.MarketReserveFunds);
+    f(a.MarketAddBalance);
     f(a.MinerCreateBlock);
     f(a.MinerGetBaseInfo);
     f(a.MpoolPending);

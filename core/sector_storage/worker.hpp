@@ -142,6 +142,8 @@ namespace fc::sector_storage {
 
     virtual outcome::result<std::vector<primitives::StoragePath>>
     getAccessiblePaths() = 0;
+
+    virtual bool isLocalWorker() const = 0;
   };
 
   enum class CallErrorCode : uint64_t {

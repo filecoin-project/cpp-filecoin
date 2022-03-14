@@ -103,12 +103,15 @@ namespace fc::sector_storage {
                 const std::shared_ptr<Worker> &worker)
           -> outcome::result<CallId> {
         OUTCOME_TRY(call_id, old_job(worker));
-        WorkState state;
-        state.id = wid;
-        state.status = WorkStatus::kInProgress;
-        state.call_id = call_id;
-        OUTCOME_TRY(state_raw, codec::cbor::encode(state));
-        OUTCOME_TRY(kv->put(static_cast<Bytes>(wid), std::move(state_raw)));
+        // check that the work running on a remote worker
+        if (not worker->isLocalWorker()) {
+          WorkState state;
+          state.id = wid;
+          state.status = WorkStatus::kInProgress;
+          state.call_id = call_id;
+          OUTCOME_TRY(state_raw, codec::cbor::encode(state));
+          OUTCOME_TRY(kv->put(static_cast<Bytes>(wid), std::move(state_raw)));
+        }
         return std::move(call_id);
       };
     }

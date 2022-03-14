@@ -9,47 +9,19 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
+#include "cli/validate/peer_info.hpp"
 #include "config/profile_config.hpp"
 #include "node/node_version.hpp"
 #include "primitives/address/config.hpp"
 
 namespace fc::common {
   template <size_t N>
-  inline void validate(boost::any &out,
-                       const std::vector<std::string> &values,
-                       Blob<N> *,
-                       long) {
-    using namespace boost::program_options;
-    check_first_occurrence(out);
-    auto &value{get_single_string(values)};
-    if (auto _bytes{Blob<N>::fromHex(value)}) {
-      out = _bytes.value();
-      return;
-    }
-    boost::throw_exception(invalid_option_value{value});
+  CLI_VALIDATE(Blob<N>) {
+    validateWith(out, values, [](const std::string &value) {
+      return Blob<N>::fromHex(value).value();
+    });
   }
 }  // namespace fc::common
-
-namespace libp2p::peer {
-  inline void validate(boost::any &out,
-                       const std::vector<std::string> &values,
-                       PeerInfo *,
-                       long) {
-    using namespace boost::program_options;
-    check_first_occurrence(out);
-    auto &value{get_single_string(values)};
-    if (auto _address{multi::Multiaddress::create(value)}) {
-      auto &address{_address.value()};
-      if (auto base58{address.getPeerId()}) {
-        if (auto _id{PeerId::fromBase58(*base58)}) {
-          out = PeerInfo{_id.value(), {address}};
-          return;
-        }
-      }
-    }
-    boost::throw_exception(invalid_option_value{value});
-  }
-}  // namespace libp2p::peer
 
 namespace fc::node {
   using config::configProfile;

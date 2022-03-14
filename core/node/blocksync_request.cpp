@@ -11,6 +11,7 @@
 
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
+#include "common/ptr.hpp"
 #include "primitives/tipset/load.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
@@ -237,7 +238,7 @@ namespace fc::sync::blocksync {
             put_block_header_{put_block_header} {}
 
       ~BlocksyncRequestImpl() override {
-        cancel();
+        done();
       }
 
       void makeRequest(PeerId peer,
@@ -316,16 +317,13 @@ namespace fc::sync::blocksync {
 
         if (timeoutMsec > 0) {
           handle_ = scheduler_.scheduleWithHandle(
-              [this] {
-                result_->error = BlocksyncRequest::Error::kTimeout;
-                scheduleResult(true);
-              },
+              weakCb(*this,
+                     [](std::shared_ptr<BlocksyncRequestImpl> &&self) {
+                       self->result_->error = BlocksyncRequest::Error::kTimeout;
+                       self->scheduleResult(true);
+                     }),
               std::chrono::milliseconds(timeoutMsec + depth * 100));
         }
-      }
-
-      void cancel() override {
-        done();
       }
 
      private:
@@ -347,40 +345,19 @@ namespace fc::sync::blocksync {
         done();
 
         if (result_->error) {
-          int64_t dr = 0;
-          const auto &category =
-              std::error_code(BlocksyncRequest::Error::kTimeout).category();
-          if (result_->error.category() == category) {
-            switch (result_->error.value()) {
-              case int(BlocksyncRequest::Error::kStoreCidsMismatch):
-                dr = -700;
-                break;
-              case int(BlocksyncRequest::Error::kInconsistentResponse):
-                dr = -500;
-                break;
-              case int(BlocksyncRequest::Error::kTimeout):
-                dr = -200;
-                break;
-              default:
-                break;
-            }
-          } else {
-            // stream and other errors
-            dr -= 200;
-          }
-          log()->debug("peer {}, error {}, dr={}",
+          log()->debug("peer {}, error {}",
                        (result_->from.has_value() ? result_->from->toBase58()
                                                   : "unknown"),
-                       result_->error.message(),
-                       dr);
-          result_->delta_rating += dr;
+                       result_->error.message());
         }
 
         if (call_now) {
           callback_(std::move(result_.value()));
         } else {
           handle_ = scheduler_.scheduleWithHandle(
-              [this] { callback_(std::move(result_.value())); });
+              weakCb(*this, [](std::shared_ptr<BlocksyncRequestImpl> &&self) {
+                self->callback_(std::move(self->result_.value()));
+              }));
         }
       }
 
@@ -447,15 +424,9 @@ namespace fc::sync::blocksync {
                        statusToString(response.status),
                        response.message,
                        response.chain.size());
-
-          if (response.status == ResponseStatus::kResponseComplete) {
-            result_->delta_rating += 100;
-          }
           if (response.chain.size() > 0) {
-            result_->delta_rating += 50;
             storeChain(std::move(response.chain));
           } else {
-            result_->delta_rating -= 50;
             result_->error = BlocksyncRequest::Error::kIncompleteResponse;
           }
         }
@@ -553,11 +524,6 @@ namespace fc::sync::blocksync {
           if (!expected_parent) {
             break;
           }
-        }
-
-        if (!result_->blocks_available.empty()) {
-          result_->delta_rating +=
-              (result_->blocks_available.size() + result_->parents.size()) * 5;
         }
       }
 

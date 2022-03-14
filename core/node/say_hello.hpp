@@ -82,8 +82,6 @@ namespace fc::sync {
     };
 
     std::multiset<TimeAndPeerId> active_requests_by_sent_time_;
-
-    Scheduler::Handle heartbeat_handle_;
   };
 
 }  // namespace fc::sync

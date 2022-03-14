@@ -151,6 +151,8 @@ namespace fc::storage::ipfs::graphsync {
 
     void checkResponders();
 
+    void scheduleCleanup(std::chrono::milliseconds delay);
+
     /// Remote peer
     const PeerId peer_;
 
@@ -183,9 +185,6 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Active streams being read
     Streams streams_;
-
-    /// Scheduler's handle, expiration timer
-    Scheduler::Handle timer_;
 
     /// Flag, indicates that peer is closed
     bool closed_ = false;

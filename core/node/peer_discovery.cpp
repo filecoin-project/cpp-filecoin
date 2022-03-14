@@ -11,6 +11,7 @@
 #include <libp2p/protocol/kademlia/kademlia.hpp>
 #include <libp2p/protocol/kademlia/node_id.hpp>
 
+#include "common/libp2p/timer_loop.hpp"
 #include "common/logger.hpp"
 #include "node/events.hpp"
 
@@ -70,7 +71,11 @@ namespace fc::sync {
           onPossibleConnection(e.from);
         });
 
-    timer_handle_ = scheduler_->scheduleWithHandle([this] { onTimer(); });
+    timerLoop(scheduler_,
+              kTimerPeriodMsec,
+              weakCb(*this, [](std::shared_ptr<PeerDiscovery> &&self) {
+                self->onTimer();
+              }));
 
     kademlia_->start();
 
@@ -162,9 +167,6 @@ namespace fc::sync {
     log()->debug("chose new random walk peer {}", peer_id->toBase58());
 
     makeRequest(peer_id.value());
-
-    timer_handle_ =
-        scheduler_->scheduleWithHandle([this] { onTimer(); }, kTimerPeriodMsec);
   }
 
 }  // namespace fc::sync

@@ -97,6 +97,8 @@ namespace fc::sector_storage {
     outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
         override;
 
+    bool isLocalWorker() const override;
+
    private:
     template <typename W, typename R>
     outcome::result<CallId> asyncCall(const SectorRef &sector,

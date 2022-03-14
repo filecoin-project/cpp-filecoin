@@ -38,7 +38,6 @@ namespace fc::remote_worker {
   using boost::asio::io_context;
   using config::configProfile;
   using libp2p::multi::Multiaddress;
-  using proofs::ProofParamProvider;
   using sector_storage::LocalWorker;
   using sector_storage::stores::LocalStore;
   namespace uuids = boost::uuids;
@@ -159,9 +158,7 @@ namespace fc::remote_worker {
       OUTCOME_TRY(sector_size, mapi->ActorSectorSize(address));
 
       OUTCOME_TRY(
-          params,
-          ProofParamProvider::readJson(config.join("proof-params.json")));
-      OUTCOME_TRY(ProofParamProvider::getParams(params, sector_size));
+          proofs::getParams(config.join("proof-params.json"), sector_size));
     }
 
     auto storage{std::make_shared<sector_storage::stores::LocalStorageImpl>(
