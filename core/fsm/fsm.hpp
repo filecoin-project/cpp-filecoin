@@ -404,6 +404,10 @@ namespace fc::fsm {
       any_change_cb_ = std::move(action);
     }
 
+    size_t getEventQueueSize() const {
+      return event_queue_.size();
+    }
+
    private:
     /// populate transitions map
     void initTransitions(std::vector<TransitionRule> transition_rules) {
@@ -442,6 +446,8 @@ namespace fc::fsm {
       auto parametrized_event = event_pair.second;
       auto event_to = parametrized_event.first;
       auto event_ctx = parametrized_event.second;
+      // at least one rule was applied
+      bool applied = false;
       // iterate over all the transitions rules for the event
       auto event_handlers = transitions_.equal_range(event_to);
       for (auto &event_handler = event_handlers.first;
@@ -462,12 +468,15 @@ namespace fc::fsm {
                 source_state,            // source state
                 resulting_state.get());  // destination state
           }
-        } else if (!discard_event_) {
-          // There were no rule for transition. Put event in queue in case it
-          // can be handled when 'from' state is changed.
-          std::lock_guard lock(event_queue_mutex_);
-          event_queue_.push(event_pair);
+          applied = true;
         }
+      }
+
+      if (!applied && !discard_event_) {
+        // There were no rule for transition. Put event in queue in case it
+        // can be handled when 'from' state is changed.
+        std::lock_guard lock(event_queue_mutex_);
+        event_queue_.push(event_pair);
       }
     }
 

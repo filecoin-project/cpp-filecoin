@@ -208,6 +208,9 @@ namespace fc::fsm {
     io_context.run_one();
     EXPECT_OUTCOME_EQ(fsm.get(entity), States::WORKING);
     ASSERT_EQ(entity->content, "still working");
+
+    // Check that no_discard parameter does not pollute event_queue
+    EXPECT_EQ(0, fsm.getEventQueueSize());
   }
 
 }  // namespace fc::fsm
