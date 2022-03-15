@@ -975,8 +975,15 @@ namespace fc::mining {
           return handleDealsExpired(info);
         case SealingState::kRecoverDealIDs:
           return handleRecoverDeal(info);
+
         case SealingState::kSnapDealsAddPieceFailed:
           return handleSnapDealsAddPieceFailed(info);
+        case SealingState::kSnapDealsDealsExpired:
+          return handleSnapDealsDealsExpired(info);
+        case SealingState::kSnapDealsRecoverDealIDs:
+          return handleSnapDealsRecoverDealIDs(info);
+        case SealingState::kAbortUpgrade:
+          return handleAbortUpgrade(info);
         case SealingState::kReplicaUpdateFailed:
           return handleReplicaUpdateFailed(info);
 
@@ -2205,9 +2212,14 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handleRecoverDeal(
       const std::shared_ptr<SectorInfo> &info) {
+    return handleRecoverDealWithFail(info, SealingEvent::kSectorRemove);
+  }
+
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+  outcome::result<void> SealingImpl::handleRecoverDealWithFail(
+      const std::shared_ptr<SectorInfo> &info, SealingEvent fail_event) {
     OUTCOME_TRY(head, api_->ChainHead());
 
     uint64_t padding_piece = 0;
@@ -2318,7 +2330,7 @@ namespace fc::mining {
             info->sector_number,
             piece.deal_info->deal_id);
 
-        FSM_SEND(info, SealingEvent::kSectorRemove);
+        FSM_SEND(info, fail_event);
         return outcome::success();
       }
 
@@ -2345,12 +2357,16 @@ namespace fc::mining {
       if (failed.size() + padding_piece == info->pieces.size()) {
         logger_->error("removing sector {}: all deals expired or unrecoverable",
                        info->sector_number);
-        FSM_SEND(info, SealingEvent::kSectorRemove);
+        FSM_SEND(info, fail_event);
         return outcome::success();
       }
 
       // TODO(ortyomka): [FIL-382] try to recover
-      return ERROR_TEXT("failed to recover some deals");
+
+      logger_->error("sector {}: deals expired or unrecoverable",
+                     info->sector_number);
+      FSM_SEND(info, fail_event);
+      return outcome::success();
     }
 
     std::shared_ptr<SectorUpdateDealIds> context =
@@ -2524,6 +2540,36 @@ namespace fc::mining {
     }
 
     return cb();
+  }
+
+  outcome::result<void> SealingImpl::handleSnapDealsDealsExpired(
+      const std::shared_ptr<SectorInfo> &info) {
+    if (not info->update) {
+      return ERROR_TEXT(
+          "should never reach AbortUpgrade as a non-update sector");
+    }
+
+    FSM_SEND(info, SealingEvent::kSectorAbortUpgrade);
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleSnapDealsRecoverDealIDs(
+      const std::shared_ptr<SectorInfo> &info) {
+    return handleRecoverDealWithFail(info, SealingEvent::kSectorAbortUpgrade);
+  }
+
+  outcome::result<void> SealingImpl::handleAbortUpgrade(
+      const std::shared_ptr<SectorInfo> &info) {
+    if (not info->update) {
+      return ERROR_TEXT(
+          "should never reach AbortUpgrade as a non-update sector");
+    }
+
+    OUTCOME_TRY(sealer_->releaseReplicaUpgrade(
+        minerSector(info->sector_type, info->sector_number)));
+
+    FSM_SEND(info, SealingEvent::kSectorRevertUpgradeToProving);
+    return outcome::success();
   }
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(

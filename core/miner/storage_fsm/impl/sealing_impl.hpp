@@ -285,10 +285,29 @@ namespace fc::mining {
     outcome::result<void> handleSnapDealsAddPieceFailed(
         const std::shared_ptr<SectorInfo> &info);
     /**
+     * @brief Handle incoming in kSnapDealsDealsExpired state
+     */
+    outcome::result<void> handleSnapDealsDealsExpired(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kSnapDealsRecoverDealIDs state
+     */
+    outcome::result<void> handleSnapDealsRecoverDealIDs(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kAbortUpgrade state
+     */
+    outcome::result<void> handleAbortUpgrade(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
      * @brief Handle incoming in kReplicaUpdateFailed state
      */
     outcome::result<void> handleReplicaUpdateFailed(
         const std::shared_ptr<SectorInfo> &info);
+
+
+    outcome::result<void> handleRecoverDealWithFail(
+        const std::shared_ptr<SectorInfo> &info, SealingEvent fail_event);
 
     outcome::result<RegisteredSealProof> getCurrentSealProof() const;
 

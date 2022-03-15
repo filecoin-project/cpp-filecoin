@@ -101,6 +101,9 @@ namespace fc::sector_storage {
         const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
         uint64_t priority) override;
 
+    virtual outcome::result<void> releaseReplicaUpgrade(
+        const SectorRef &sector) override;
+
     void addPiece(const SectorRef &sector,
                   VectorCoW<UnpaddedPieceSize> piece_sizes,
                   const UnpaddedPieceSize &new_piece_size,

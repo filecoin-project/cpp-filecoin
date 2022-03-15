@@ -981,6 +981,18 @@ namespace fc::sector_storage {
 
     return wait_result.get_future().get();
   }
+  outcome::result<void> ManagerImpl::releaseReplicaUpgrade(
+      const SectorRef &sector) {
+    OUTCOME_TRY(lock,
+                index_->storageLock(
+                    sector.id,
+                    SectorFileType::FTNone,
+                    SectorFileType::FTUpdateCache | SectorFileType::FTUpdate));
+
+    OUTCOME_TRY(remote_store_.remove(sector.id, SectorFileType::FTUpdateCache));
+
+    return remote_store_.remove(sector.id, SectorFileType::FTUpdate);
+  }
 
 }  // namespace fc::sector_storage
 
