@@ -33,6 +33,8 @@ namespace fc::markets::retrieval::client {
           miner_wallet(miner_wallet),
           total_funds(total_funds){};
 
+    RetrievalDeal() = default;
+
     DealProposalV1_0_0 proposal;
     State state;
     PeerDtId pdtid;
