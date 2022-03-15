@@ -186,6 +186,18 @@ namespace fc::fsm {
       return event_;
     }
 
+    bool isFromAny() const {
+      return from_any_;
+    }
+
+    std::set<StateEnumType> getFrom() const {
+      std::set<StateEnumType> from_states;
+      for (auto it = transitions_.begin(); it != transitions_.end(); ++it) {
+        from_states.insert(it->first);
+      }
+      return from_states;
+    }
+
     /**
      * Lookups if there is a transition for a given source state.
      *
@@ -411,8 +423,43 @@ namespace fc::fsm {
    private:
     /// populate transitions map
     void initTransitions(std::vector<TransitionRule> transition_rules) {
+      // Validates that there are no rules like these (where G is an event):
+      // A -(G)-> B
+      // A -(G)-> C
+      std::map<EventEnumType, StateEnumType> unique_rules;
+      std::set<EventEnumType> from_any;
+
       for (auto rule : transition_rules) {
-        auto event = rule.eventId();
+        const auto event = rule.eventId();
+        const auto from_states = rule.getFrom();
+
+        if (from_any.find(event) != from_any.end()) {
+          throw std::runtime_error(
+              "Transition rule is ambiguous. Was previously declared as "
+              "fromAny.");
+        }
+        if (rule.isFromAny()
+            && unique_rules.find(event) != unique_rules.end()) {
+          throw std::runtime_error(
+              "Transition rule is ambiguous. Previous declaration conflicts "
+              "with current forAny.");
+        }
+        for (const auto &from : from_states) {
+          if (unique_rules.find(event) != unique_rules.end()) {
+            throw std::runtime_error(
+                "Transition rule is ambiguous. From state was previously "
+                "declared");
+          }
+        }
+
+        if (rule.isFromAny()) {
+          from_any.insert(event);
+        } else {
+          for (const auto &from : from_states) {
+            unique_rules[event] = from;
+          }
+        }
+
         transitions_.insert({event, std::move(rule)});
       }
     }

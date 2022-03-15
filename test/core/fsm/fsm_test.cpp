@@ -213,4 +213,58 @@ namespace fc::fsm {
     EXPECT_EQ(0, fsm.getEventQueueSize());
   }
 
+  /**
+   * @given Wrong FSM transitions - the same input leads to different result in
+   * rules
+   * @when validate during initialization
+   * @then initialization exception is thrown
+   */
+  TEST_F(FsmTest, AmbiguousRuleInitialization) {
+    auto init = [=]() {
+      Fsm{{
+              TransitionRule(Events::START)
+                  .from(States::READY)
+                  .to(States::WORKING),
+              TransitionRule(Events::START)
+                  .from(States::READY)
+                  .to(States::STOPPED),
+          },
+          io_context,
+          false};
+    };
+    EXPECT_THROW(init(), std::runtime_error);
+  }
+
+  /**
+   * @given Wrong FSM transitions - the same input leads to different result in
+   * rules
+   * @when validate during initialization
+   * @then initialization exception is thrown
+   */
+  TEST_F(FsmTest, AmbiguousRuleFromanyInitialization) {
+    auto init1 = [=]() {
+      Fsm{{
+              TransitionRule(Events::START).fromAny().to(States::STOPPED),
+              TransitionRule(Events::START)
+                  .from(States::READY)
+                  .to(States::WORKING),
+          },
+          io_context,
+          false};
+    };
+    EXPECT_THROW(init1(), std::runtime_error);
+
+    auto init2 = [=]() {
+      Fsm{{
+              TransitionRule(Events::START)
+                  .from(States::READY)
+                  .to(States::WORKING),
+              TransitionRule(Events::START).fromAny().to(States::STOPPED),
+          },
+          io_context,
+          false};
+    };
+    EXPECT_THROW(init2(), std::runtime_error);
+  }
+
 }  // namespace fc::fsm
