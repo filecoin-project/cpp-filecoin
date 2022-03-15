@@ -46,7 +46,8 @@ namespace fc::mining {
     kSubmitReplicaUpdate,
     kReplicaUpdateWait,
     kFinalizeReplicaUpdate,
-    kSectorRevertUpgradeToProving,
+    kUpdateActivating,
+    kReleaseSectorKey,
 
     // snap deals error modes
     kSnapDealsAddPieceFailed,
@@ -54,6 +55,8 @@ namespace fc::mining {
     kSnapDealsRecoverDealIDs,
     kAbortUpgrade,
     kReplicaUpdateFailed,
+    kReleaseSectorKeyFailed,
+    kFinalizeReplicaUpdateFailed,
 
     // Post states
     kFaulty,

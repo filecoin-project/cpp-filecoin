@@ -871,7 +871,18 @@ namespace fc::mining {
 
         SealingTransition(SealingEvent::kSectorFinalized)
             .from(SealingState::kFinalizeReplicaUpdate)
-            .to(SealingState::kProving),
+            .to(SealingState::kUpdateActivating),
+        SealingTransition(SealingEvent::kSectorFinalizeFailed)
+            .from(SealingState::kFinalizeReplicaUpdate)
+            .to(SealingState::kFinalizeReplicaUpdateFailed),
+
+        SealingTransition(SealingEvent::kSectorUpdateActive)
+            .from(SealingState::kUpdateActivating)
+            .to(SealingState::kReleaseSectorKey),
+
+        SealingTransition(SealingEvent::kSectorReleaseKeyFailed)
+            .from(SealingState::kReleaseSectorKey)
+            .to(SealingState::kReleaseSectorKeyFailed),
 
         SealingTransition(SealingEvent::kSectorRetryWaitDeals)
             .from(SealingState::kSnapDealsAddPieceFailed)
@@ -887,10 +898,6 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorAbortUpgrade)
             .from(SealingState::kSnapDealsRecoverDealIDs)
             .to(SealingState::kAbortUpgrade),
-
-        SealingTransition(SealingEvent::kSectorAbortUpgrade)
-            .from(SealingState::kSectorRevertUpgradeToProving)
-            .to(SealingState::kProving),
 
         SealingTransition(SealingEvent::kSectorRetrySubmitReplicaUpdateWait)
             .from(SealingState::kReplicaUpdateFailed)
@@ -910,6 +917,18 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorDealsExpired)
             .from(SealingState::kReplicaUpdateFailed)
             .to(SealingState::kSnapDealsDealsExpired),
+
+        SealingTransition(SealingEvent::kSectorUpdateActive)
+            .from(SealingState::kReleaseSectorKeyFailed)
+            .to(SealingState::kReleaseSectorKey),
+
+        SealingTransition(SealingEvent::kSectorRetryFinalize)
+            .from(SealingState::kFinalizeReplicaUpdateFailed)
+            .to(SealingState::kFinalizeReplicaUpdate),
+
+        SealingTransition(SealingEvent::kSectorRevertUpgradeToProving)
+            .from(SealingState::kAbortUpgrade)
+            .to(SealingState::kProving),
 
         SealingTransition(SealingEvent::kSectorStartCCUpdate)
             .from(SealingState::kProving)
@@ -986,6 +1005,10 @@ namespace fc::mining {
           return handleAbortUpgrade(info);
         case SealingState::kReplicaUpdateFailed:
           return handleReplicaUpdateFailed(info);
+        case SealingState::kReleaseSectorKeyFailed:
+          return handleReleaseSectorKeyFailed(info);
+        case SealingState::kFinalizeReplicaUpdateFailed:
+          return handleFinalizeFail(info);
 
         case SealingState::kProving:
           return handleProvingSector(info);
@@ -2568,7 +2591,20 @@ namespace fc::mining {
     OUTCOME_TRY(sealer_->releaseReplicaUpgrade(
         minerSector(info->sector_type, info->sector_number)));
 
-    FSM_SEND(info, SealingEvent::kSectorRevertUpgradeToProving);
+    FSM_SEND_CONTEXT(info,
+                     SealingEvent::kSectorRevertUpgradeToProving,
+                     std::make_shared<SectorRevertUpgradeToProvingContext>());
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleReleaseSectorKeyFailed(
+      const std::shared_ptr<SectorInfo> &info) {
+    scheduler_->schedule(
+        [fsm{fsm_}, info] {
+          OUTCOME_EXCEPT(
+              fsm->send(info, SealingEvent::kSectorUpdateActive, {}));
+        },
+        getWaitingTime());
     return outcome::success();
   }
 

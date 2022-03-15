@@ -304,7 +304,11 @@ namespace fc::mining {
      */
     outcome::result<void> handleReplicaUpdateFailed(
         const std::shared_ptr<SectorInfo> &info);
-
+    /**
+     * @brief Handle incoming in kReleaseSectorKeyFailed state
+     */
+    outcome::result<void> handleReleaseSectorKeyFailed(
+        const std::shared_ptr<SectorInfo> &info);
 
     outcome::result<void> handleRecoverDealWithFail(
         const std::shared_ptr<SectorInfo> &info, SealingEvent fail_event);

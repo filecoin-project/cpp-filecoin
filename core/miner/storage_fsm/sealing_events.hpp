@@ -81,6 +81,8 @@ namespace fc::mining {
     kSectorUpdateReplicaFailed,
     kSectorProveReplicaUpdateFailed,
     kSectorAbortUpgrade,
+    kSectorUpdateActive,
+    kSectorReleaseKeyFailed,
     kSectorRevertUpgradeToProving,
     kSectorRetrySubmitReplicaUpdateWait,
     kSectorRetrySubmitReplicaUpdate,
@@ -244,6 +246,21 @@ namespace fc::mining {
     }
 
     SealingState return_state{SealingState::kStateUnknown};
+  };
+
+  // SNAP DEAL
+
+  struct SectorRevertUpgradeToProvingContext final
+      : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->update = false;
+      info->update_comm_r = boost::none;
+      info->update_comm_d = boost::none;
+      info->update_proof = boost::none;
+      info->update_message = boost::none;
+      info->pieces = std::move(info->update_pieces);
+    }
   };
 
   // EXTERNAL EVENTS
