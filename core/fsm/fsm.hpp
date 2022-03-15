@@ -469,6 +469,7 @@ namespace fc::fsm {
                 resulting_state.get());  // destination state
           }
           applied = true;
+          break;
         }
       }
 
