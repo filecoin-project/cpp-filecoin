@@ -20,6 +20,7 @@
 #include "miner/main/type.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "sector_storage/stores/storage.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
@@ -95,6 +96,7 @@ namespace fc::api {
   using base64 = cppcodec::base64_rfc4648;
   using common::fromString;
   using common::toString;
+  using proofs::ParamFile;
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
@@ -243,6 +245,12 @@ namespace fc::api {
 
     DECODE(RegisteredPoStProof) {
       decodeEnum(v, j);
+    }
+
+    DECODE(ParamFile) {
+      Get(j, "cid", v.cid);
+      Get(j, "digest", v.digest);
+      Get(j, "sector_size", v.sector_size);
     }
 
     ENCODE(SectorFileType) {

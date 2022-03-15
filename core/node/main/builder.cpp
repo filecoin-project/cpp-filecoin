@@ -36,6 +36,7 @@
 #include "codec/json/json.hpp"
 #include "common/api_secret.hpp"
 #include "common/error_text.hpp"
+#include "common/libp2p/timer_loop.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
@@ -258,23 +259,6 @@ namespace fc::node {
     OUTCOME_TRY(json, codec::json::parse(blob));
     OUTCOME_TRY(key_info, api::decode<KeyInfo>(json));
     return std::move(key_info);
-  }
-
-  /**
-   * Run timer loop
-   * @param scheduler - timer scheduler
-   * @param tick - timer tick
-   * @param cb - callback to call
-   */
-  void timerLoop(const std::shared_ptr<Scheduler> &scheduler,
-                 const std::chrono::milliseconds &tick,
-                 const std::function<void()> &cb) {
-    scheduler->schedule(
-        [scheduler, tick, cb]() {
-          cb();
-          timerLoop(scheduler, tick, cb);
-        },
-        tick);
   }
 
   /**

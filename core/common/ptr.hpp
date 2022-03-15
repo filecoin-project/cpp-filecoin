@@ -14,12 +14,21 @@ namespace fc {
   std::weak_ptr<T> weaken(const std::shared_ptr<T> &ptr) {
     return ptr;
   }
+  template <typename T>
+  std::weak_ptr<T> weaken(std::weak_ptr<T> &&weak) {
+    return std::move(weak);
+  }
+  template <typename T>
+  std::weak_ptr<T> weaken(std::enable_shared_from_this<T> &ptr) {
+    return ptr.weak_from_this();
+  }
 
-  template <typename T, typename F>
-  auto weakCb0(std::weak_ptr<T> weak, F &&f) {
-    return [weak, f{std::forward<F>(f)}](auto &&...args) {
+  template <typename T, typename Cb>
+  auto weakCb(T &&ptr, Cb &&cb) {
+    return [weak{weaken(std::forward<T>(ptr))},
+            cb{std::forward<Cb>(cb)}](auto &&...args) {
       if (auto ptr{weak.lock()}) {
-        f(std::forward<decltype(args)>(args)...);
+        cb(std::move(ptr), std::forward<decltype(args)>(args)...);
       }
     };
   }

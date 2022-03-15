@@ -63,9 +63,6 @@ namespace fc::sync::blocksync {
         std::function<void(Result)> callback);
 
     virtual ~BlocksyncRequest() = default;
-
-    /// Cancels request if any
-    virtual void cancel() = 0;
   };
 
 }  // namespace fc::sync::blocksync

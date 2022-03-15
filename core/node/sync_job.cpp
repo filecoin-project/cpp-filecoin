@@ -121,7 +121,7 @@ namespace fc::sync {
 
     possible_head_event_ =
         events_->subscribePossibleHead([this](const events::PossibleHead &e) {
-          thread.io->post([=] { onPossibleHead(e); });
+          io_->post([=] { onPossibleHead(e); });
         });
 
     log()->debug("started");
@@ -221,7 +221,7 @@ namespace fc::sync {
             ts = _ts;
             --batch;
             if (batch <= 0) {
-              thread.io->post([=] { onTs(peer, ts); });
+              io_->post([=] { onTs(peer, ts); });
               break;
             }
             continue;
@@ -374,7 +374,7 @@ namespace fc::sync {
                     ts->height(),
                     ts->key.cidsStr());
       }
-      thread.io->post([=] {
+      io_->post([=] {
         std::unique_lock lock{*ts_branches_mutex_};
         interpreting_ = false;
         if (result) {
@@ -411,7 +411,6 @@ namespace fc::sync {
     if (request_ && Clock::now() >= request_expiry_) {
       ++hung_blocksync;
       log()->warn("hung blocksync {}", hung_blocksync);
-      request_->cancel();
       request_.reset();
     }
     if (request_) {
@@ -423,7 +422,7 @@ namespace fc::sync {
     auto [peer, tsk]{std::move(requests_.front())};
     requests_.pop();
     if (auto ts{getLocal(tsk)}) {
-      thread.io->post([=, peer{std::move(peer)}] { onTs(peer, ts); });
+      io_->post([=, peer{std::move(peer)}] { onTs(peer, ts); });
       return;
     }
     uint64_t probable_depth = 100;
@@ -444,7 +443,6 @@ namespace fc::sync {
   void SyncJob::downloaderCallback(BlocksyncRequest::Result r) {
     std::unique_lock lock{requests_mutex_};
     if (request_) {
-      request_->cancel();
       request_.reset();
     }
     lock.unlock();
@@ -457,7 +455,7 @@ namespace fc::sync {
     }
 
     if (ts) {
-      thread.io->post([this, peer{r.from}, ts] { onTs(peer, ts); });
+      io_->post([this, peer{r.from}, ts] { onTs(peer, ts); });
     }
 
     fetchDequeue();
