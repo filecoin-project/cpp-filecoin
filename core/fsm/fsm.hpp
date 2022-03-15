@@ -13,6 +13,7 @@
 #include <queue>
 #include <set>
 #include <shared_mutex>
+#include <unordered_map>
 #include <utility>
 
 #include "common/error_text.hpp"
