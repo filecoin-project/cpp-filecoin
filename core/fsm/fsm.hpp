@@ -8,11 +8,11 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/optional.hpp>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <queue>
 #include <set>
 #include <shared_mutex>
-#include <unordered_map>
 #include <utility>
 
 #include "common/error_text.hpp"
@@ -408,7 +408,7 @@ namespace fc::fsm {
     void initTransitions(std::vector<TransitionRule> transition_rules) {
       for (auto rule : transition_rules) {
         auto event = rule.eventId();
-        transitions_[event] = std::move(rule);
+        transitions_.insert({event, std::move(rule)});
       }
     }
 
@@ -441,29 +441,32 @@ namespace fc::fsm {
       auto parametrized_event = event_pair.second;
       auto event_to = parametrized_event.first;
       auto event_ctx = parametrized_event.second;
-      auto event_handler = transitions_.find(event_to);
-      if (transitions_.end() == event_handler) {
-        return;  // transition from the state by the event is not set
-      }
-      auto resulting_state = event_handler->second.dispatch(
-          source_state, event_ctx, event_pair.first);
-      if (resulting_state) {
-        {
-          std::unique_lock lock(states_mutex_);
-          states_[event_pair.first] = resulting_state.get();
+      // iterate over all the transitions rules for the event
+      auto event_handlers = transitions_.equal_range(event_to);
+      for (auto &event_handler = event_handlers.first;
+           event_handler != event_handlers.second;
+           ++event_handler) {
+        auto resulting_state = event_handler->second.dispatch(
+            source_state, event_ctx, event_pair.first);
+        if (resulting_state) {
+          {
+            std::unique_lock lock(states_mutex_);
+            states_[event_pair.first] = resulting_state.get();
+          }
+          if (any_change_cb_) {
+            any_change_cb_.get()(
+                event_pair.first,        // pointer to entity
+                event_to,                // trigger event
+                std::move(event_ctx),    // event context or params
+                source_state,            // source state
+                resulting_state.get());  // destination state
+          }
+        } else if (!discard_event_) {
+          // There were no rule for transition. Put event in queue in case it
+          // can be handled when 'from' state is changed.
+          std::lock_guard lock(event_queue_mutex_);
+          event_queue_.push(event_pair);
         }
-        if (any_change_cb_) {
-          any_change_cb_.get()(event_pair.first,      // pointer to entity
-                               event_to,              // trigger event
-                               std::move(event_ctx),  // event context or params
-                               source_state,          // source state
-                               resulting_state.get());  // destination state
-        }
-      } else if (!discard_event_) {
-        // There were no rule for transition. Put event in queue in case it can
-        // be handled when 'from' state is changed.
-        std::lock_guard lock(event_queue_mutex_);
-        event_queue_.push(event_pair);
       }
     }
 
@@ -474,7 +477,7 @@ namespace fc::fsm {
     std::queue<EventQueueItem> event_queue_;
 
     /// a dispatching list of events and what to do on event
-    std::unordered_map<EventEnumType, TransitionRule> transitions_;
+    std::multimap<EventEnumType, TransitionRule> transitions_;
 
     /// a list of entities' current states
     mutable std::shared_mutex states_mutex_;

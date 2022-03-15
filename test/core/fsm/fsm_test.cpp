@@ -167,4 +167,47 @@ namespace fc::fsm {
     ASSERT_EQ(entity->content, "stopped");
   }
 
+  /**
+   * @given FSM can process rules with the same event and different initial
+   * states
+   * @when event is scheduled
+   * @then it is processed and not skipped
+   */
+  TEST_F(FsmTest, EventRedefined) {
+    Fsm fsm{{
+                TransitionRule(Events::START)
+                    .from(States::READY)
+                    .to(States::WORKING)
+                    .action([](auto data, auto, auto ctx, auto, auto) {
+                      data->content = "working";
+                    }),
+                TransitionRule(Events::START)
+                    .from(States::WORKING)
+                    .to(States::WORKING)
+                    .action([](auto data, auto, auto ctx, auto, auto) {
+                      data->content = "still working";
+                    }),
+            },
+
+            io_context,
+            false};
+
+    auto entity = std::make_shared<Data>(Data{0, "ready"});
+
+    EXPECT_OUTCOME_TRUE_1(fsm.begin(entity, States::READY))
+    EXPECT_OUTCOME_EQ(fsm.get(entity), States::READY);
+    ASSERT_EQ(entity->content, "ready");
+
+    EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::START, {}));
+    EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::START, {}));
+
+    io_context.run_one();
+    EXPECT_OUTCOME_EQ(fsm.get(entity), States::WORKING);
+    ASSERT_EQ(entity->content, "working");
+
+    io_context.run_one();
+    EXPECT_OUTCOME_EQ(fsm.get(entity), States::WORKING);
+    ASSERT_EQ(entity->content, "still working");
+  }
+
 }  // namespace fc::fsm
