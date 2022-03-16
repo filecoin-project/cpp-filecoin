@@ -220,6 +220,17 @@ namespace fc::mining {
         const std::shared_ptr<SectorInfo> &info);
 
     /**
+     * @brief Handle incoming in kUpdateActivating state
+     */
+    outcome::result<void> handleUpdateActivating(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kReleaseSectorKey state
+     */
+    outcome::result<void> handleReleaseSectorKey(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
      * @brief Handle incoming in kSealPreCommit1Fail state
      */
     outcome::result<void> handleSealPreCommit1Fail(

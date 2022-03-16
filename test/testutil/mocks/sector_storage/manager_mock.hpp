@@ -107,6 +107,7 @@ namespace fc::sector_storage {
 
     MOCK_METHOD1(releaseReplicaUpgrade,
                  outcome::result<void>(const SectorRef &));
+    MOCK_METHOD1(releaseSectorKey, outcome::result<void>(const SectorRef &));
 
     MOCK_METHOD6(doAddPiece,
                  void(const SectorRef &sector,

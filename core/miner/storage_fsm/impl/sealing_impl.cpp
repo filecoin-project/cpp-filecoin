@@ -883,6 +883,9 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorReleaseKeyFailed)
             .from(SealingState::kReleaseSectorKey)
             .to(SealingState::kReleaseSectorKeyFailed),
+        SealingTransition(SealingEvent::kSectorKeyReleased)
+            .from(SealingState::kReleaseSectorKey)
+            .to(SealingState::kProving),
 
         SealingTransition(SealingEvent::kSectorRetryWaitDeals)
             .from(SealingState::kSnapDealsAddPieceFailed)
@@ -1902,6 +1905,64 @@ namespace fc::mining {
     // TODO(ortyomka): Watch termination
     // TODO(ortyomka): Auto-extend if set
 
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleUpdateActivating(
+      const std::shared_ptr<SectorInfo> &info) {
+    api_->StateWaitMsg(
+        [self{shared_from_this()}, info](const auto &maybe_result) {
+          const auto cb = [=](const outcome::result<void> &error) {
+            self->logger_->error("handleUpdateActivating error: {}",
+                                 error.error().message());
+            self->scheduler_->schedule(
+                [self, info]() {
+                  self->context_->post(
+                      [=]() { self->handleUpdateActivating(info).value(); });
+                },
+                std::chrono::minutes(1));
+          };
+
+          OUTCOME_CB(auto msg, maybe_result);
+
+          OUTCOME_CB(auto head, self->api_->ChainHead());
+
+          ChainEpoch targetHeight =
+              msg.height + kChainFinality + kInteractivePoRepConfidence;
+
+          OUTCOME_CB1(self->events_->chainAt(
+              [self, info](const TipsetCPtr &,
+                           ChainEpoch current_height) -> outcome::result<void> {
+                OUTCOME_TRY(self->fsm_->send(info, SealingEvent::kSectorUpdateActive, {}));
+                return outcome::success();
+              },
+              [self](const TipsetCPtr &) -> outcome::result<void> {
+                self->logger_->warn("revert in handleUpdateActivating");
+                return outcome::success();
+              },
+              kInteractivePoRepConfidence,
+              targetHeight));
+        },
+        info->update_message.get(),
+        kMessageConfidence,
+        api::kLookbackNoLimit,
+        true);
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleReleaseSectorKey(
+      const std::shared_ptr<SectorInfo> &info) {
+    const auto maybe_error = sealer_->releaseSectorKey(
+        minerSector(info->sector_type, info->sector_number));
+    if (maybe_error.has_error()) {
+      logger_->error("handleReleaseSectorKey error: {}",
+                     maybe_error.error().message());
+      FSM_SEND(info, SealingEvent::kSectorReleaseKeyFailed);
+      return outcome::success();
+    }
+
+    FSM_SEND(info, SealingEvent::kSectorKeyReleased);
     return outcome::success();
   }
 

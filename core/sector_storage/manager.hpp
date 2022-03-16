@@ -105,6 +105,7 @@ namespace fc::sector_storage {
 
     virtual outcome::result<void> releaseReplicaUpgrade(
         const SectorRef &sector) = 0;
+    virtual outcome::result<void> releaseSectorKey(const SectorRef &sector) = 0;
 
     // Storage
     virtual void addPiece(

@@ -76,6 +76,7 @@ namespace fc::mining {
     kSectorReplicaUpdateLanded,
     kSectorRetryReplicaUpdate,
     kSectorRetryProveReplicaUpdate,
+    kSectorKeyReleased,
 
     // Snap Deals failure and recovery
     kSectorUpdateReplicaFailed,
