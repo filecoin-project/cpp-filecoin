@@ -119,7 +119,6 @@ jobs:
         uses: docker/metadata-action@v3
         with:
           # registry.rocket.chat/rocketchat/rocket.chat:latest
-          # 
           images: docker.soramitsu.co.jp/fuhon/node
           tags: |
             type=raw,value=${{env.dockertag}}
