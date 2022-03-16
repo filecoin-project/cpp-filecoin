@@ -120,7 +120,7 @@ jobs:
         with:
           # registry.rocket.chat/rocketchat/rocket.chat:latest
           # 
-          images: fuhon/fuhon
+          images: docker.soramitsu.co.jp/fuhon/node
           tags: |
             type=raw,value=${{env.dockertag}}
             type=ref,event=branch
