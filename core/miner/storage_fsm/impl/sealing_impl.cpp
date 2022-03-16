@@ -981,6 +981,11 @@ namespace fc::mining {
         case SealingState::kFinalizeSector:
           return handleFinalizeSector(info);
 
+        case SealingState::kUpdateActivating:
+          return handleUpdateActivating(info);
+        case SealingState::kReleaseSectorKey:
+          return handleReleaseSectorKey(info);
+
         case SealingState::kSealPreCommit1Fail:
           return handleSealPreCommit1Fail(info);
         case SealingState::kSealPreCommit2Fail:
@@ -1933,7 +1938,8 @@ namespace fc::mining {
           OUTCOME_CB1(self->events_->chainAt(
               [self, info](const TipsetCPtr &,
                            ChainEpoch current_height) -> outcome::result<void> {
-                OUTCOME_TRY(self->fsm_->send(info, SealingEvent::kSectorUpdateActive, {}));
+                OUTCOME_TRY(self->fsm_->send(
+                    info, SealingEvent::kSectorUpdateActive, {}));
                 return outcome::success();
               },
               [self](const TipsetCPtr &) -> outcome::result<void> {
