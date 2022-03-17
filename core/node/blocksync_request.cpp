@@ -11,6 +11,7 @@
 
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
+#include "common/ptr.hpp"
 #include "primitives/tipset/load.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
@@ -237,7 +238,7 @@ namespace fc::sync::blocksync {
             put_block_header_{put_block_header} {}
 
       ~BlocksyncRequestImpl() override {
-        cancel();
+        done();
       }
 
       void makeRequest(PeerId peer,
@@ -316,16 +317,13 @@ namespace fc::sync::blocksync {
 
         if (timeoutMsec > 0) {
           handle_ = scheduler_.scheduleWithHandle(
-              [this] {
-                result_->error = BlocksyncRequest::Error::kTimeout;
-                scheduleResult(true);
-              },
+              weakCb(*this,
+                     [](std::shared_ptr<BlocksyncRequestImpl> &&self) {
+                       self->result_->error = BlocksyncRequest::Error::kTimeout;
+                       self->scheduleResult(true);
+                     }),
               std::chrono::milliseconds(timeoutMsec + depth * 100));
         }
-      }
-
-      void cancel() override {
-        done();
       }
 
      private:
@@ -357,7 +355,9 @@ namespace fc::sync::blocksync {
           callback_(std::move(result_.value()));
         } else {
           handle_ = scheduler_.scheduleWithHandle(
-              [this] { callback_(std::move(result_.value())); });
+              weakCb(*this, [](std::shared_ptr<BlocksyncRequestImpl> &&self) {
+                self->callback_(std::move(self->result_.value()));
+              }));
         }
       }
 

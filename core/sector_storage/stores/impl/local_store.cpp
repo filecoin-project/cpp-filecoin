@@ -8,7 +8,6 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 #include <ctime>
-#include <libp2p/basic/scheduler.hpp>
 #include <map>
 #include <random>
 #include <regex>
@@ -17,6 +16,7 @@
 #include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
+#include "common/libp2p/timer_loop.hpp"
 #include "primitives/sector_file/sector_file.hpp"
 #include "sector_storage/stores/impl/util.hpp"
 #include "sector_storage/stores/storage_error.hpp"
@@ -25,7 +25,6 @@
 namespace fc::sector_storage::stores {
   using primitives::LocalStorageMeta;
   using primitives::sector_file::kSectorFileTypes;
-  using std::chrono::duration_cast;
   namespace fs = boost::filesystem;
 
   outcome::result<SectorId> parseSectorId(const std::string &filename) {
@@ -390,14 +389,11 @@ namespace fc::sector_storage::stores {
     for (const auto &path : config->storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
-    local->handler_ = scheduler->scheduleWithHandle(
-        [self = std::weak_ptr<LocalStoreImpl>(local)]() {
-          auto shared_self = self.lock();
-          if (shared_self) {
-            shared_self->reportHealth();
-          }
-        },
-        local->heartbeat_interval_);
+    timerLoop(scheduler,
+              local->heartbeat_interval_,
+              weakCb(local, [](std::shared_ptr<LocalStoreImpl> &&self) {
+                self->reportHealth();
+              }));
     return std::move(local);
   }
 
@@ -540,9 +536,6 @@ namespace fc::sector_storage::stores {
                       maybe_error.error().message());
       }
     }
-
-    // reschedule during scheduler callback, will not throw
-    handler_.reschedule(heartbeat_interval_).value();
   }
 
   outcome::result<FsStat> LocalStoreImpl::Path::getStat(
