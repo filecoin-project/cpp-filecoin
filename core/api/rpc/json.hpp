@@ -96,6 +96,8 @@ namespace fc::api {
   using base64 = cppcodec::base64_rfc4648;
   using common::fromString;
   using common::toString;
+  using markets::retrieval::DealProposalParams;
+  using markets::retrieval::DealProposalV1_0_0;
   using proofs::ParamFile;
 
   struct Codec {
@@ -2020,6 +2022,58 @@ namespace fc::api {
       decode(v.verified, Get(j, "Verified"));
       decode(v.transfer_channel_id, Get(j, "TransferChannelID"));
       decode(v.data_transfer, Get(j, "DataTransfer"));
+    }
+
+    ENCODE(DealProposalV1_0_0) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PayloadCID", v.payload_cid);
+      Set(j, "ID", v.deal_id);
+      Set(j, "Params", v.params);
+      return j;
+    }
+
+    DECODE(DealProposalV1_0_0) {
+      decode(v.payload_cid, Get(j, "PayloadCID"));
+      decode(v.deal_id, Get(j, "ID"));
+      decode(v.params, Get(j, "Params"));
+    }
+
+    ENCODE(DealProposalParams) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Piece", v.piece);
+      Set(j, "PricePerByte", v.price_per_byte);
+      Set(j, "PaymentInterval", v.payment_interval);
+      Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
+      Set(j, "UnsealPrice", v.unseal_price);
+      return j;
+    }
+
+    DECODE(DealProposalParams) {
+      decode(v.piece, Get(j, "Piece"));
+      decode(v.price_per_byte, Get(j, "PricePerByte"));
+      decode(v.payment_interval, Get(j, "PaymentInterval"));
+      decode(v.payment_interval_increase, Get(j, "PaymentIntervalIncrease"));
+      decode(v.unseal_price, Get(j, "UnsealPrice"));
+    }
+
+    ENCODE(RetrievalDeal) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Proposal", v.proposal);
+      Set(j, "Accepted", v.accepted);
+      Set(j, "AllBlocks", v.all_blocks);
+      Set(j, "Client", v.client_wallet);
+      Set(j, "Provider", v.miner_wallet);
+      Set(j, "TotalFunds", v.total_funds);
+      return j;
+    }
+
+    DECODE(RetrievalDeal) {
+      decode(v.proposal, Get(j, "Proposal"));
+      decode(v.accepted, Get(j, "Accepted"));
+      decode(v.all_blocks, Get(j, "AllBlocks"));
+      decode(v.client_wallet, Get(j, "Client"));
+      decode(v.miner_wallet, Get(j, "Provider"));
+      decode(v.total_funds, Get(j, "TotalFunds"));
     }
 
     ENCODE(ImportRes) {

@@ -13,8 +13,10 @@
 #include "const.hpp"
 #include "data_transfer/types.hpp"
 #include "drand/messages.hpp"
+#include "markets/retrieval/client/retrieval_client.hpp"
 #include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
+#include "markets/storage/client/client_deal.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/mk_protocol.hpp"
 #include "primitives/block/block.hpp"
@@ -37,6 +39,7 @@ namespace fc::api {
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
   using markets::retrieval::RetrievalPeer;
+  using markets::retrieval::client::RetrievalDeal;
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAskV1_1_0;
   using markets::storage::StorageDeal;
@@ -386,6 +389,14 @@ namespace fc::api {
                jwt::kWritePermission,
                std::vector<StorageMarketDealInfo>)
 
+    API_METHOD(ClientGetDealInfo,
+               jwt::kReadPermission,
+               StorageMarketDealInfo,
+               const CID &)
+
+    API_METHOD(ClientListRetrievals,
+               jwt::kWritePermission,
+               std::vector<RetrievalDeal>)
     /**
      * Lists imported files and their root CIDs
      */
@@ -797,6 +808,8 @@ namespace fc::api {
     f(a.ChainGetBlockMessages);
     f(a.ChainGetGenesis);
     f(a.ChainGetMessage);
+    f(a.ClientListRetrievals);
+    f(a.ClientGetDealInfo);
     f(a.ChainGetNode);
     f(a.ChainGetPath);
     f(a.ChainGetParentMessages);
