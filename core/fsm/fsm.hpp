@@ -459,7 +459,7 @@ namespace fc::fsm {
         const std::vector<TransitionRule> &transition_rules) {
       // if rule is from any, it must not be redeclared
       std::set<EventEnumType> from_any;
-      std::map<EventEnumType, StateEnumType> unique_rules;
+      std::map<EventEnumType, std::set<StateEnumType>> unique_rules;
 
       for (auto rule : transition_rules) {
         const auto event = rule.eventId();
@@ -470,14 +470,14 @@ namespace fc::fsm {
               "Transition rule is ambiguous. Was previously declared as "
               "fromAny.");
         }
-        if (rule.isFromAny()
-            && unique_rules.find(event) != unique_rules.end()) {
+        if (rule.isFromAny() && unique_rules.count(event) != 0) {
           return ERROR_TEXT(
               "Transition rule is ambiguous. Previous declaration conflicts "
               "with current forAny.");
         }
         for (const auto &from : from_states) {
-          if (unique_rules.count(event) != 0 && unique_rules[event] == from) {
+          if (unique_rules.count(event) != 0
+              && unique_rules[event].count(from) != 0) {
             return ERROR_TEXT(
                 "Transition rule is ambiguous. From state was previously "
                 "declared");
@@ -487,9 +487,7 @@ namespace fc::fsm {
         if (rule.isFromAny()) {
           from_any.insert(event);
         } else {
-          for (const auto &from : from_states) {
-            unique_rules[event] = from;
-          }
+          unique_rules[event].insert(from_states.begin(), from_states.end());
         }
       }
 

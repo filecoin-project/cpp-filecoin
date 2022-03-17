@@ -700,8 +700,7 @@ namespace fc::mining {
             .to(SealingState::kCommitFail),
         SealingTransition(SealingEvent::kSectorRetryCommitWait)
             .fromMany(SealingState::kCommitting,
-                      SealingState::kCommitFail,
-                      SealingState::kComputeProof)
+                      SealingState::kCommitFail)
             .to(SealingState::kCommitWait),
         SealingTransition(SealingEvent::kSectorProving)
             .from(SealingState::kCommitWait)
@@ -751,9 +750,6 @@ namespace fc::mining {
                 [](auto info, auto event, auto context, auto from, auto to) {
                   info->invalid_proofs++;
                 }),
-        SealingTransition(SealingEvent::kSectorRetryCommitWait)
-            .from(SealingState::kCommitFail)
-            .to(SealingState::kPreCommittingWait),
         SealingTransition(SealingEvent::kSectorRetryCommitting)
             .fromMany(SealingState::kCommitFail, SealingState::kCommitWait)
             .to(SealingState::kCommitting),
