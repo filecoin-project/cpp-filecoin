@@ -220,6 +220,17 @@ namespace fc::mining {
         const std::shared_ptr<SectorInfo> &info);
 
     /**
+     * @brief Handle incoming in kUpdateActivating state
+     */
+    outcome::result<void> handleUpdateActivating(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kReleaseSectorKey state
+     */
+    outcome::result<void> handleReleaseSectorKey(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
      * @brief Handle incoming in kSealPreCommit1Fail state
      */
     outcome::result<void> handleSealPreCommit1Fail(
@@ -279,6 +290,40 @@ namespace fc::mining {
     outcome::result<void> handleRemoving(
         const std::shared_ptr<SectorInfo> &info);
 
+    /**
+     * @brief Handle incoming in kSnapDealsAddPieceFailed state
+     */
+    outcome::result<void> handleSnapDealsAddPieceFailed(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kSnapDealsDealsExpired state
+     */
+    outcome::result<void> handleSnapDealsDealsExpired(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kSnapDealsRecoverDealIDs state
+     */
+    outcome::result<void> handleSnapDealsRecoverDealIDs(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kAbortUpgrade state
+     */
+    outcome::result<void> handleAbortUpgrade(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kReplicaUpdateFailed state
+     */
+    outcome::result<void> handleReplicaUpdateFailed(
+        const std::shared_ptr<SectorInfo> &info);
+    /**
+     * @brief Handle incoming in kReleaseSectorKeyFailed state
+     */
+    outcome::result<void> handleReleaseSectorKeyFailed(
+        const std::shared_ptr<SectorInfo> &info);
+
+    outcome::result<void> handleRecoverDealWithFail(
+        const std::shared_ptr<SectorInfo> &info, SealingEvent fail_event);
+
     outcome::result<RegisteredSealProof> getCurrentSealProof() const;
 
     struct TicketInfo {
@@ -324,6 +369,7 @@ namespace fc::mining {
     /** State machine */
     std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<StorageFSM> fsm_;
+    std::shared_ptr<boost::asio::io_context> context_;
 
     std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<Events> events_;

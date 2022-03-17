@@ -105,6 +105,10 @@ namespace fc::sector_storage {
              const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
              uint64_t priority));
 
+    MOCK_METHOD1(releaseReplicaUpgrade,
+                 outcome::result<void>(const SectorRef &));
+    MOCK_METHOD1(releaseSectorKey, outcome::result<void>(const SectorRef &));
+
     MOCK_METHOD6(doAddPiece,
                  void(const SectorRef &sector,
                       const std::vector<UnpaddedPieceSize> &piece_sizes,

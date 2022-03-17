@@ -27,6 +27,8 @@ namespace fc::mining {
       case SealingState::kProving:
       case SealingState::kRemoved:
       case SealingState::kRemoving:
+      case SealingState::kUpdateActivating:
+      case SealingState::kReleaseSectorKey:
         return StatState::kProving;
       default:
         return StatState::kFailed;

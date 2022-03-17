@@ -103,6 +103,10 @@ namespace fc::sector_storage {
         const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
         uint64_t priority) = 0;
 
+    virtual outcome::result<void> releaseReplicaUpgrade(
+        const SectorRef &sector) = 0;
+    virtual outcome::result<void> releaseSectorKey(const SectorRef &sector) = 0;
+
     // Storage
     virtual void addPiece(
         const SectorRef &sector,
