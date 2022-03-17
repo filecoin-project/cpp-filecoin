@@ -1027,6 +1027,8 @@ namespace fc::mining {
 
         case SealingState::kSnapDealsWaitDeals:
           return handleSnapDealsWaitDeal(info);
+        case SealingState::kReplicaUpdateWait:
+          return handleReplicaUpdateWait(info);
         case SealingState::kFinalizeReplicaUpdate:
           return handleFinalizeReplicaUpdate(info);
         case SealingState::kUpdateActivating:
@@ -1964,6 +1966,82 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handleSnapDealsWaitDeal(
       const std::shared_ptr<SectorInfo> &info) {
     // TODO
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleReplicaUpdateWait(
+      const std::shared_ptr<SectorInfo> &info) {
+    if (not info->update_message.has_value()) {
+      logger_->error(
+          "handleReplicaUpdateWait: no replica update message cid recorded");
+      FSM_SEND(info, SealingEvent::kSectorSubmitReplicaUpdateFailed);
+      return outcome::success();
+    }
+
+    api_->StateWaitMsg(
+        [self{shared_from_this()}, info](const auto &maybe_result) {
+          if (maybe_result.has_error()) {
+            self->logger_->error(
+                "handleReplicaUpdateWait: failed to wait for message: {}",
+                maybe_result.error().message());
+            OUTCOME_EXCEPT(self->fsm_->send(
+                info, SealingEvent::kSectorSubmitReplicaUpdateFailed, {}));
+            return;
+          }
+          const auto &msg{maybe_result.value()};
+
+          switch (msg.receipt.exit_code) {
+            case vm::VMExitCode::kOk:
+              break;
+            case vm::VMExitCode::kSysErrInsufficientFunds:
+            case vm::VMExitCode::kSysErrOutOfGas:
+              self->logger_->error("gas estimator was wrong or out of funds");
+            default:
+              OUTCOME_EXCEPT(self->fsm_->send(
+                  info, SealingEvent::kSectorSubmitReplicaUpdateFailed, {}));
+              return;
+          }
+
+          const auto maybe_sector_info = self->api_->StateSectorGetInfo(
+              self->miner_address_, info->sector_number, msg.tipset);
+          if (maybe_sector_info.has_error()) {
+            self->logger_->error(
+                "error calling StateSectorGetInfo for replaced sector: {}",
+                maybe_sector_info.error().message());
+            OUTCOME_EXCEPT(self->fsm_->send(
+                info, SealingEvent::kSectorSubmitReplicaUpdateFailed, {}));
+            return;
+          }
+          const auto &sector_info{maybe_sector_info.value()};
+          if (not sector_info.has_value()) {
+            self->logger_->error("api err sector {} not found: {}",
+                                 info->sector_number,
+                                 maybe_sector_info.error().message());
+            OUTCOME_EXCEPT(self->fsm_->send(
+                info, SealingEvent::kSectorSubmitReplicaUpdateFailed, {}));
+            return;
+          }
+
+          if (sector_info.get().sealed_cid == info->update_sealed.get()) {
+            self->logger_->error(
+                "mismatch of expected onchain sealed cid after replica update, "
+                "expected {} got {}",
+                info->update_sealed.get().toString().value(),
+                sector_info.get().sealed_cid.toString().value());
+            OUTCOME_EXCEPT(
+                self->fsm_->send(info, SealingEvent::kSectorAbortUpgrade, {}));
+            return;
+          }
+
+          OUTCOME_EXCEPT(self->fsm_->send(
+              info, SealingEvent::kSectorReplicaUpdateLanded, {}));
+          return;
+        },
+        info->update_message.get(),
+        kMessageConfidence,
+        api::kLookbackNoLimit,
+        true);
 
     return outcome::success();
   }

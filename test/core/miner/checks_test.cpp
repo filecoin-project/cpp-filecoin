@@ -1161,8 +1161,8 @@ namespace fc::mining::checks {
   TEST_F(CheckUpdate, Success) {
     info->comm_r = CID{};
     info->update = true;
-    info->update_comm_d = CID{CbCid{}};
-    info->update_comm_r = CID{};
+    info->update_unsealed = CID{CbCid{}};
+    info->update_sealed = CID{};
     info->update_proof = Bytes{};
     auto &piece{info->pieces.emplace_back()};
     piece.deal_info.emplace();
@@ -1173,7 +1173,7 @@ namespace fc::mining::checks {
     EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, _))
         .WillOnce(testing::Return(outcome::success()));
     EXPECT_CALL(mock_StateCall, Call(_, _))
-        .WillOnce(testing::Return(commD({{*info->update_comm_d}})));
+        .WillOnce(testing::Return(commD({{*info->update_unsealed}})));
     EXPECT_CALL(*proofs, verifyUpdateProof(_)).WillOnce(testing::Return(true));
     EXPECT_OUTCOME_TRUE_1(checkUpdate(miner, info, {}, api, proofs));
   }
