@@ -263,7 +263,8 @@ namespace fc::fsm {
             typename EventContextType,
             typename StateEnumType,
             typename Entity>
-  class FSM {
+  class FSM : public std::enable_shared_from_this<
+                  FSM<EventEnumType, EventContextType, StateEnumType, Entity>> {
    public:
     using EntityPtr = std::shared_ptr<Entity>;
     using EventContextPtr = std::shared_ptr<EventContextType>;
@@ -283,22 +284,6 @@ namespace fc::fsm {
         /* transition destination state */
         StateEnumType)>;
 
-    /**
-     * Creates a state machine
-     * @param transition_rules - defines state transitions
-     * @param io_context - async queue
-     * @param discard_event - discards event if it cannot be applied instantly.
-     * If set to false the event will be preserved in event queue.
-     */
-    FSM(std::vector<TransitionRule> transition_rules,
-        boost::asio::io_context &io_context,
-        bool discard_event)
-        : running_{std::make_shared<bool>(true)},
-          io_context_{io_context},
-          discard_event_(discard_event) {
-      initTransitions(std::move(transition_rules));
-    }
-
     FSM(const FSM &) = delete;
     FSM(FSM &&) = delete;
 
@@ -308,6 +293,32 @@ namespace fc::fsm {
 
     FSM &operator=(const FSM &) = delete;
     FSM &operator=(FSM &&) = delete;
+
+    /**
+     * Fabric method to create class instance.
+     * @param transition_rules - defines state transitions
+     * @param io_context - async queue
+     * @param discard_event - discards event if it cannot be applied instantly.
+     * If set to false the event will be preserved in event queue.
+     * @return class instance
+     */
+    static outcome::result<std::shared_ptr<FSM>> createFsm(
+        std::vector<TransitionRule> transition_rules,
+        boost::asio::io_context &io_context,
+        bool discard_event) {
+      OUTCOME_TRY(validateTransitionRules(transition_rules));
+
+      struct make_unique_enabler : public FSM {
+        make_unique_enabler(std::vector<TransitionRule> transition_rules,
+                            boost::asio::io_context &io_context,
+                            bool discard_event)
+            : FSM{std::move(transition_rules), io_context, discard_event} {};
+      };
+
+      return std::move(std::make_shared<make_unique_enabler>(
+          transition_rules, io_context, discard_event));
+    }
+    friend class FSM;
 
     /**
      * Initiates tracking of entity with a certain initial state
@@ -421,32 +432,53 @@ namespace fc::fsm {
     }
 
    private:
-    /// populate transitions map
-    void initTransitions(std::vector<TransitionRule> transition_rules) {
-      // Validates that there are no rules like these (where G is an event):
-      // A -(G)-> B
-      // A -(G)-> C
-      std::map<EventEnumType, StateEnumType> unique_rules;
+    /**
+     * Creates a state machine
+     * @param transition_rules - defines state transitions
+     * @param io_context - async queue
+     * @param discard_event - discards event if it cannot be applied instantly.
+     * If set to false the event will be preserved in event queue.
+     */
+    FSM(std::vector<TransitionRule> transition_rules,
+        boost::asio::io_context &io_context,
+        bool discard_event)
+        : running_{std::make_shared<bool>(true)},
+          io_context_{io_context},
+          discard_event_(discard_event) {
+      initTransitions(std::move(transition_rules));
+    }
+
+    /**
+     * Validates that there are no ambiguous rules like (where G is an event):
+     * A -(G)-> B
+     * A -(G)-> C
+     * @param transition_rules
+     * @return error if rules are not valid
+     */
+    static outcome::result<void> validateTransitionRules(
+        const std::vector<TransitionRule> &transition_rules) {
+      // if rule is from any, it must not be redeclared
       std::set<EventEnumType> from_any;
+      std::map<EventEnumType, StateEnumType> unique_rules;
 
       for (auto rule : transition_rules) {
         const auto event = rule.eventId();
         const auto from_states = rule.getFrom();
 
         if (from_any.find(event) != from_any.end()) {
-          throw std::runtime_error(
+          return ERROR_TEXT(
               "Transition rule is ambiguous. Was previously declared as "
               "fromAny.");
         }
         if (rule.isFromAny()
             && unique_rules.find(event) != unique_rules.end()) {
-          throw std::runtime_error(
+          return ERROR_TEXT(
               "Transition rule is ambiguous. Previous declaration conflicts "
               "with current forAny.");
         }
         for (const auto &from : from_states) {
-          if (unique_rules.find(event) != unique_rules.end()) {
-            throw std::runtime_error(
+          if (unique_rules.count(event) != 0 && unique_rules[event] == from) {
+            return ERROR_TEXT(
                 "Transition rule is ambiguous. From state was previously "
                 "declared");
           }
@@ -459,7 +491,15 @@ namespace fc::fsm {
             unique_rules[event] = from;
           }
         }
+      }
 
+      return outcome::success();
+    }
+
+    /// populate transitions map
+    void initTransitions(std::vector<TransitionRule> transition_rules) {
+      for (auto rule : transition_rules) {
+        auto event = rule.eventId();
         transitions_.insert({event, std::move(rule)});
       }
     }
