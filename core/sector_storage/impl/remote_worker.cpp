@@ -221,6 +221,11 @@ namespace fc::sector_storage {
         sector, sector_key, new_sealed, new_unsealed, update_1_output);
   }
 
+  outcome::result<CallId> RemoteWorker::finalizeReplicaUpdate(
+      const SectorRef &sector, std::vector<Range> keep_unsealed) {
+    return api_.FinalizeReplicaUpdate(sector, keep_unsealed);
+  }
+
   outcome::result<CallId> RemoteWorker::moveStorage(const SectorRef &sector,
                                                     SectorFileType types) {
     return api_.MoveStorage(sector, types);

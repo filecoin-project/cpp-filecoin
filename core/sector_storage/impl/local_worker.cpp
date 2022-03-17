@@ -473,45 +473,10 @@ namespace fc::sector_storage {
             Self self) -> outcome::result<void> {
           OUTCOME_TRY(size,
                       primitives::sector::getSectorSize(sector.proof_type));
+
+          OUTCOME_TRY(self->freeUnsealed(sector, keep_unsealed));
+
           {
-            if (not keep_unsealed.empty()) {
-              std::vector<uint64_t> rle = {0, size};
-
-              for (const auto &sector_info : keep_unsealed) {
-                std::vector<uint64_t> sector_rle = {sector_info.offset.padded(),
-                                                    sector_info.size.padded()};
-
-                rle = primitives::runsAnd(rle, sector_rle, true);
-              }
-
-              OUTCOME_TRY(response,
-                          self->acquireSector(sector,
-                                              SectorFileType::FTUnsealed,
-                                              SectorFileType::FTNone,
-                                              PathType::kStorage));
-              auto _ = gsl::finally([&]() { response.release_function(); });
-
-              auto maybe_file = SectorFile::openFile(response.paths.unsealed,
-                                                     PaddedPieceSize(size));
-
-              if (maybe_file.has_error()) {
-                if (maybe_file
-                    != outcome::failure(SectorFileError::kFileNotExist)) {
-                  return maybe_file.error();
-                }
-              } else {
-                auto &file{maybe_file.value()};
-                PaddedPieceSize offset(0);
-                bool is_value = false;
-                for (const auto &elem : rle) {
-                  if (is_value) {
-                    OUTCOME_TRY(file->free(offset, PaddedPieceSize(elem)));
-                  }
-                  offset += elem;
-                  is_value = not is_value;
-                }
-              }
-            }
             OUTCOME_TRY(response,
                         self->acquireSector(sector,
                                             SectorFileType::FTCache,
@@ -911,5 +876,93 @@ namespace fc::sector_storage {
 
   bool LocalWorker::isLocalWorker() const {
     return true;
+  }
+
+  outcome::result<void> LocalWorker::freeUnsealed(
+      const SectorRef &sector, const std::vector<Range> &keep_unsealed) {
+    OUTCOME_TRY(size, primitives::sector::getSectorSize(sector.proof_type));
+
+    if (not keep_unsealed.empty()) {
+      std::vector<uint64_t> rle = {0, size};
+
+      for (const auto &sector_info : keep_unsealed) {
+        std::vector<uint64_t> sector_rle = {sector_info.offset.padded(),
+                                            sector_info.size.padded()};
+
+        rle = primitives::runsAnd(rle, sector_rle, true);
+      }
+
+      OUTCOME_TRY(response,
+                  acquireSector(sector,
+                                SectorFileType::FTUnsealed,
+                                SectorFileType::FTNone,
+                                PathType::kStorage));
+      auto _ = gsl::finally([&]() { response.release_function(); });
+
+      auto maybe_file =
+          SectorFile::openFile(response.paths.unsealed, PaddedPieceSize(size));
+
+      if (maybe_file.has_error()) {
+        if (maybe_file != outcome::failure(SectorFileError::kFileNotExist)) {
+          return maybe_file.error();
+        }
+      } else {
+        auto &file{maybe_file.value()};
+        PaddedPieceSize offset(0);
+        bool is_value = false;
+        for (const auto &elem : rle) {
+          if (is_value) {
+            OUTCOME_TRY(file->free(offset, PaddedPieceSize(elem)));
+          }
+          offset += elem;
+          is_value = not is_value;
+        }
+      }
+    }
+    return outcome::success();
+  }
+
+  outcome::result<CallId> LocalWorker::finalizeReplicaUpdate(
+      const SectorRef &sector, std::vector<Range> keep_unsealed) {
+    return asyncCall(
+        sector,
+        return_->ReturnFinalizeReplicaUpdate,
+        [=, keep_unsealed{std::move(keep_unsealed)}](
+            Self self) -> outcome::result<void> {
+          OUTCOME_TRY(size,
+                      primitives::sector::getSectorSize(sector.proof_type));
+
+          OUTCOME_TRY(self->freeUnsealed(sector, keep_unsealed));
+
+          {
+            OUTCOME_TRY(response,
+                        self->acquireSector(sector,
+                                            SectorFileType::FTCache,
+                                            SectorFileType::FTNone,
+                                            PathType::kStorage));
+            auto _ = gsl::finally([&]() { response.release_function(); });
+
+            OUTCOME_TRY(self->proofs_->clearCache(size, response.paths.cache));
+          }
+
+          {
+            OUTCOME_TRY(response,
+                        self->acquireSector(sector,
+                                            SectorFileType::FTUpdateCache,
+                                            SectorFileType::FTNone,
+                                            PathType::kStorage));
+            auto _ = gsl::finally([&]() { response.release_function(); });
+
+            OUTCOME_TRY(
+                self->proofs_->clearCache(size, response.paths.update_cache));
+          }
+
+          if (keep_unsealed.empty()) {
+            OUTCOME_TRY(self->remote_store_->remove(
+                sector.id, SectorFileType::FTUnsealed));
+          }
+
+          return outcome::success();
+        });
   }
 }  // namespace fc::sector_storage

@@ -220,6 +220,11 @@ namespace fc::api {
                void,
                const CallId &,
                const boost::optional<CallError> &)
+    API_METHOD(ReturnFinalizeReplicaUpdate,
+               jwt::kAdminPermission,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
     API_METHOD(ReturnMoveStorage,
                jwt::kAdminPermission,
                void,
@@ -312,6 +317,7 @@ namespace fc::api {
     f(a.ReturnSealCommit1);
     f(a.ReturnSealCommit2);
     f(a.ReturnFinalizeSector);
+    f(a.ReturnFinalizeReplicaUpdate);
     f(a.ReturnMoveStorage);
     f(a.ReturnUnsealPiece);
     f(a.ReturnReadPiece);

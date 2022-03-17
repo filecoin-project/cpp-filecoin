@@ -74,6 +74,11 @@ namespace fc::api {
                const CID &,
                const CID &,
                const Update1Output &)
+    API_METHOD(FinalizeReplicaUpdate,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               const std::vector<Range> &)
 
     API_METHOD(Info, kAdminPermission, primitives::WorkerInfo)
 
@@ -137,6 +142,7 @@ namespace fc::api {
     f(a.ReplicaUpdate);
     f(a.ProveReplicaUpdate1);
     f(a.ProveReplicaUpdate2);
+    f(a.FinalizeReplicaUpdate);
     f(a.Info);
     f(a.MoveStorage);
     f(a.Paths);

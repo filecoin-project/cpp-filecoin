@@ -111,6 +111,9 @@ namespace fc::sector_storage {
         const CID &new_unsealed,
         const Update1Output &update_1_output) = 0;
 
+    virtual outcome::result<CallId> finalizeReplicaUpdate(
+        const SectorRef &sector, std::vector<Range> keep_unsealed) = 0;
+
     virtual outcome::result<CallId> moveStorage(const SectorRef &sector,
                                                 SectorFileType types) = 0;
 

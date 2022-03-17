@@ -1025,6 +1025,10 @@ namespace fc::mining {
         case SealingState::kFinalizeSector:
           return handleFinalizeSector(info);
 
+        case SealingState::kSnapDealsWaitDeals:
+          return handleSnapDealsWaitDeal(info);
+        case SealingState::kFinalizeReplicaUpdate:
+          return handleFinalizeReplicaUpdate(info);
         case SealingState::kUpdateActivating:
           return handleUpdateActivating(info);
         case SealingState::kReleaseSectorKey:
@@ -1073,9 +1077,6 @@ namespace fc::mining {
           return outcome::success();
         case SealingState::kFaultReported:
           return handleFaultReported(info);
-
-        case SealingState::kSnapDealsWaitDeals:
-          return handleSnapDealsWaitDeal(info);
 
         case SealingState::kForce: {
           std::shared_ptr<SectorForceContext> force_context =
@@ -1963,6 +1964,28 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handleSnapDealsWaitDeal(
       const std::shared_ptr<SectorInfo> &info) {
     // TODO
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleFinalizeReplicaUpdate(
+      const std::shared_ptr<SectorInfo> &info) {
+    sealer_->finalizeReplicaUpdate(
+        minerSector(info->sector_type, info->sector_number),
+        info->keepUnsealedRanges(),
+        [fsm{fsm_}, info, logger{logger_}](
+            const outcome::result<void> &maybe_error) {
+          if (maybe_error.has_error()) {
+            logger->error("finalize replica update: {}",
+                          maybe_error.error().message());
+            OUTCOME_EXCEPT(
+                fsm->send(info, SealingEvent::kSectorFinalizeFailed, {}));
+            return;
+          }
+
+          OUTCOME_EXCEPT(fsm->send(info, SealingEvent::kSectorFinalized, {}));
+        },
+        info->sealingPriority());
 
     return outcome::success();
   }
