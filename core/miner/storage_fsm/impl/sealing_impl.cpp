@@ -2476,7 +2476,7 @@ namespace fc::mining {
             info->sector_number,
             piece.deal_info->deal_id);
 
-        FSM_SEND(info, fail_event);
+        FSM_SEND(info, SealingEvent::kSectorRemove);
         return outcome::success();
       }
 
