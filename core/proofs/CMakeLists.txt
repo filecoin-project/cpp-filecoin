@@ -13,6 +13,8 @@ target_link_libraries(proof_param_provider
         outcome
         blake2
         logger
+        file
+        rpc
         )
 
 add_custom_command(

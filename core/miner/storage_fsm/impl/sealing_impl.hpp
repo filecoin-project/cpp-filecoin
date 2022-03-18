@@ -105,6 +105,7 @@ namespace fc::mining {
                 std::shared_ptr<PreCommitPolicy> policy,
                 const std::shared_ptr<boost::asio::io_context> &context,
                 std::shared_ptr<Scheduler> scheduler,
+                std::shared_ptr<StorageFSM> fsm,
                 std::shared_ptr<PreCommitBatcher> precommit_batcher,
                 AddressSelector address_selector,
                 std::shared_ptr<FeeConfig> fee_config,
@@ -128,7 +129,7 @@ namespace fc::mining {
      * Creates all FSM transitions
      * @return vector of transitions for fsm
      */
-    std::vector<SealingTransition> makeFSMTransitions();
+    static std::vector<SealingTransition> makeFSMTransitions();
 
     /**
      * callback for fsm to track activity

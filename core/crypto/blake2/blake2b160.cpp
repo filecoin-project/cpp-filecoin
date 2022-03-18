@@ -5,8 +5,13 @@
 
 #include "crypto/blake2/blake2b160.hpp"
 
-#include <fstream>
+#include "common/error_text.hpp"
+#include "common/ffi.hpp"
 #include "common/span.hpp"
+
+#include <openssl/evp.h>
+#include <array>
+#include <fstream>
 
 #ifndef ROTR64
 #define ROTR64(x, y) (((x) >> (y)) ^ ((x) << (64 - (y))))
@@ -142,24 +147,41 @@ namespace fc::crypto::blake2b {
     return res;
   }
 
-  Blake2b512Hash blake2b_512_from_file(std::ifstream &file_stream) {
-    if (!file_stream.is_open()) return {};
+  outcome::result<Blake2b512Hash> blake2b_512_from_file(
+      const std::string &path) {
+    std::ifstream file_stream(path, std::ios::binary | std::ios::in);
 
-    Ctx ctx{BLAKE2B512_HASH_LENGTH};
+    if (not file_stream.is_open()) return ERROR_TEXT("Cannot open file");
+    auto ctx = common::ffi::wrap(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+    const auto type = EVP_blake2b512();
+
+    if (EVP_DigestInit(ctx.get(), type) == 0)
+      return ERROR_TEXT("Cannot init digest");
 
     constexpr size_t buffer_size = 32 * 1024;
-    std::string bytes(buffer_size, ' ');
+    std::array<char, buffer_size> bytes{};
     file_stream.read(bytes.data(), buffer_size);
+    if (not file_stream.good() && not file_stream.eof()) {
+      return ERROR_TEXT("Read error");
+    }
     auto currently_read = file_stream.gcount();
     while (currently_read != 0) {
-      ctx.update(gsl::make_span(common::span::cast<const uint8_t>(bytes.data()),
-                                currently_read));
+      EVP_DigestUpdate(
+          ctx.get(), (const uint8_t *)bytes.data(), currently_read);
+      if (file_stream.eof()) {
+        break;
+      }
       file_stream.read(bytes.data(), buffer_size);
+      if (not file_stream.good() && not file_stream.eof()) {
+        return ERROR_TEXT("Read error");
+      }
       currently_read = file_stream.gcount();
     }
 
     Blake2b512Hash hash;
-    ctx.final(hash);
+    unsigned int s;
+    EVP_DigestFinal(ctx.get(), (unsigned char *)hash.data(), &s);
+    assert(hash.size() == s);
     return hash;
   }
 

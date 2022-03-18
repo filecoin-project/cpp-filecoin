@@ -103,8 +103,8 @@ namespace fc::markets::storage::provider {
     setDealMkHandler<ProposalV1_1_0>(kDealMkProtocolId_v1_1_0);
 
     // init fsm transitions
-    fsm_ =
-        std::make_shared<ProviderFSM>(makeFSMTransitions(), *context_, false);
+    OUTCOME_TRYA(
+        fsm_, ProviderFSM::createFsm(makeFSMTransitions(), *context_, false));
 
     datatransfer_->on_push.emplace(
         StorageDataTransferVoucherType,

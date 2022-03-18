@@ -236,7 +236,6 @@ namespace fc::markets::retrieval {
     inline static const std::string type{"RetrievalDealPayment/1"};
   };
 
-
   inline CBOR2_ENCODE(DealPaymentV1_0_0) {
     auto m{CborEncodeStream::orderedMap()};
     m["ID"] << v.deal_id;
@@ -253,6 +252,8 @@ namespace fc::markets::retrieval {
   }
 
   struct State {
+    State() = default;
+
     explicit State(const DealProposalParams &params)
         : params{params},
           interval{params.payment_interval},

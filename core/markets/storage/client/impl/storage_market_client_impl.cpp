@@ -98,9 +98,10 @@ namespace fc::markets::storage::client {
 
   void StorageMarketClientImpl::askDealStatus(
       const std::shared_ptr<ClientDeal> &deal) {
-    auto cb{weakCb0(
-        weak_from_this(),
-        [=](outcome::result<DealStatusResponseV1_1_0> &&_res) {
+    auto cb{weakCb(
+        *this,
+        [this, deal](std::shared_ptr<StorageMarketClientImpl> &&self,
+                     outcome::result<DealStatusResponseV1_1_0> &&_res) {
           if (_res) {
             auto &res{_res.value()};
             auto state{res.state.status};
@@ -152,8 +153,8 @@ namespace fc::markets::storage::client {
   }
 
   outcome::result<void> StorageMarketClientImpl::init() {
-    // init fsm transitions
-    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), *context_, false);
+    OUTCOME_TRYA(fsm_,
+                 ClientFSM::createFsm(makeFSMTransitions(), *context_, false));
     return outcome::success();
   }
 
