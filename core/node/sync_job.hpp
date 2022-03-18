@@ -94,7 +94,6 @@ namespace fc::sync {
     /** Tipset being interpreted at the moment. */
     TipsetCPtr interpret_ts_;
     bool interpreting_{false};
-    IoThread thread;
     IoThread interpret_thread;
 
     // TODO(turuslan): FIL-420 check cache memory usage

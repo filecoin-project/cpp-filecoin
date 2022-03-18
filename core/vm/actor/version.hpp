@@ -16,6 +16,11 @@ namespace fc::vm::actor {
     kVersion5 = 5,
     kVersion6 = 6,
     kVersion7 = 7,
+    /**
+     * Don't forget to update following places:
+     *   - core/storage/compacter/lookback.hpp
+     *     - ACTOR_CODE_IS
+     */
   };
 
   struct WithActorVersion {
