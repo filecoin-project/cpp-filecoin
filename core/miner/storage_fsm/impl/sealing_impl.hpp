@@ -235,6 +235,12 @@ namespace fc::mining {
         const std::shared_ptr<SectorInfo> &info);
 
     /**
+     * @brief Handle incoming in kSubmitReplicaUpdate state
+     */
+    outcome::result<void> handleSubmitReplicaUpdate(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
      * @brief Handle incoming in kReplicaUpdateWait state
      */
     outcome::result<void> handleReplicaUpdateWait(

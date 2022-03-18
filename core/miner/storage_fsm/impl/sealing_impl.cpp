@@ -20,6 +20,7 @@
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v7/miner/miner_actor.hpp"
 
 #define WAIT(cb)                                                         \
   logger_->info("sector {}: wait before retrying", info->sector_number); \
@@ -54,6 +55,8 @@ namespace fc::mining {
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::v0::miner::PreCommitSector;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
+  using vm::actor::builtin::v7::miner::ProveReplicaUpdates;
+  using vm::actor::builtin::v7::miner::ReplicaUpdate;
 
   std::chrono::milliseconds getWaitingTime(uint64_t errors_count = 0) {
     // TODO(ortyomka): Exponential backoff when we see consecutive failures
@@ -1032,6 +1035,8 @@ namespace fc::mining {
           return handleSnapDealsWaitDeal(info);
         case SealingState::kProveReplicaUpdate:
           return handleProveReplicaUpdate(info);
+        case SealingState::kSubmitReplicaUpdate:
+          return handleSubmitReplicaUpdate(info);
         case SealingState::kReplicaUpdateWait:
           return handleReplicaUpdateWait(info);
         case SealingState::kFinalizeReplicaUpdate:
@@ -2020,22 +2025,29 @@ namespace fc::mining {
             return;
           }
 
-          const auto maybe_error = checks::checkPieces(self->miner_address_, info, self->api_);
+          const auto maybe_error =
+              checks::checkPieces(self->miner_address_, info, self->api_);
           if (maybe_error.has_error()) {
             if (maybe_error == outcome::failure(ChecksError::kInvalidDeal)) {
-              self->logger_->error("invalid dealIDs in sector {}", info->sector_number);
+              self->logger_->error("invalid dealIDs in sector {}",
+                                   info->sector_number);
               std::shared_ptr<SectorInvalidDealIDContext> context =
                   std::make_shared<SectorInvalidDealIDContext>();
               context->return_state = SealingState::kProveReplicaUpdate;
-              OUTCOME_EXCEPT(self->fsm_->send(info, SealingEvent::kSectorInvalidDealIDs, context));
+              OUTCOME_EXCEPT(self->fsm_->send(
+                  info, SealingEvent::kSectorInvalidDealIDs, context));
               return;
             }
             if (maybe_error == outcome::failure(ChecksError::kExpiredDeal)) {
-              self->logger_->error("expired dealIDs in sector {}", info->sector_number);
-              OUTCOME_EXCEPT(self->fsm_->send(info, SealingEvent::kSectorDealsExpired, {}));
+              self->logger_->error("expired dealIDs in sector {}",
+                                   info->sector_number);
+              OUTCOME_EXCEPT(self->fsm_->send(
+                  info, SealingEvent::kSectorDealsExpired, {}));
               return;
             }
-            self->logger_->error("check pieces in sector {} error:", info->sector_number, maybe_error.error().message());
+            self->logger_->error("check pieces in sector {} error:",
+                                 info->sector_number,
+                                 maybe_error.error().message());
             return;
           }
 
@@ -2065,6 +2077,108 @@ namespace fc::mining {
               info->sealingPriority());
         },
         info->sealingPriority());
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleSubmitReplicaUpdate(
+      const std::shared_ptr<SectorInfo> &info) {
+    OUTCOME_TRY(head, api_->ChainHead());
+
+    auto maybe_error = checks::checkUpdate(
+        miner_address_, info, head->key, api_, sealer_->getProofEngine());
+    if (maybe_error.has_error()) {
+      FSM_SEND(info, SealingEvent::kSectorSubmitReplicaUpdateFailed);
+      return outcome::success();
+    }
+
+    OUTCOME_TRY(state_partition,
+                api_->StateSectorPartition(
+                    miner_address_, info->sector_number, head->key));
+
+    auto maybe_proof = getRegisteredUpdateProof(info->sector_type);
+    if (maybe_proof.has_error()) {
+      FSM_SEND(info, SealingEvent::kSectorSubmitReplicaUpdateFailed);
+      return outcome::success();
+    }
+    const auto &proof{maybe_proof.value()};
+
+    ProveReplicaUpdates::Params params{
+        {ReplicaUpdate{.sector = info->sector_number,
+                       .deadline = state_partition.deadline,
+                       .partition = state_partition.partition,
+                       .comm_r = info->update_sealed.get(),
+                       .deals = info->getDealIDs(),
+                       .update_type = proof,
+                       .proof = info->update_proof.get()}}};
+
+    const auto maybe_encoded = codec::cbor::encode(params);
+    if (maybe_encoded.has_error()) {
+      logger_->error("could not serialize update sector parameters: {:#}",
+                     maybe_encoded.error().message());
+      FSM_SEND(info, SealingEvent::kSectorSubmitReplicaUpdateFailed);
+      return outcome::success();
+    }
+
+    OUTCOME_TRY(chain_info,
+                api_->StateSectorGetInfo(
+                    miner_address_, info->sector_number, head->key));
+    OUTCOME_TRY(seal_proof, getCurrentSealProof());
+
+    SectorPreCommitInfo virtual_pci{
+        .registered_proof = seal_proof,
+        .sector = info->sector_number,
+        .sealed_cid = info->update_sealed.get(),
+        .seal_epoch = 0,
+        .deal_ids = info->getDealIDs(),
+        .expiration = chain_info->expiration,
+    };
+
+    OUTCOME_TRY(collateral,
+                api_->StateMinerInitialPledgeCollateral(
+                    miner_address_, virtual_pci, head->key));
+
+    collateral -= chain_info->init_pledge;
+    if (collateral < 0) {
+      collateral = 0;
+    }
+
+    auto good_funds = collateral + fee_config_->max_commit_gas_fee;
+
+    OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address_, head->key));
+
+    const auto maybe_address = address_selector_(miner_info, good_funds, api_);
+    if (maybe_address.has_error()) {
+      FSM_SEND(info, SealingEvent::kSectorCommitFailed);
+      return outcome::success();
+    }
+
+    api_->MpoolPushMessage(
+        [fsm{fsm_}, logger{logger_}, info, self{shared_from_this()}](
+            const outcome::result<api::SignedMessage> &maybe_signed_message) {
+          if (maybe_signed_message.has_error()) {
+            logger->error(
+                "handleSubmitReplicaUpdate: error sending message: {}",
+                maybe_signed_message.error().message());
+            OUTCOME_EXCEPT(fsm->send(
+                info, SealingEvent::kSectorSubmitReplicaUpdateFailed, {}));
+            return;
+          }
+          std::shared_ptr<SectorReplicaUpdateSubmittedContext> context =
+              std::make_shared<SectorReplicaUpdateSubmittedContext>();
+          context->message = maybe_signed_message.value().getCid();
+          OUTCOME_EXCEPT(fsm->send(
+              info, SealingEvent::kSectorReplicaUpdateSubmitted, context));
+        },
+        vm::message::UnsignedMessage(miner_address_,
+                                     maybe_address.value(),
+                                     0,
+                                     collateral,
+                                     fee_config_->max_commit_gas_fee,
+                                     {},
+                                     ProveReplicaUpdates::Number,
+                                     MethodParams{maybe_encoded.value()}),
+        kPushNoSpec);
 
     return outcome::success();
   }
