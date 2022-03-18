@@ -17,6 +17,7 @@
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
+#include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
@@ -41,6 +42,7 @@ namespace fc::mining {
   using types::kDealSectorPriority;
   using types::Piece;
   using vm::actor::MethodParams;
+  using vm::actor::builtin::types::market::kDealMinDuration;
   using vm::actor::builtin::types::market::deal_info_manager::DealInfoManager;
   using vm::actor::builtin::types::market::deal_info_manager::
       DealInfoManagerImpl;
@@ -399,6 +401,51 @@ namespace fc::mining {
 
     // TODO(ortyomka): more checks to match actor constraints
     to_upgrade_.insert(id);
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::markForSnapUpgrade(SectorNumber id) {
+    // TODO(a.chernyshov)
+    // https://github.com/filecoin-project/lotus/blob/362c73bfbdb8c6d5f1d110b25ee33faa2b5c8dcc/extern/storage-sealing/upgrade_queue.go#L53-L62
+    // check staging - waitDealsSectors < config.maxWaitDealsSectors
+
+    OUTCOME_TRY(sector_info, getSectorInfo(id));
+
+    if (sector_info->state != SealingState::kProving) {
+      return SealingError::kNotProvingState;
+    }
+    if (sector_info->pieces.size() != 1) {
+      return SealingError::kUpgradeSeveralPieces;
+    }
+    if (sector_info->pieces[0].deal_info.has_value()) {
+      return SealingError::kUpgradeWithDeal;
+    }
+
+    OUTCOME_TRY(head, api_->ChainHead());
+    OUTCOME_TRY(onchain_info,
+                api_->StateSectorGetInfo(miner_address_, id, head->key));
+    OUTCOME_TRY(active_sectors,
+                api_->StateMinerActiveSectors(miner_address_, head->key));
+    // Ensure the upgraded sector is active
+    if (find_if(active_sectors.begin(),
+                active_sectors.end(),
+                [id](const auto &sector) { return sector.sector == id; })
+        != active_sectors.end()) {
+      return ERROR_TEXT("Cannot mark inactive sector for upgrade");
+    }
+
+    if (onchain_info->expiration - head->epoch() < kDealMinDuration) {
+      logger_->error(
+          "pointless to upgrade sector {}, expiration {} is less than a min "
+          "deal duration away from current epoch. Upgrade expiration before "
+          "marking for upgrade",
+          id,
+          onchain_info->expiration);
+      ERROR_TEXT(
+          "Pointless to upgrade sector. Sector Info expiration is less than a "
+          "min deal duration away from current state.");
+    }
 
     return outcome::success();
   }
@@ -848,9 +895,6 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorInvalidDealIDs)
             .from(SealingState::kProveReplicaUpdate)
             .to(SealingState::kSnapDealsRecoverDealIDs),
-        SealingTransition(SealingEvent::kSectorInvalidDealIDs)
-            .from(SealingState::kProveReplicaUpdate)
-            .to(SealingState::kSnapDealsRecoverDealIDs),
 
         SealingTransition(SealingEvent::kSectorReplicaUpdateSubmitted)
             .from(SealingState::kSubmitReplicaUpdate)
@@ -1029,6 +1073,9 @@ namespace fc::mining {
           return outcome::success();
         case SealingState::kFaultReported:
           return handleFaultReported(info);
+
+        case SealingState::kSnapDealsWaitDeals:
+          return handleSnapDealsWaitDeal(info);
 
         case SealingState::kForce: {
           std::shared_ptr<SectorForceContext> force_context =
@@ -1909,6 +1956,16 @@ namespace fc::mining {
 
     // TODO(ortyomka): Watch termination
     // TODO(ortyomka): Auto-extend if set
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleSnapDealsWaitDeal(
+      const std::shared_ptr<SectorInfo> &info) {
+    info->update = true;
+    // Clear filler piece but remember in case of abort
+    info->update_pieces = info->pieces;
+    info->pieces.clear();
 
     return outcome::success();
   }

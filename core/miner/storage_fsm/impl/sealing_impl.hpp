@@ -87,6 +87,8 @@ namespace fc::mining {
 
     outcome::result<void> markForUpgrade(SectorNumber id) override;
 
+    outcome::result<void> markForSnapUpgrade(SectorNumber id) override;
+
     bool isMarkedForUpgrade(SectorNumber id) override;
 
     outcome::result<void> startPacking(SectorNumber id) override;
@@ -217,6 +219,12 @@ namespace fc::mining {
      * @brief Handle incoming in kProving state
      */
     outcome::result<void> handleProvingSector(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle SnapDeals start waiting
+     */
+    outcome::result<void> handleSnapDealsWaitDeal(
         const std::shared_ptr<SectorInfo> &info);
 
     /**

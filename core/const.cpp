@@ -61,7 +61,8 @@ namespace fc {
 
 namespace fc::vm::actor::builtin::types::market {
   DEFINE(kDealUpdatesInterval) = static_cast<EpochDuration>(kEpochsInDay);
-}
+  DEFINE(kDealMinDuration) = static_cast<EpochDuration>(kEpochsInDay) * 180;
+}  // namespace fc::vm::actor::builtin::types::market
 
 namespace fc::vm::actor::builtin::types::miner {
   DEFINE(kWPoStProvingPeriod) = kEpochsInDay;
