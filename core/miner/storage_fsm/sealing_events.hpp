@@ -261,6 +261,15 @@ namespace fc::mining {
     }
   };
 
+  struct SectorProveReplicaUpdateContext final : public SealingEventContext{
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->update_proof = proof;
+    }
+
+    sector_storage::ReplicaUpdateProof proof;
+  };
+
   struct SectorRevertUpgradeToProvingContext final
       : public SealingEventContext {
    public:

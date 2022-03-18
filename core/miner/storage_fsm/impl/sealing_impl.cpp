@@ -898,6 +898,9 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorInvalidDealIDs)
             .from(SealingState::kProveReplicaUpdate)
             .to(SealingState::kSnapDealsRecoverDealIDs),
+        SealingTransition(SealingEvent::kSectorAbortUpgrade)
+            .from(SealingState::kProveReplicaUpdate)
+            .to(SealingState::kAbortUpgrade),
 
         SealingTransition(SealingEvent::kSectorReplicaUpdateSubmitted)
             .from(SealingState::kSubmitReplicaUpdate)
@@ -1027,6 +1030,8 @@ namespace fc::mining {
 
         case SealingState::kSnapDealsWaitDeals:
           return handleSnapDealsWaitDeal(info);
+        case SealingState::kProveReplicaUpdate:
+          return handleProveReplicaUpdate(info);
         case SealingState::kReplicaUpdateWait:
           return handleReplicaUpdateWait(info);
         case SealingState::kFinalizeReplicaUpdate:
@@ -1966,6 +1971,100 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handleSnapDealsWaitDeal(
       const std::shared_ptr<SectorInfo> &info) {
     // TODO
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleProveReplicaUpdate(
+      const std::shared_ptr<SectorInfo> &info) {
+    if (not info->update_sealed.has_value()
+        || not info->update_sealed.has_value()) {
+      logger_->error(
+          "invalid sector {} without Update sealed or Update unsealed",
+          info->sector_number);
+      return outcome::success();
+    }
+
+    if (not info->comm_r.has_value()) {
+      logger_->error("invalid sector {} without CommR", info->sector_number);
+      return outcome::success();
+    }
+
+    OUTCOME_TRY(head, api_->ChainHead());
+    OUTCOME_TRY(
+        active,
+        sectorActive(api_, miner_address_, head->key, info->sector_number));
+
+    if (not active) {
+      logger_->error(
+          "sector marked for upgrade {} no longer active, aborting upgrade",
+          info->sector_number);
+      FSM_SEND(info, SealingEvent::kSectorAbortUpgrade);
+      return outcome::success();
+    }
+
+    auto sector{minerSector(info->sector_type, info->sector_number)};
+    sealer_->proveReplicaUpdate1(
+        sector,
+        info->comm_r.get(),
+        info->update_sealed.get(),
+        info->update_unsealed.get(),
+        [sector, info, self{shared_from_this()}](const auto &maybe_res) {
+          if (maybe_res.has_error()) {
+            self->logger_->error(
+                "prove replica update (1) for sector {} failed: {}",
+                info->sector_number,
+                maybe_res.error().message());
+            OUTCOME_EXCEPT(self->fsm_->send(
+                info, SealingEvent::kSectorProveReplicaUpdateFailed, {}));
+            return;
+          }
+
+          const auto maybe_error = checks::checkPieces(self->miner_address_, info, self->api_);
+          if (maybe_error.has_error()) {
+            if (maybe_error == outcome::failure(ChecksError::kInvalidDeal)) {
+              self->logger_->error("invalid dealIDs in sector {}", info->sector_number);
+              std::shared_ptr<SectorInvalidDealIDContext> context =
+                  std::make_shared<SectorInvalidDealIDContext>();
+              context->return_state = SealingState::kProveReplicaUpdate;
+              OUTCOME_EXCEPT(self->fsm_->send(info, SealingEvent::kSectorInvalidDealIDs, context));
+              return;
+            }
+            if (maybe_error == outcome::failure(ChecksError::kExpiredDeal)) {
+              self->logger_->error("expired dealIDs in sector {}", info->sector_number);
+              OUTCOME_EXCEPT(self->fsm_->send(info, SealingEvent::kSectorDealsExpired, {}));
+              return;
+            }
+            self->logger_->error("check pieces in sector {} error:", info->sector_number, maybe_error.error().message());
+            return;
+          }
+
+          self->sealer_->proveReplicaUpdate2(
+              sector,
+              info->comm_r.get(),
+              info->update_sealed.get(),
+              info->update_unsealed.get(),
+              maybe_res.value(),
+              [self, info](const auto &maybe_res) {
+                if (maybe_res.has_error()) {
+                  self->logger_->error(
+                      "prove replica update (2) for sector {} failed: {}",
+                      info->sector_number,
+                      maybe_res.error().message());
+                  OUTCOME_EXCEPT(self->fsm_->send(
+                      info, SealingEvent::kSectorProveReplicaUpdateFailed, {}));
+                  return;
+                }
+
+                auto context =
+                    std::make_shared<SectorProveReplicaUpdateContext>();
+                context->proof = maybe_res.value();
+                OUTCOME_EXCEPT(self->fsm_->send(
+                    info, SealingEvent::kSectorProveReplicaUpdate, context));
+              },
+              info->sealingPriority());
+        },
+        info->sealingPriority());
 
     return outcome::success();
   }
