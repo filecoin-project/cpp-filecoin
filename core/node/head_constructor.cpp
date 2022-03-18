@@ -88,8 +88,8 @@ namespace fc::sync {
     auto &creator = candidates_[TipsetKey::hash(header.parents)];
     auto res = creator.canExpandTipset(header);
     if (!res) {
-      log()->warn("cannot expand tipset with new block, {}",
-                  res.error().message());
+      log()->error("cannot expand tipset with new block, {}",
+                   res.error().message());
       return;
     }
     res = creator.expandTipset(block_cid, header);

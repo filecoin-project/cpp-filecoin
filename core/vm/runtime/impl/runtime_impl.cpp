@@ -321,7 +321,10 @@ namespace fc::vm::runtime {
     }
     auto &blockB{_blockB.value()};
     ConsensusFault fault;
-    fault.target = blockA.miner;
+    if (!blockA.miner.isId()) {
+      return ERROR_TEXT("verifyConsensusFault block miner must be id");
+    }
+    fault.target = blockA.miner.getId();
     fault.epoch = blockB.height;
     boost::optional<ConsensusFaultType> type;
     if (isNearOrange(blockA.height) || isNearOrange(blockB.height)

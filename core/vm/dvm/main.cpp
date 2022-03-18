@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
                   std::chrono::seconds{30},
               },
               std::chrono::seconds{genesis_block.timestamp},
-              std::chrono::seconds{kEpochDurationSeconds}));
+              std::chrono::seconds{kBlockDelaySecs}));
       envx.interpreter_cache =
           std::make_shared<vm::interpreter::InterpreterCache>(
               std::make_shared<storage::InMemoryStorage>(),
