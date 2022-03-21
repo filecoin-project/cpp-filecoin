@@ -97,7 +97,7 @@ namespace fc::blockchain::block_validator {
     }
     if (block.timestamp
         != parent->getMinTimestamp()
-               + (block.height - parent->height()) * kEpochDurationSeconds) {
+               + (block.height - parent->height()) * kBlockDelaySecs) {
       return ERROR_TEXT("validate: wrong timestamp");
     }
     OUTCOME_TRY(base_fee, parent->nextBaseFee(ipld));

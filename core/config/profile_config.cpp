@@ -19,8 +19,8 @@ namespace fc::config {
    */
   CLI_VALIDATE(Profile) {
     validateWith(out, values, [](const std::string &value) {
-      if (value == "mainnet" || value == "2k" || value == "no-upgrades"
-          || value == "interopnet" || value == "butterflynet") {
+      if (value == "mainnet" || value == "2k" || value == "interopnet"
+          || value == "butterflynet") {
         return Profile{value};
       }
       throw std::exception{};
@@ -38,8 +38,6 @@ namespace fc::config {
                 // nothing because default values are mainnet
               } else if (profile == "2k") {
                 setParams2K();
-              } else if (profile == "no-upgrades") {
-                setParamsNoUpgrades();
               } else if (profile == "interopnet") {
                 setParamsInteropnet();
               } else if (profile == "butterflynet") {

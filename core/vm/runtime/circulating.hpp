@@ -17,6 +17,7 @@ namespace fc::vm {
   struct Circulating {
     static outcome::result<std::shared_ptr<Circulating>> make(
         IpldPtr ipld, const CID &genesis);
+    outcome::result<TokenAmount> vested(ChainEpoch epoch) const;
     outcome::result<TokenAmount> circulating(StateTreePtr state_tree,
                                              ChainEpoch epoch) const;
 

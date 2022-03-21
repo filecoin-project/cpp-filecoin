@@ -13,7 +13,7 @@ namespace fc::vm::version {
   /**
    * Enumeration of network upgrades where actor behaviour can change
    */
-  enum class NetworkVersion : int64_t {
+  enum class NetworkVersion : uint64_t {
     kVersion0,
     kVersion1,
     kVersion2,

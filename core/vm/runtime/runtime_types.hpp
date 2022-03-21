@@ -11,6 +11,7 @@
 #include "primitives/big_int.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
+#include "vm/runtime/consensus_fault_types.hpp"
 
 namespace fc::vm::runtime {
   using message::UnsignedMessage;
@@ -41,17 +42,5 @@ namespace fc::vm::runtime {
     UnsignedMessage message;
     MessageReceipt receipt;
     std::string error;
-  };
-
-  enum class ConsensusFaultType {
-    DoubleForkMining = 1,
-    ParentGrinding = 2,
-    TimeOffsetMining = 3,
-  };
-
-  struct ConsensusFault {
-    Address target;
-    ChainEpoch epoch{};
-    ConsensusFaultType type{};
   };
 }  // namespace fc::vm::runtime

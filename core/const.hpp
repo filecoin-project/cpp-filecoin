@@ -21,15 +21,13 @@ namespace fc {
   constexpr int64_t kSecondsInHour{60 * 60};
   constexpr int64_t kSecondsInDay{24 * kSecondsInHour};
 
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern size_t kEpochDurationSeconds;
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern size_t kEpochsInHour;
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern size_t kEpochsInDay;
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern size_t kEpochsInYear;
+  constexpr size_t kEpochDurationSeconds{30};
+  constexpr size_t kEpochsInHour{kSecondsInHour / kEpochDurationSeconds};
+  constexpr size_t kEpochsInDay{24 * kEpochsInHour};
+  constexpr size_t kEpochsInYear{365 * kEpochsInDay};
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  extern size_t kBlockDelaySecs;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern size_t kPropagationDelaySecs;
 
@@ -108,12 +106,6 @@ namespace fc {
    * Identical to Lotus 2k build
    */
   void setParams2K();
-
-  /**
-   * Sets parameters for test network with high upgrade heights
-   * May be useful when want to avoid network upgrades
-   */
-  void setParamsNoUpgrades();
 
   /**
    * Sets upgrades heights and parameters for Interopnet.

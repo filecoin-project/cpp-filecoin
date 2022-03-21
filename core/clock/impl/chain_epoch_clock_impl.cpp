@@ -21,6 +21,6 @@ namespace fc::clock {
       return outcome::failure(EpochAtTimeError::kBeforeGenesis);
     }
     auto difference = time - genesis_time_;
-    return difference.count() / kEpochDurationSeconds;
+    return difference.count() / kBlockDelaySecs;
   }
 }  // namespace fc::clock

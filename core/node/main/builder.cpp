@@ -275,8 +275,8 @@ namespace fc::node {
     // Republish pending messages
     // Delay from lotus
     // https://github.com/filecoin-project/lotus/blob/d9100981ada8b3186d906a4f4140b83a819d2299/chain/messagepool/messagepool.go#L58
-    const auto republishTimeout{std::chrono::seconds(10 * kEpochDurationSeconds
-                                                     + kPropagationDelaySecs)};
+    const auto republishTimeout{
+        std::chrono::seconds(10 * kBlockDelaySecs + kPropagationDelaySecs)};
     timerLoop(o.scheduler, republishTimeout, [mpool{o.mpool}] {
       const auto res = mpool->republishPendingMessages();
       if (!res) {
@@ -362,7 +362,7 @@ namespace fc::node {
     // estimated, 80gb
     o.compacter->compact_on_car = uint64_t{80} << 30;
     o.compacter->epochs_full_state = 30;
-    o.compacter->epochs_lookback_state = 2000;
+    o.compacter->epochs_lookback_state = 2400;
     o.compacter->epochs_messages = 60;
 
     o.ts_load_ipld = std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld);
@@ -390,7 +390,7 @@ namespace fc::node {
     const auto drand_schedule{std::make_shared<drand::DrandScheduleImpl>(
         drand_chain_info,
         genesis_timestamp,
-        std::chrono::seconds(kEpochDurationSeconds))};
+        std::chrono::seconds(kBlockDelaySecs))};
 
     o.env_context.ts_branches_mutex = ts_mutex;
     o.env_context.ipld = o.ipld;
