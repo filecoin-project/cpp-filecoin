@@ -451,7 +451,9 @@ namespace fc::mining {
       return SealingError::kSectorExpirationError;
     }
 
-    FSM_SEND(sector_info, SealingEvent::kSectorStartCCUpdate);
+    FSM_SEND_CONTEXT(sector_info,
+                     SealingEvent::kSectorStartCCUpdate,
+                     std::make_shared<SectorStartCCUpdateContext>());
 
     return outcome::success();
   }
@@ -1960,10 +1962,7 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleSnapDealsWaitDeal(
       const std::shared_ptr<SectorInfo> &info) {
-    info->update = true;
-    // Clear filler piece but remember in case of abort
-    info->update_pieces = info->pieces;
-    info->pieces.clear();
+    // TODO
 
     return outcome::success();
   }

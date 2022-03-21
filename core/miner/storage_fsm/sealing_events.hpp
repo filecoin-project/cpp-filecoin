@@ -251,6 +251,16 @@ namespace fc::mining {
 
   // SNAP DEAL
 
+  struct SectorStartCCUpdateContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->update = true;
+      // Clear filler piece but remember in case of abort
+      info->update_pieces = info->pieces;
+      info->pieces.clear();
+    }
+  };
+
   struct SectorRevertUpgradeToProvingContext final
       : public SealingEventContext {
    public:
