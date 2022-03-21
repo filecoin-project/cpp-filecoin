@@ -199,6 +199,13 @@ namespace fc::api {
       });
     };
 
+    api->SectorMarkForUpgrade = [=](SectorNumber sector, bool snap_deal) {
+      if (snap_deal) {
+        return miner->getSealing()->markForSnapUpgrade(sector);
+      }
+      return miner->getSealing()->markForUpgrade(sector);
+    };
+
     api->Version = [] {
       return api::VersionResult{kMinerVersion, kMinerApiVersion, 0};
     };

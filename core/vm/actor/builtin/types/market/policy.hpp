@@ -42,6 +42,10 @@ namespace fc::vm::actor::builtin::types::market {
    */
   inline const BigInt kProvCollateralPercentSupplyDenom{100};
 
+  /// Minimum deal duration.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  extern ChainEpoch kDealMinDuration;
+
   // DealMaxLabelSize is the maximum size of a deal label.
   inline const int kDealMaxLabelSize = 256;
 

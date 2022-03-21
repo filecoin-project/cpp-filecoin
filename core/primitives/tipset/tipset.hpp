@@ -116,6 +116,7 @@ namespace fc::primitives::tipset {
 
     ChainEpoch height() const;
 
+    /** The same as height() */
     ChainEpoch epoch() const;
 
     /**

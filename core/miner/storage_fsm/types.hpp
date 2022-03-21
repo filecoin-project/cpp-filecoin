@@ -105,6 +105,7 @@ namespace fc::mining::types {
 
     boost::optional<CID> fault_report_message;
 
+    // Snap deals and CCUpdate
     bool update{false};
     std::vector<Piece> update_pieces;
     boost::optional<CID> update_comm_d;

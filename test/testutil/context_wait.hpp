@@ -7,7 +7,7 @@
 
 #include <boost/asio/io_context.hpp>
 
-void stopAfterSteps(boost::asio::io_context &io, size_t steps) {
+inline void stopAfterSteps(boost::asio::io_context &io, size_t steps) {
   io.post([&io, steps] {
     if (steps == 0) {
       return io.stop();
@@ -16,7 +16,7 @@ void stopAfterSteps(boost::asio::io_context &io, size_t steps) {
   });
 }
 
-void runForSteps(boost::asio::io_context &io, size_t steps) {
+inline void runForSteps(boost::asio::io_context &io, size_t steps) {
   stopAfterSteps(io, steps);
   io.run();
 }
