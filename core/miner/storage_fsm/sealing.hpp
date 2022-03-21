@@ -81,6 +81,8 @@ namespace fc::mining {
     kFailSubmit,
     kSectorAllocatedError,
     kNotPublishedDeal,
+    kCannotMarkInactiveSector,
+    kSectorExpirationError,
   };
 }  // namespace fc::mining
 

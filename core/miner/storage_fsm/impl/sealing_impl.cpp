@@ -429,18 +429,18 @@ namespace fc::mining {
     }
 
     OUTCOME_TRY(head, api_->ChainHead());
-    OUTCOME_TRY(onchain_info,
-                api_->StateSectorGetInfo(miner_address_, id, head->key));
     OUTCOME_TRY(active_sectors,
                 api_->StateMinerActiveSectors(miner_address_, head->key));
     // Ensure the upgraded sector is active
     if (find_if(active_sectors.begin(),
                 active_sectors.end(),
                 [id](const auto &sector) { return sector.sector == id; })
-        != active_sectors.end()) {
-      return ERROR_TEXT("Cannot mark inactive sector for upgrade");
+        == active_sectors.end()) {
+      return SealingError::kCannotMarkInactiveSector;
     }
 
+    OUTCOME_TRY(onchain_info,
+                api_->StateSectorGetInfo(miner_address_, id, head->key));
     if (onchain_info->expiration - head->epoch() < kDealMinDuration) {
       logger_->error(
           "pointless to upgrade sector {}, expiration {} is less than a min "
@@ -448,10 +448,10 @@ namespace fc::mining {
           "marking for upgrade",
           id,
           onchain_info->expiration);
-      ERROR_TEXT(
-          "Pointless to upgrade sector. Sector Info expiration is less than a "
-          "min deal duration away from current state.");
+      return SealingError::kSectorExpirationError;
     }
+
+    FSM_SEND(sector_info, SealingEvent::kSectorStartCCUpdate);
 
     return outcome::success();
   }
@@ -762,8 +762,7 @@ namespace fc::mining {
                       SealingState::kComputeProof)
             .to(SealingState::kCommitFail),
         SealingTransition(SealingEvent::kSectorRetryCommitWait)
-            .fromMany(SealingState::kCommitting,
-                      SealingState::kCommitFail)
+            .fromMany(SealingState::kCommitting, SealingState::kCommitFail)
             .to(SealingState::kCommitWait),
         SealingTransition(SealingEvent::kSectorProving)
             .from(SealingState::kCommitWait)
@@ -2859,6 +2858,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, SealingError, e) {
              "wasn't found on chain";
     case E::kNotPublishedDeal:
       return "SealingError: deal cid is none";
+    case E::kCannotMarkInactiveSector:
+      return "SealingError: cannot mark inactive sector for upgrade";
+    case E::kSectorExpirationError:
+      return "SealingError: Pointless to upgrade sector. Sector Info "
+             "expiration is less than a min deal duration away from current "
+             "state";
     default:
       return "SealingError: unknown error";
   }
