@@ -27,7 +27,7 @@ jobs:
       - name: install
         run: |
           echo "LIBRARY_PATH=$LIBRARY_PATH:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib" >> $GITHUB_ENV
-          brew install ninja llvm pkg-config libb2 hwloc hidapi
+          brew install ninja llvm pkg-config libb2 hwloc hidapi coreutils
           sudo python3 -m pip install --upgrade pip
           sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
       - name: cmake
