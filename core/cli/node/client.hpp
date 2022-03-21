@@ -286,6 +286,7 @@ namespace fc::cli::cli_node {
       CLI_OPTS() {
         Opts opts;
         piece_cid(opts);
+        return opts;
       }
     };
     CLI_RUN() {
@@ -543,6 +544,8 @@ namespace fc::cli::cli_node {
       auto ipfs = std::make_shared<ApiIpfsDatastore>(api.api);
       auto version = cliTry(api->StateNetworkVersion(TipsetKey()),
                             "Getting Chain Version...");
+      ipfs->actor_version = actorVersion(version);
+
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
 
