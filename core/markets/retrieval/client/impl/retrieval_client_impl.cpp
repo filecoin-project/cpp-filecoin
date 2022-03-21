@@ -15,14 +15,9 @@ namespace fc::markets::retrieval::client {
                        Address client_wallet,
                        Address miner_wallet,
                        TokenAmount total_funds)
-      : proposal{proposal},
-        state{proposal.params},
-        handler{std::move(handler)},
-        client_wallet{std::move(client_wallet)},
-        miner_wallet{std::move(miner_wallet)},
-        total_funds(std::move(total_funds)),
-        traverser{
-            *ipld, proposal.payload_cid, proposal.params.selector, false} {}
+      : RetrievalDeal(proposal, client_wallet, miner_wallet, total_funds),
+        traverser{*ipld, proposal.payload_cid, proposal.params.selector, false},
+        handler{std::move(handler)} {}
 
   RetrievalClientImpl::RetrievalClientImpl(
       std::shared_ptr<Host> host,
@@ -85,6 +80,7 @@ namespace fc::markets::retrieval::client {
     DealProposalV1_0_0 proposal{payload_cid, next_deal_id++, deal_params};
     auto deal{std::make_shared<DealState>(
         proposal, ipfs_, handler, client_wallet, miner_wallet, total_funds)};
+    deals.push_back(deal);
     OUTCOME_TRY(peer_info, getPeerInfo(provider_peer));
     deal->pdtid = datatransfer_->pull(
         peer_info,
@@ -228,6 +224,14 @@ namespace fc::markets::retrieval::client {
       const std::error_code &error) {
     deal_state->handler(error);
     datatransfer_->pulling_out.erase(deal_state->pdtid);
+  }
+
+  std::vector<RetrievalDeal> RetrievalClientImpl::getRetrievals() const {
+    std::vector<RetrievalDeal> result;
+    for (const auto &deal : deals) {
+      result.push_back(*deal);
+    }
+    return result;
   }
 
 }  // namespace fc::markets::retrieval::client

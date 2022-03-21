@@ -17,7 +17,7 @@ using fc::clock::UnixTime;
 static UnixTime kGenesisTime{1};
 static UnixTime kSec1{1};
 static ChainEpoch kEpoch(3);
-static UnixTime kSecEpoch{kEpoch * fc::kEpochDurationSeconds};
+static UnixTime kSecEpoch{kEpoch * fc::kBlockDelaySecs};
 
 class ChainEpochClockTest : public ::testing::Test {
  public:
