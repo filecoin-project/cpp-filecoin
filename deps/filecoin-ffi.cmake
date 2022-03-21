@@ -51,6 +51,7 @@ set_target_properties(filecoin_ffi PROPERTIES
         )
 
 target_link_libraries(filecoin_ffi INTERFACE PkgConfig::PKG_FILECOIN)
+target_link_libraries(filecoin_ffi INTERFACE fvm_stub)
 
 add_dependencies(filecoin_ffi
         filecoin_ffi_build

@@ -10,6 +10,7 @@
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/env_context.hpp"
+#include "vm/runtime/i_vm.hpp"
 #include "vm/runtime/pricelist.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -36,31 +37,27 @@ namespace fc::vm::runtime {
   };
 
   /// Environment contains objects that are shared by runtime contexts
-  struct Env : std::enable_shared_from_this<Env> {
+  struct Env : IVm, std::enable_shared_from_this<Env> {
     static outcome::result<std::shared_ptr<Env>> make(
         const EnvironmentContext &env_context,
         TsBranchPtr ts_branch,
         TipsetCPtr tipset);
 
-    struct Apply {
-      MessageReceipt receipt;
-      TokenAmount penalty;
-      TokenAmount reward;
-    };
-
     outcome::result<void> setHeight(ChainEpoch height);
 
-    outcome::result<Apply> applyMessage(const UnsignedMessage &message,
-                                        size_t size);
+    outcome::result<ApplyRet> applyMessage(const UnsignedMessage &message,
+                                           size_t size) override;
 
     outcome::result<MessageReceipt> applyImplicitMessage(
-        const UnsignedMessage &message);
+        const UnsignedMessage &message) override;
+    outcome::result<CID> flush() override;
 
     std::shared_ptr<IpldBuffered> ipld;
     std::shared_ptr<StateTreeImpl> state_tree;
     EnvironmentContext env_context;
     ChainEpoch epoch;  // mutable epoch for cron()
     TsBranchPtr ts_branch;
+    TokenAmount base_fee;
     TipsetCPtr tipset;
     Pricelist pricelist{0};
     TokenAmount base_circulating;
