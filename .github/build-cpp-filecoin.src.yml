@@ -6,17 +6,6 @@ on:
     tags: '**'
   pull_request:
     branches: [master, feature/github-action-tag-and-publish-docker-image]  ## target branches
-  workflow_dispatch:
-    inputs:
-      build_spec:
-        description: 'See chatops-gen-matrix.sh, example "/build ubuntu macos gcc-9 burrow"'
-        required: false
-        default: '/build'
-  # issue_comment:
-  #   types: [created, edited]
-  schedule:
-    # Triggers the workflow every day at 5:30 and 17:30 UTC
-    - cron: '30 5,17 * * *'
 
 jobs:
   ## GitHub Actions Workflow does not support yaml anchors
