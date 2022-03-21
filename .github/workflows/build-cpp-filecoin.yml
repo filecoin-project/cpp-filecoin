@@ -4,10 +4,10 @@
 name: Fuhon (cpp-Filecoin)
 on:
   push:
-    branches: [master, feature/github-action-tag-and-publish-docker-image]
+    branches: [master]
     tags: '**'
   pull_request:
-    branches: [master, feature/github-action-tag-and-publish-docker-image] ## target branches
+    branches: [master] ## target branches
 jobs:
   ## GitHub Actions Workflow does not support yaml anchors
   ## and that is why there is a workaround with make-workflows.sh
