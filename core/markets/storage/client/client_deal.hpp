@@ -6,9 +6,12 @@
 #pragma once
 
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "markets/storage/mk_protocol.hpp"
 
 namespace fc::markets::storage::client {
   using vm::actor::builtin::types::market::ClientDealProposal;
+  using libp2p::peer::PeerInfo;
+  using primitives::DealId;
 
   /** Internal state of a deal on the client side. */
   struct ClientDeal {

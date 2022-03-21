@@ -221,8 +221,7 @@ namespace fc::vm::interpreter {
 
     nextStep(&metricFlush);
 
-    OUTCOME_TRY(new_state_root, env->state_tree->flush());
-    OUTCOME_TRY(env->ipld->flush(new_state_root));
+    OUTCOME_TRY(new_state_root, env->flush());
 
     OUTCOME_TRY(receipts.amt.flush());
 

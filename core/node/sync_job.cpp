@@ -268,24 +268,30 @@ namespace fc::sync {
     if (branch == last) {
       return;
     }
+    TsBranchPtr prev_branch;
     auto it{std::prev(branch->chain.end())};
+    decltype(it) prev_it;
     while (true) {
       if (auto _res{interpreter_cache_->tryGet(it->second.key)}) {
         if (*_res) {
-          if (auto _ts{ts_load_->lazyLoad(it->second)}) {
-            interpret_ts_ = _ts.value();
+          if (prev_branch) {
+            if (auto _ts{ts_load_->lazyLoad(prev_it->second)}) {
+              interpret_ts_ = _ts.value();
+            }
           }
+          break;
         }
-        break;
+        interpreter_cache_->remove(it->second.key);
       }
       if (auto _it{stepParent({branch, it})}) {
+        prev_branch = branch;
+        prev_it = it;
         std::tie(branch, it) = _it.value();
       } else {
         break;
       }
       if (branch == ts_main_) {
         log()->info("main not interpreted {}", it->first);
-        break;
       }
     }
   }
@@ -330,6 +336,7 @@ namespace fc::sync {
                         a_receipts,
                         e_state,
                         e_receipts);
+            interpreter_cache_->remove(ts->getParents());
             return false;
           }
         } else {

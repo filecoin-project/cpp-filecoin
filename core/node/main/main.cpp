@@ -140,6 +140,31 @@ namespace fc {
       return result;
     };
 
+ 
+    node_objects.api->ClientGetDealInfo =
+        [&node_objects](auto &cid) -> outcome::result<StorageMarketDealInfo> {
+      OUTCOME_TRY(deal, node_objects.storage_market_client->getLocalDeal(cid));
+      return StorageMarketDealInfo{
+          .proposal_cid = deal.proposal_cid,
+          .state = deal.state,
+          .message = deal.message,
+          .provider = deal.client_deal_proposal.proposal.provider,
+          .data_ref = deal.data_ref,
+          .piece_cid = deal.client_deal_proposal.proposal.piece_cid,
+          .size = deal.client_deal_proposal.proposal.piece_size.unpadded(),
+          .price_per_epoch =
+              deal.client_deal_proposal.proposal.storage_price_per_epoch,
+          .duration = deal.client_deal_proposal.proposal.duration(),
+          .deal_id = deal.deal_id,
+          .verified = deal.client_deal_proposal.proposal.verified,
+      };  // TODO(@Elestrias): [FIL-614] Creation time
+    };
+
+    node_objects.api->ClientListRetrievals = [&node_objects]()
+        -> outcome::result<std::vector<api::RetrievalDeal>> {
+      return node_objects.retrieval_market_client->getRetrievals();
+    };
+
     node_objects.api->ClientStartDeal =
         [&](auto &params) -> outcome::result<CID> {
       // resolve wallet address and check if address exists in wallet

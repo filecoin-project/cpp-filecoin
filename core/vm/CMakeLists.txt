@@ -6,6 +6,7 @@
 add_subdirectory(actor)
 add_subdirectory(dvm)
 add_subdirectory(exit_code)
+add_subdirectory(fvm)
 add_subdirectory(interpreter)
 add_subdirectory(message)
 add_subdirectory(runtime)
