@@ -100,7 +100,7 @@ namespace fc::api {
   using markets::retrieval::DealProposalV1_0_0;
   using proofs::ParamFile;
 
-  struct CliDealStat{
+  struct CliDealStat {
     StorageMarketDealInfo deal_info;
     StorageDeal deal;
   };
@@ -1005,7 +1005,7 @@ namespace fc::api {
       return j;
     }
 
-    ENCODE(CliDealStat){
+    ENCODE(CliDealStat) {
       Value j{rapidjson::kObjectType};
       Set(j, "DealInfo", v.deal_info);
       Set(j, "OnChain", v.deal);

@@ -9,6 +9,7 @@
 #include "cli/node/node.hpp"
 #include "cli/validate/address.hpp"
 #include "cli/validate/cid.hpp"
+#include "codec/json/json.hpp"
 #include "common/enum.hpp"
 #include "common/table_writer.hpp"
 #include "markets/storage/mk_protocol.hpp"
@@ -22,7 +23,6 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
-#include "codec/json/json.hpp"
 namespace fc::cli::cli_node {
   using api::FileRef;
   using api::FullNodeApi;
@@ -117,7 +117,6 @@ namespace fc::cli::cli_node {
     }
   };
 
-
   struct Node_client_importData {
     struct Args {
       CLI_BOOL("car", "import from a car file instead of a regular file") car;
@@ -135,8 +134,8 @@ namespace fc::cli::cli_node {
       FileRef file_ref{path, args.car};
       auto result =
           cliTry(api->ClientImport(file_ref), "Processing data import");
-      fmt::print("File Root CID: " + result.root.toString().value());
-      fmt::print("Data Import Success");
+      fmt::print("File Root CID: {}\n", result.root.toString().value());
+      fmt::print("Data Import Success\n");
     }
   };
 
@@ -198,10 +197,10 @@ namespace fc::cli::cli_node {
     };
 
     CLI_RUN() {
-      ChainEpoch kMinDealDuration = 180*kEpochsInDay;
-      ChainEpoch kMaxDealDuration = 540*kEpochsInDay;
+      ChainEpoch kMinDealDuration = 180 * kEpochsInDay;
+      ChainEpoch kMaxDealDuration = 540 * kEpochsInDay;
       auto data_cid{cliArgv<CID>(
-          argv, 0, "dataCid comes from running 'lotus client import")};
+          argv, 0, "dataCid comes from running 'fuhon-node-cli client import")};
       auto miner{cliArgv<Address>(
           argv, 1, "address of the miner you wish to make a deal with")};
       auto price{
@@ -211,7 +210,7 @@ namespace fc::cli::cli_node {
       Node::Api api{argm};
       if (duration < kMinDealDuration)
         throw CliError("Minimal deal duration is {}", kMinDealDuration);
-      if (duration < kMaxDealDuration)
+      if (duration > kMaxDealDuration)
         throw CliError("Max deal duration is {}", kMaxDealDuration);
       DataRef data_ref;
       Address address_from =
@@ -234,17 +233,16 @@ namespace fc::cli::cli_node {
         throw CliError(
             "Cannot perform verified deal using unverified address {}",
             address_from);
-      StartDealParams deal_params = {
-          .data = data_ref,
-          .wallet = address_from,
-          .miner = miner,
-          .epoch_price = price,
-          .min_blocks_duration = duration,
-          .provider_collateral = *args.collateral,
-          .deal_start_epoch = *args.start_epoch,
-          .fast_retrieval = args.fast_ret,
-          .verified_deal = isVerified,
-      };
+
+      StartDealParams deal_params = {.data = data_ref,
+                                     .wallet = address_from,
+                                     .miner = miner,
+                                     .epoch_price = price,
+                                     .min_blocks_duration = duration,
+                                     .provider_collateral = *args.collateral,
+                                     .deal_start_epoch = *args.start_epoch,
+                                     .fast_retrieval = args.fast_ret,
+                                     .verified_deal = isVerified};
       auto proposal_cid = cliTry(api->ClientStartDeal(deal_params));
       fmt::print("Deal proposal CID: {}\n",
                  cliTry(proposal_cid.toString(), "Cannot extract CID"));
@@ -290,6 +288,7 @@ namespace fc::cli::cli_node {
       CLI_OPTS() {
         Opts opts;
         piece_cid(opts);
+        return opts;
       }
     };
     CLI_RUN() {
@@ -515,10 +514,11 @@ namespace fc::cli::cli_node {
                  "Can't find information about deal: {}",
                  fmt::to_string(deal_info.deal_id));
 
-     auto jsoned = api::encode(api::CliDealStat{.deal_info = deal_info, .deal = res});
-     auto bytes_json = cliTry(codec::json::format(&jsoned));
-     auto response = common::span::bytestr(bytes_json);
-     fmt::print("{}", response);
+      auto jsoned =
+          api::encode(api::CliDealStat{.deal_info = deal_info, .deal = res});
+      auto bytes_json = cliTry(codec::json::format(&jsoned));
+      auto response = common::span::bytestr(bytes_json);
+      fmt::print("{}", response);
     }
   };
 
@@ -590,6 +590,8 @@ namespace fc::cli::cli_node {
       auto ipfs = std::make_shared<ApiIpfsDatastore>(api.api);
       auto version = cliTry(api->StateNetworkVersion(TipsetKey()),
                             "Getting Chain Version...");
+      ipfs->actor_version = actorVersion(version);
+
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
 
