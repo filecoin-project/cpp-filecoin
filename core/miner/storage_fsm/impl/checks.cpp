@@ -300,16 +300,16 @@ namespace fc::mining::checks {
       return ERROR_TEXT("checkUpdate: no deals");
     }
 
-    if (!sector_info->update_comm_d) {
+    if (!sector_info->update_unsealed) {
       return ChecksError::kBadUpdateReplica;
     }
 
     OUTCOME_TRY(comm_d,
                 getDataCommitment(miner_address, sector_info, tipset_key, api));
-    if (sector_info->update_comm_d != comm_d) {
+    if (sector_info->update_unsealed != comm_d) {
       return ChecksError::kBadUpdateReplica;
     }
-    if (!sector_info->update_comm_r) {
+    if (!sector_info->update_sealed) {
       return ChecksError::kBadUpdateReplica;
     }
     if (!sector_info->update_proof) {
@@ -321,8 +321,8 @@ namespace fc::mining::checks {
                 proofs->verifyUpdateProof({
                     update_type,
                     *sector_info->comm_r,
-                    *sector_info->update_comm_r,
-                    *sector_info->update_comm_d,
+                    *sector_info->update_sealed,
+                    *sector_info->update_unsealed,
                     *sector_info->update_proof,
                 }));
     if (!verified) {

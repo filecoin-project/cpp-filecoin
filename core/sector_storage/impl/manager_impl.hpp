@@ -101,10 +101,15 @@ namespace fc::sector_storage {
         const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
         uint64_t priority) override;
 
+    void finalizeReplicaUpdate(
+        const SectorRef &sector,
+        std::vector<Range> keep_unsealed,
+        const std::function<void(outcome::result<void>)> &cb,
+        uint64_t priority) override;
+
     outcome::result<void> releaseReplicaUpgrade(
         const SectorRef &sector) override;
-    outcome::result<void> releaseSectorKey(
-        const SectorRef &sector) override;
+    outcome::result<void> releaseSectorKey(const SectorRef &sector) override;
 
     void addPiece(const SectorRef &sector,
                   VectorCoW<UnpaddedPieceSize> piece_sizes,
@@ -148,6 +153,14 @@ namespace fc::sector_storage {
     outcome::result<FsStat> getFsStat(StorageID storage_id) override;
 
    private:
+    void finalizeSectorInner(
+        const SectorRef &sector,
+        std::vector<Range> keep_unsealed,
+        SectorFileType main_type,
+        SectorFileType additional_types,
+        const std::function<void(outcome::result<void>)> &cb,
+        uint64_t priority);
+
     ManagerImpl(std::shared_ptr<stores::SectorIndex> sector_index,
                 std::shared_ptr<stores::LocalStorage> local_storage,
                 std::shared_ptr<stores::LocalStore> local_store,

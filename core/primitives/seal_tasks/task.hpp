@@ -37,12 +37,14 @@ namespace fc::primitives {
   const TaskType kTTProveReplicaUpdate1("seal/v0/provereplicaupdate/1");
   const TaskType kTTProveReplicaUpdate2("seal/v0/provereplicaupdate/2");
   const TaskType kTTRegenSectorKey("seal/v0/regensectorkey");
+  const TaskType kTTFinalizeReplicaUpdate("seal/v0/regensectorkey");
 
   inline bool operator<(const TaskType &lhs, const TaskType &rhs) {
     static std::unordered_map<std::string, int> order = {
         {kTTFinalize, -2},
-        {kTTReadUnsealed, 0},
         {kTTFetch, -1},
+        {kTTFinalizeReplicaUpdate, 0},
+        {kTTReadUnsealed, 0},
         {kTTUnseal, 1},
         {kTTCommit1, 2},
         {kTTCommit2, 3},

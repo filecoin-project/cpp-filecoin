@@ -121,6 +121,7 @@ namespace fc::mining {
       fee_config_->max_precommit_batch_gas_fee.per_sector =
           TokenAmount{"2000000000000000"};
       fee_config_->max_precommit_gas_fee = TokenAmount{"25000000000000000"};
+      fee_config_->max_commit_gas_fee = TokenAmount{"50000000000000000"};
 
       scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
       scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
