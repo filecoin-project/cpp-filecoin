@@ -133,8 +133,8 @@ namespace fc::cli::cli_node {
       FileRef file_ref{path, args.car};
       auto result =
           cliTry(api->ClientImport(file_ref), "Processing data import");
-      fmt::print("File Root CID: " + result.root.toString().value());
-      fmt::print("Data Import Success");
+      fmt::print("File Root CID: {}\n", result.root.toString().value());
+      fmt::print("Data Import Success\n");
     }
   };
 
@@ -199,7 +199,7 @@ namespace fc::cli::cli_node {
       ChainEpoch kMinDealDuration{60};  // TODO: read from config;
       ChainEpoch kMaxDealDuration{160};
       auto data_cid{cliArgv<CID>(
-          argv, 0, "dataCid comes from running 'lotus client import")};
+          argv, 0, "dataCid comes from running 'fuhon-node-cli client import")};
       auto miner{cliArgv<Address>(
           argv, 1, "address of the miner you wish to make a deal with")};
       auto price{
@@ -209,7 +209,7 @@ namespace fc::cli::cli_node {
       Node::Api api{argm};
       if (duration < kMinDealDuration)
         throw CliError("Minimal deal duration is {}", kMinDealDuration);
-      if (duration < kMaxDealDuration)
+      if (duration > kMaxDealDuration)
         throw CliError("Max deal duration is {}", kMaxDealDuration);
       DataRef data_ref;
       Address address_from =
@@ -237,10 +237,10 @@ namespace fc::cli::cli_node {
                                      .miner = miner,
                                      .epoch_price = price,
                                      .min_blocks_duration = duration,
+                                     .provider_collateral = *args.collateral,
                                      .deal_start_epoch = *args.start_epoch,
                                      .fast_retrieval = args.fast_ret,
-                                     .verified_deal = isVerified,
-                                     .provider_collateral = *args.collateral};
+                                     .verified_deal = isVerified};
       auto proposal_cid = cliTry(api->ClientStartDeal(deal_params));
       fmt::print("Deal proposal CID: {}\n",
                  cliTry(proposal_cid.toString(), "Cannot extract CID"));
