@@ -899,7 +899,7 @@ namespace fc::sector_storage {
                                 PathType::kStorage));
       auto _ = gsl::finally([&]() { response.release_function(); });
 
-      auto maybe_file =
+      const auto maybe_file =
           SectorFile::openFile(response.paths.unsealed, PaddedPieceSize(size));
 
       if (maybe_file.has_error()) {

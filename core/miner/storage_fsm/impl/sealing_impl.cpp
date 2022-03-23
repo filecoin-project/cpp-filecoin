@@ -68,15 +68,15 @@ namespace fc::mining {
                                      const Address &miner_address,
                                      const TipsetKey &tipset_key,
                                      SectorNumber sector) {
-    OUTCOME_TRY(active,
+    OUTCOME_TRY(active_sectors,
                 api->StateMinerActiveSectors(miner_address, tipset_key));
 
-    for (const auto &sector_info : active) {
-      if (sector_info.sector == sector) {
-        return true;
-      }
-    }
-    return false;
+    return find_if(active_sectors.begin(),
+                   active_sectors.end(),
+                   [sector_id{sector}](const auto &sector) {
+                     return sector.sector == sector_id;
+                   })
+           != active_sectors.end();
   }
 
   SealingImpl::SealingImpl(
@@ -432,13 +432,9 @@ namespace fc::mining {
     }
 
     OUTCOME_TRY(head, api_->ChainHead());
-    OUTCOME_TRY(active_sectors,
-                api_->StateMinerActiveSectors(miner_address_, head->key));
+    OUTCOME_TRY(active, sectorActive(api_, miner_address_, head->key, id));
     // Ensure the upgraded sector is active
-    if (find_if(active_sectors.begin(),
-                active_sectors.end(),
-                [id](const auto &sector) { return sector.sector == id; })
-        == active_sectors.end()) {
+    if (not active) {
       return SealingError::kCannotMarkInactiveSector;
     }
 
@@ -2008,7 +2004,7 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    auto sector{minerSector(info->sector_type, info->sector_number)};
+    const auto sector{minerSector(info->sector_type, info->sector_number)};
     sealer_->proveReplicaUpdate1(
         sector,
         info->comm_r.get(),
@@ -2085,7 +2081,7 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
 
-    auto maybe_error = checks::checkUpdate(
+    const auto maybe_error = checks::checkUpdate(
         miner_address_, info, head->key, api_, sealer_->getProofEngine());
     if (maybe_error.has_error()) {
       FSM_SEND(info, SealingEvent::kSectorSubmitReplicaUpdateFailed);
@@ -2096,7 +2092,7 @@ namespace fc::mining {
                 api_->StateSectorPartition(
                     miner_address_, info->sector_number, head->key));
 
-    auto maybe_proof = getRegisteredUpdateProof(info->sector_type);
+    const auto maybe_proof = getRegisteredUpdateProof(info->sector_type);
     if (maybe_proof.has_error()) {
       FSM_SEND(info, SealingEvent::kSectorSubmitReplicaUpdateFailed);
       return outcome::success();
@@ -2143,7 +2139,7 @@ namespace fc::mining {
       collateral = 0;
     }
 
-    auto good_funds = collateral + fee_config_->max_commit_gas_fee;
+    const auto good_funds = collateral + fee_config_->max_commit_gas_fee;
 
     OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address_, head->key));
 
