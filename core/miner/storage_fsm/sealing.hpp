@@ -39,6 +39,16 @@ namespace fc::mining {
    public:
     virtual ~Sealing() = default;
 
+    /**
+     * Adds piece to an open sector. If no sectors with enough space are open,
+     * either a new one sector is created, or this call is blocked until more
+     * sectors can be created.
+     *
+     * @param size
+     * @param piece_data
+     * @param deal
+     * @return location of added piece
+     */
     virtual outcome::result<PieceLocation> addPieceToAnySector(
         const UnpaddedPieceSize &size,
         PieceData piece_data,
