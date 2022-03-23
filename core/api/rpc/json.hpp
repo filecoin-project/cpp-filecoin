@@ -100,6 +100,11 @@ namespace fc::api {
   using markets::retrieval::DealProposalV1_0_0;
   using proofs::ParamFile;
 
+  struct CliDealStat{
+    StorageMarketDealInfo deal_info;
+    StorageDeal deal;
+  };
+
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
 
@@ -997,6 +1002,13 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "StartEpoch", v.start_epoch);
       Set(j, "EndEpoch", v.end_epoch);
+      return j;
+    }
+
+    ENCODE(CliDealStat){
+      Value j{rapidjson::kObjectType};
+      Set(j, "DealInfo", v.deal_info);
+      Set(j, "OnChain", v.deal);
       return j;
     }
 

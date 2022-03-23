@@ -10,6 +10,7 @@
 #include "cli/validate/address.hpp"
 #include "cli/validate/cid.hpp"
 #include "common/enum.hpp"
+#include "common/table_writer.hpp"
 #include "markets/storage/mk_protocol.hpp"
 #include "primitives/atto_fil.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -21,7 +22,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
-
+#include "codec/json/json.hpp"
 namespace fc::cli::cli_node {
   using api::FileRef;
   using api::FullNodeApi;
@@ -116,6 +117,7 @@ namespace fc::cli::cli_node {
     }
   };
 
+
   struct Node_client_importData {
     struct Args {
       CLI_BOOL("car", "import from a car file instead of a regular file") car;
@@ -196,8 +198,8 @@ namespace fc::cli::cli_node {
     };
 
     CLI_RUN() {
-      ChainEpoch kMinDealDuration{60};  // TODO: read from config;
-      ChainEpoch kMaxDealDuration{160};
+      ChainEpoch kMinDealDuration = 180*kEpochsInDay;
+      ChainEpoch kMaxDealDuration = 540*kEpochsInDay;
       auto data_cid{cliArgv<CID>(
           argv, 0, "dataCid comes from running 'lotus client import")};
       auto miner{cliArgv<Address>(
@@ -232,15 +234,17 @@ namespace fc::cli::cli_node {
         throw CliError(
             "Cannot perform verified deal using unverified address {}",
             address_from);
-      StartDealParams deal_params = {.data = data_ref,
-                                     .wallet = address_from,
-                                     .miner = miner,
-                                     .epoch_price = price,
-                                     .min_blocks_duration = duration,
-                                     .deal_start_epoch = *args.start_epoch,
-                                     .fast_retrieval = args.fast_ret,
-                                     .verified_deal = isVerified,
-                                     .provider_collateral = *args.collateral};
+      StartDealParams deal_params = {
+          .data = data_ref,
+          .wallet = address_from,
+          .miner = miner,
+          .epoch_price = price,
+          .min_blocks_duration = duration,
+          .provider_collateral = *args.collateral,
+          .deal_start_epoch = *args.start_epoch,
+          .fast_retrieval = args.fast_ret,
+          .verified_deal = isVerified,
+      };
       auto proposal_cid = cliTry(api->ClientStartDeal(deal_params));
       fmt::print("Deal proposal CID: {}\n",
                  cliTry(proposal_cid.toString(), "Cannot extract CID"));
@@ -310,7 +314,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_client_listRetrievals {  // TODO: Done
+  struct Node_client_listRetrievals {
     struct Args {
       CLI_BOOL("verbose", "print verbose deal details") verbose;
       CLI_BOOL("show-failed", "show failed/failing deals") failed_show;
@@ -328,21 +332,35 @@ namespace fc::cli::cli_node {
     CLI_RUN() {
       Node::Api api{argm};
       bool failed_show = !args.failed_show;
-      // TODO: continue;
-      // chan = ()
-      // if(flag){
-      //   chan->read([](){
-      //      print(api->stateRetrivalsDeals)
-      //
-      //  })
-      while (true) {
-        sleep(10000000000);
+      auto deals = cliTry(api->ClientListRetrievals(),
+                          "Cannot get retrieval deals from market");
+      TableWriter table_writer{
+          "PayloadCID",
+          "DealId",
+          {"Provider", 'r'},
+          {"Status", 'r'},
+          {"PricePerByte", 'r'},
+          {"Received", 'r'},
+          "TotalPaid",
+      };
+
+      for (const auto &retrieval : deals) {
+        auto cid = cliTry(retrieval.proposal.payload_cid.toString());
+        auto row{table_writer.row()};
+        row["PayloadCID"] = cid;
+        row["DealID"] = fmt::to_string(retrieval.proposal.deal_id);
+        row["Provider"] = fmt::to_string(retrieval.miner_wallet);
+        row["Status"] = retrieval.accepted ? "accepted" : "not accepted";
+        row["PricePerByte"] =
+            fmt::to_string(retrieval.proposal.params.price_per_byte);
+        row["Received"] =
+            retrieval.all_blocks ? "all blocks" : "not all blocks";
       }
-      //
+      table_writer.write(std::cout);
     }
   };
 
-  struct Node_client_inspectDeal {  // TODO: continue
+  struct Node_client_inspectDeal {
     struct Args {
       CLI_OPTIONAL("proposal-cid", "proposal cid of deal to be inspected", CID)
       proposal_cid;
@@ -356,13 +374,30 @@ namespace fc::cli::cli_node {
     };
     CLI_RUN() {
       Node::Api api{argm};
+
+      auto result = cliTry(api->ClientGetDealInfo(*args.proposal_cid),
+                           "Cannot get deal info for {}",
+                           fmt::to_string(*args.proposal_cid));
+      TableWriter table_writer{
+          "Deal ID",
+          "Proposal CID",
+          {"Provider", 'r'},
+          {"Status", 'r'},
+          {"PricePerByte", 'r'},
+          {"Received", 'r'},
+          "TotalPaid",
+      };
+      auto row{table_writer.row()};
+      row["Deal ID"] = fmt::to_string(result.deal_id);
+      row["Proposal CID"] = fmt::to_string(result.proposal_cid);
+      table_writer.write(std::cout);
     }
   };
 
   struct Node_client_dealStats {
     struct Args {
       CLI_DEFAULT("newer-than",
-                  "list all deals stas that was made after given period",
+                  "list all deals stats that was made after given period",
                   ChainEpoch,
                   {0})
       newer;
@@ -406,7 +441,39 @@ namespace fc::cli::cli_node {
       fmt::print("Not supported yet\n");
       auto local_deals =
           cliTry(api->ClientListDeals(), "Getting local client deals...");
-      // TODO(Markuus): make output;
+      TableWriter table_writer{
+          "Created",
+          "Deal CID",
+          "Deal ID",
+          "Provider",
+          "State",
+          "On Chain",
+          "Slashed",
+          "Piece CID",
+          "Size",
+          "Price",
+          "Duration",
+          "Verified",
+          "Message",
+      };
+
+      for (const auto &deal : local_deals) {
+        auto row{table_writer.row()};
+        row["Created"] = fmt::to_string(deal.creation_time);
+        row["Deal CID"] = fmt::to_string(deal.proposal_cid);
+        row["Deal ID"] = fmt::to_string(deal.deal_id);
+        row["Provider"] = fmt::to_string(deal.provider);
+        row["State"] = fmt::to_string(deal.state);
+        row["On Chain"] = "?";
+        row["Slashed"] = "?";
+        row["Piece CID"] = fmt::to_string(deal.piece_cid);
+        row["Size"] = fmt::to_string(deal.size);
+        row["Price"] = fmt::to_string(deal.price_per_epoch);
+        row["Duration"] = fmt::to_string(deal.duration);
+        row["Verified"] = fmt::to_string(deal.verified);
+        row["Message"] = fmt::to_string(deal.message);
+      }
+      table_writer.write(std::cout);
     }
   };
 
@@ -441,41 +508,21 @@ namespace fc::cli::cli_node {
     CLI_RUN() {
       Node::Api api{argm};
       auto proposal_cid{cliArgv<CID>(argv, 0, "proposal cid of deal to get")};
-      // TODO: Client getDealInfo
+      auto deal_info =
+          cliTry(api->ClientGetDealInfo(proposal_cid), "No such proposal cid");
+      auto res =
+          cliTry(api->StateMarketStorageDeal(deal_info.deal_id, TipsetKey()),
+                 "Can't find information about deal: {}",
+                 fmt::to_string(deal_info.deal_id));
+
+     auto jsoned = api::encode(api::CliDealStat{.deal_info = deal_info, .deal = res});
+     auto bytes_json = cliTry(codec::json::format(&jsoned));
+     auto response = common::span::bytestr(bytes_json);
+     fmt::print("{}", response);
     }
   };
 
-  struct Node_client_stat : Empty {
-    CLI_RUN() {
-      Node::Api api{argm};
-      auto cid{cliArgv<CID>(argv, 0, " cid of localy stored file")};
-      // auto deal_size = cliTry(api->);
-      // TODO: CLientDealSize;
-    }
-  };
-
-  struct Node_client_listTransfers {
-    struct Args {
-      CLI_BOOL("completed", "show completed data transfers") completed;
-      CLI_BOOL("watch",
-               "watch deal updates in real-time, rather than a one time list")
-      watch;
-      CLI_BOOL("show-failed", "show failed/cancelled transfers") failed_show;
-
-      CLI_OPTS() {
-        Opts opts;
-        completed(opts);
-        watch(opts);
-        failed_show(opts);
-        return opts;
-      }
-    };
-
-    CLI_RUN() {
-      fmt::print("Not supported yet");
-      // TODO: ClientListDataTransfers
-    }
-  };
+  // TODO: clientListTransfers
 
   struct Node_client_grantDatacap {
     struct Args {
