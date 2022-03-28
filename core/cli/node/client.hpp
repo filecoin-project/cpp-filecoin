@@ -37,6 +37,7 @@ namespace fc::cli::cli_node {
   using markets::storage::StorageDealStatus;
   using primitives::AttoFil;
   using primitives::ChainEpoch;
+  using primitives::DealId;
   using primitives::StoragePower;
   using primitives::address::Address;
   using primitives::address::encodeToString;
@@ -46,8 +47,11 @@ namespace fc::cli::cli_node {
   using vm::VMExitCode;
   using vm::actor::kVerifiedRegistryAddress;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
+  using api::StorageMarketDealInfo;
 
-  const ChainEpoch kLoopback = 100;  // TODO: lookback
+  const ChainEpoch kLookback = 100 * kEpochsInDay;
+  const ChainEpoch kMinDealDuration = 180 * kEpochsInDay;
+  const ChainEpoch kMaxDealDuration = 540 * kEpochsInDay;
 
   StoragePower checkNotary(std::shared_ptr<FullNodeApi> api,
                            const Address &vaddr) {
@@ -68,11 +72,17 @@ namespace fc::cli::cli_node {
     return res;
   }
 
+  struct ExportRef {
+    std::string from_local_car;
+    DealId deal_id;
+    CID root;
+  };
+
   struct Node_client_retrieve {
     struct Args {
       CLI_OPTIONAL("from", "", Address) from;
       CLI_OPTIONAL("provider", "", Address) provider;
-      CLI_OPTIONAL("pieceCid", "", std::string) piece_cid;
+      CLI_OPTIONAL("pieceCid", "", CID) piece_cid;
       CLI_OPTIONAL("maxPrice", "", AttoFil) max_price;
       CLI_OPTIONAL("data-selector", "", std::string) data_selector;
       CLI_BOOL("car", "") car;
@@ -97,14 +107,14 @@ namespace fc::cli::cli_node {
       Node::Api api{argm};
       RetrievalOrder order{};
       auto data_cid{cliArgv<CID>(argv, 0, "dataCid")};
-      auto path{cliArgv<boost::filesystem::path>(argv, 1, "path")};
+      auto path{cliArgv<std::string>(argv, 1, "path")};
       order.client =
           (args.from ? *args.from
                      : cliTry(api->WalletDefaultAddress(),
                               "Getting address of default wallet..."));
       order.miner = (args.provider ? *args.provider : Address{});
       if (args.max_price) {
-        fmt::print("max price is {}fil ({}attofil)\n",
+        fmt::print("max price is {}fil ({} attofil)\n",
                    args.max_price->fil,
                    args.max_price->atto());
       }
@@ -113,7 +123,55 @@ namespace fc::cli::cli_node {
                  args.car ? "car" : "file",
                  path);
 
-      // TODO: continue function
+      FileRef file_ref{.path = path, .is_car = args.car};
+
+      auto imports = cliTry(api->ClientListImports());
+      ExportRef result;
+      bool local_found{false};
+      if (args.allow_local) {
+        for (const auto &import : imports) {
+          if (import.root == data_cid) {
+            result.from_local_car = import.path;
+            local_found = true;
+            break;
+          }
+        }
+      }
+
+      api::QueryOffer fin_offer;
+      if (not local_found) {  // no local -> make retrieval
+        std::vector<api::QueryOffer> clean;
+        if (!args.provider) {
+          auto offers = cliTry(api->ClientFindData(data_cid, *args.piece_cid));
+          for (const auto &offer : offers) {
+            if (offer.error.empty()) clean.push_back(offer);
+          }
+          offers = clean;
+          std::sort(offers.begin(),
+                    offers.end(),
+                    [](const api::QueryOffer &a, const api::QueryOffer &b) {
+                      return a.min_price < b.min_price;
+                    });
+          fin_offer = offers[0];
+        }else{
+          fin_offer = cliTry(api->ClientMinerQueryOffer(*args.provider, data_cid, *args.piece_cid), "Cannot get retrieval offer from {}", fmt::to_string(*args.provider));
+        }
+
+        if(fin_offer.min_price > args.max_price->fil){
+              fmt::print("Cannot find suitable offer for provided proposal");
+        }else{
+              order.root = fin_offer.root;
+              order.piece = fin_offer.piece;
+              order.size = fin_offer.size;
+              order.total = fin_offer.min_price;
+              order.unseal_price = fin_offer.unseal_price;
+              order.payment_interval = fin_offer.payment_interval;
+              order.payment_interval_increase = fin_offer.payment_interval_increase;
+              order.peer = fin_offer.peer;
+              cliTry(api->ClientRetrieve(order, file_ref)); //TODO: callback function
+              fmt::print("Success");
+        }
+      }
     }
   };
 
@@ -197,8 +255,6 @@ namespace fc::cli::cli_node {
     };
 
     CLI_RUN() {
-      ChainEpoch kMinDealDuration = 180 * kEpochsInDay;
-      ChainEpoch kMaxDealDuration = 540 * kEpochsInDay;
       auto data_cid{cliArgv<CID>(
           argv, 0, "dataCid comes from running 'fuhon-node-cli client import")};
       auto miner{cliArgv<Address>(
@@ -363,7 +419,7 @@ namespace fc::cli::cli_node {
     struct Args {
       CLI_OPTIONAL("proposal-cid", "proposal cid of deal to be inspected", CID)
       proposal_cid;
-      CLI_OPTIONAL("deal-id", "id of deal to be inspected", int) deal_id;
+      CLI_OPTIONAL("deal-id", "id of deal to be inspected", DealId) deal_id;
       CLI_OPTS() {
         Opts opts;
         proposal_cid(opts);
@@ -373,22 +429,34 @@ namespace fc::cli::cli_node {
     };
     CLI_RUN() {
       Node::Api api{argm};
+      auto deals = cliTry(api->ClientListDeals());
+      StorageMarketDealInfo result;
+      bool local{false};
+      for(const auto &deal: deals){
+        if(deal.deal_id == *args.deal_id){
+          result = deal;
+        }
+      }
+      if(not local){
+        result = cliTry(api->ClientGetDealInfo(*args.proposal_cid),
+                        "Cannot get deal info for {}",
+                        fmt::to_string(*args.proposal_cid));
+      }
 
-      auto result = cliTry(api->ClientGetDealInfo(*args.proposal_cid),
-                           "Cannot get deal info for {}",
-                           fmt::to_string(*args.proposal_cid));
       TableWriter table_writer{
           "Deal ID",
           "Proposal CID",
-          {"Provider", 'r'},
           {"Status", 'r'},
-          {"PricePerByte", 'r'},
-          {"Received", 'r'},
-          "TotalPaid",
+          {"Expected Duration", 'r'},
+          {"Verified", 'r'},
+
       };
       auto row{table_writer.row()};
       row["Deal ID"] = fmt::to_string(result.deal_id);
       row["Proposal CID"] = fmt::to_string(result.proposal_cid);
+      row["Status"] = fmt::to_string(result.state);
+      row["Expected Duration"] = fmt::to_string(result.duration);
+      row["Verified"]  =  fmt::to_string(result.verified);
       table_writer.write(std::cout);
     }
   };
@@ -564,7 +632,7 @@ namespace fc::cli::cli_node {
       fmt::print("message sent, now waiting on cid: {}",
                  signed_message.getCid());
       auto mwait = cliTry(api->StateWaitMsg(
-          signed_message.getCid(), kMessageConfidence, kLoopback, false));
+          signed_message.getCid(), kMessageConfidence, kLookback, false));
       if (mwait.receipt.exit_code != VMExitCode::kOk)
         throw CliError("failed to add verified client");
       fmt::print("Client {} was added successfully!", target);
