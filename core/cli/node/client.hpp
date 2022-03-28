@@ -416,9 +416,9 @@ namespace fc::cli::cli_node {
         total_size += deal.size;
         by_state[deal.state] += deal.size;
       }
-      fmt::print("Total: {} deals, {}", deals.size(), total_size);
+      fmt::print("Total: {} deals, {} bytes\n", deals.size(), total_size);
       for (const auto &[state, size] : by_state) {
-        fmt::print("Deal with status {} allocates {} bytes",
+        fmt::print("Deal with status {} allocates {} bytes\n",
                    toString(state).value(),
                    size);
       }
@@ -508,7 +508,7 @@ namespace fc::cli::cli_node {
       Node::Api api{argm};
       auto proposal_cid{cliArgv<CID>(argv, 0, "proposal cid of deal to get")};
       auto deal_info =
-          cliTry(api->ClientGetDealInfo(proposal_cid), "No such proposal cid");
+          cliTry(api->ClientGetDealInfo(proposal_cid), "No such proposal cid {}\n", fmt::to_string(proposal_cid));
       auto res =
           cliTry(api->StateMarketStorageDeal(deal_info.deal_id, TipsetKey()),
                  "Can't find information about deal: {}",
