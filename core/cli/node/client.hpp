@@ -29,6 +29,7 @@ namespace fc::cli::cli_node {
   using api::ImportRes;
   using api::RetrievalOrder;
   using api::StartDealParams;
+  using api::StorageMarketDealInfo;
   using boost::lexical_cast;
   using common::toString;
   using ::fc::storage::car::makeCar;
@@ -47,7 +48,6 @@ namespace fc::cli::cli_node {
   using vm::VMExitCode;
   using vm::actor::kVerifiedRegistryAddress;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
-  using api::StorageMarketDealInfo;
 
   const ChainEpoch kLookback = 100 * kEpochsInDay;
   const ChainEpoch kMinDealDuration = 180 * kEpochsInDay;
@@ -64,6 +64,7 @@ namespace fc::cli::cli_node {
     auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
     auto version = cliTry(api->StateNetworkVersion(TipsetKey()),
                           "Getting Chain Version...");
+    ipfs->actor_version = actorVersion(version);
     auto state =
         cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
     auto res = cliTry(cliTry(state->getVerifiedClientDataCap(vid)),
@@ -153,23 +154,30 @@ namespace fc::cli::cli_node {
                       return a.min_price < b.min_price;
                     });
           fin_offer = offers[0];
-        }else{
-          fin_offer = cliTry(api->ClientMinerQueryOffer(*args.provider, data_cid, *args.piece_cid), "Cannot get retrieval offer from {}", fmt::to_string(*args.provider));
+        } else {
+          fin_offer = cliTry(api->ClientMinerQueryOffer(
+                                 *args.provider, data_cid, *args.piece_cid),
+                             "Cannot get retrieval offer from {}",
+                             fmt::to_string(*args.provider));
         }
 
-        if(fin_offer.min_price > args.max_price->fil){
-              fmt::print("Cannot find suitable offer for provided proposal");
-        }else{
-              order.root = fin_offer.root;
-              order.piece = fin_offer.piece;
-              order.size = fin_offer.size;
-              order.total = fin_offer.min_price;
-              order.unseal_price = fin_offer.unseal_price;
-              order.payment_interval = fin_offer.payment_interval;
-              order.payment_interval_increase = fin_offer.payment_interval_increase;
-              order.peer = fin_offer.peer;
-              cliTry(api->ClientRetrieve(order, file_ref)); //TODO: callback function
-              fmt::print("Success");
+        if (fin_offer.min_price > args.max_price->fil) {
+          fmt::print("Cannot find suitable offer for provided proposal");
+        } else {
+          order.root = fin_offer.root;
+          order.piece = fin_offer.piece;
+          order.size = fin_offer.size;
+          order.total = fin_offer.min_price;
+          order.unseal_price = fin_offer.unseal_price;
+          order.payment_interval = fin_offer.payment_interval;
+          order.payment_interval_increase = fin_offer.payment_interval_increase;
+          order.peer = fin_offer.peer;
+          auto maybe_result =
+              api->ClientRetrieve(order, file_ref);
+          if (maybe_result.has_error()) {
+            fmt::print("Failure have appeared during retrieval request");
+          } else
+            fmt::print("Success");
         }
       }
     }
@@ -431,13 +439,13 @@ namespace fc::cli::cli_node {
       Node::Api api{argm};
       auto deals = cliTry(api->ClientListDeals());
       StorageMarketDealInfo result;
-      bool local{false};
-      for(const auto &deal: deals){
-        if(deal.deal_id == *args.deal_id){
-          result = deal;
+      if(args.deal_id) {
+        for (const auto &deal : deals) {
+          if (deal.deal_id == *args.deal_id) {
+            result = deal;
+          }
         }
-      }
-      if(not local){
+      } else {
         result = cliTry(api->ClientGetDealInfo(*args.proposal_cid),
                         "Cannot get deal info for {}",
                         fmt::to_string(*args.proposal_cid));
@@ -456,7 +464,7 @@ namespace fc::cli::cli_node {
       row["Proposal CID"] = fmt::to_string(result.proposal_cid);
       row["Status"] = fmt::to_string(result.state);
       row["Expected Duration"] = fmt::to_string(result.duration);
-      row["Verified"]  =  fmt::to_string(result.verified);
+      row["Verified"] = fmt::to_string(result.verified);
       table_writer.write(std::cout);
     }
   };
@@ -505,7 +513,6 @@ namespace fc::cli::cli_node {
 
     CLI_RUN() {
       Node::Api api{argm};
-      fmt::print("Not supported yet\n");
       auto local_deals =
           cliTry(api->ClientListDeals(), "Getting local client deals...");
       TableWriter table_writer{
@@ -525,14 +532,21 @@ namespace fc::cli::cli_node {
       };
 
       for (const auto &deal : local_deals) {
+        auto deal_from_info =
+            cliTry(api->StateMarketStorageDeal(deal.deal_id, TipsetKey()));
         auto row{table_writer.row()};
         row["Created"] = fmt::to_string(deal.creation_time);
         row["Deal CID"] = fmt::to_string(deal.proposal_cid);
         row["Deal ID"] = fmt::to_string(deal.deal_id);
         row["Provider"] = fmt::to_string(deal.provider);
         row["State"] = fmt::to_string(deal.state);
-        row["On Chain"] = "?";
-        row["Slashed"] = "?";
+        row["On Chain"] =
+            deal_from_info.state.sector_start_epoch != -1 ? fmt::format(
+                "Yes (epoch: {})", deal_from_info.state.sector_start_epoch)
+                                                          : "None";
+        row["Slashed"] = deal_from_info.state.slash_epoch != -1 ? fmt::format(
+                             "Yes (epoch: {})", deal_from_info.state.slash_epoch)
+                                                                : "None";
         row["Piece CID"] = fmt::to_string(deal.piece_cid);
         row["Size"] = fmt::to_string(deal.size);
         row["Price"] = fmt::to_string(deal.price_per_epoch);
@@ -562,11 +576,11 @@ namespace fc::cli::cli_node {
                                 "Getting address of default wallet..."));
       auto balance = cliTry(api->StateMarketBalance(addr, TipsetKey()));
 
-      fmt::print("  Escrowed Funds:        {}\n",
+      fmt::print("  Escrowed Funds:\t\t{}\n",
                  lexical_cast<std::string>(balance.escrow));
-      fmt::print("  Locked Funds:          {}\n",
+      fmt::print("  Locked Funds:\t\t{}\n",
                  lexical_cast<std::string>(balance.locked));
-      fmt::print("  Avaliable:             {}\n",
+      fmt::print("  Avaliable:\t\t{}\n",
                  lexical_cast<std::string>(balance.escrow - balance.locked));
     }
   };
@@ -575,8 +589,9 @@ namespace fc::cli::cli_node {
     CLI_RUN() {
       Node::Api api{argm};
       auto proposal_cid{cliArgv<CID>(argv, 0, "proposal cid of deal to get")};
-      auto deal_info =
-          cliTry(api->ClientGetDealInfo(proposal_cid), "No such proposal cid {}\n", fmt::to_string(proposal_cid));
+      auto deal_info = cliTry(api->ClientGetDealInfo(proposal_cid),
+                              "No such proposal cid {}\n",
+                              fmt::to_string(proposal_cid));
       auto res =
           cliTry(api->StateMarketStorageDeal(deal_info.deal_id, TipsetKey()),
                  "Can't find information about deal: {}",
@@ -680,6 +695,7 @@ namespace fc::cli::cli_node {
       auto ipfs = std::make_shared<ApiIpfsDatastore>(api.api);
       auto version = cliTry(api->StateNetworkVersion(TipsetKey()),
                             "Getting Chain Version...");
+      ipfs->actor_version = actorVersion(version);
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
 
