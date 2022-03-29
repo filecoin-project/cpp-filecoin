@@ -67,7 +67,7 @@ namespace fc::cli::cli_node {
     ipfs->actor_version = actorVersion(version);
     auto state =
         cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
-    auto res = cliTry(cliTry(state->getVerifiedClientDataCap(vid)),
+    auto res = cliTry(cliTry(state->getVerifierDataCap(vid)),
                       "Client {} isn't in notary tables",
                       vaddr);
     return res;
@@ -127,10 +127,10 @@ namespace fc::cli::cli_node {
 
       FileRef file_ref{.path = path, .is_car = args.car};
 
-      auto imports = cliTry(api->ClientListImports());
       ExportRef result;
       bool local_found{false};
       if (args.allow_local) {
+        auto imports = cliTry(api->ClientListImports());
         for (const auto &import : imports) {
           if (import.root == data_cid) {
             result.from_local_car = import.path;
