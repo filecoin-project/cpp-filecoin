@@ -18,7 +18,7 @@ namespace fc::common {
       for (auto it{resolver.resolve(host_name(), "", ec)}; it != end; ++it) {
         auto addr{it->endpoint().address()};
         if (addr.is_v4()) {
-//          return addr.to_string();
+          return addr.to_string();
         }
       }
       return std::string{"127.0.0.1"};

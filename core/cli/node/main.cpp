@@ -22,17 +22,17 @@ namespace fc::cli::cli_node {
       })},
       {GROUP("client")({
           CMD("retrieve", Node_client_retrieve),
-          CMD("import", Node_client_importData), // todo done
-          CMD("deal", Node_client_deal), // todo testing...
-          CMD("generate-car", Node_client_generateCar), // todo done
-          CMD("local", Node_client_local), // todo done
+          CMD("import", Node_client_importData),
+          CMD("deal", Node_client_deal),
+          CMD("generate-car", Node_client_generateCar),
+          CMD("local", Node_client_local),
           CMD("find", Node_client_find),
           CMD("list-retrievals", Node_client_listRetrievals),
-          CMD("inspect-deal", Node_client_inspectDeal), // todo testing...
-          CMD("deal-stats", Node_client_dealStats), // todo testing...
-          CMD("list-deals", Node_client_listDeals), // todo testing...
-          CMD("balances", Node_client_balances), // todo done
-          CMD("get-deal", Node_client_getDeal), // todo testing...
+          CMD("inspect-deal", Node_client_inspectDeal),
+          CMD("deal-stats", Node_client_dealStats),
+          CMD("list-deals", Node_client_listDeals),
+          CMD("balances", Node_client_balances),
+          CMD("get-deal", Node_client_getDeal),
           CMD("grant-datacap", Node_client_grantDatacap),
           CMD("check-client-datacap", Node_client_checkClientDataCap),
           CMD("list-notaries", Node_client_listNotaries),
