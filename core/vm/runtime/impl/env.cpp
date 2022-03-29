@@ -121,6 +121,7 @@ namespace fc::vm::runtime {
     env->env_context = env_context;
     env->epoch = tipset->height();
     env->ts_branch = std::move(ts_branch);
+    env->base_fee = tipset->getParentBaseFee();
     env->tipset = std::move(tipset);
     env->pricelist = Pricelist{env->epoch};
     OUTCOME_TRY(env->setHeight(env->epoch));
@@ -138,8 +139,8 @@ namespace fc::vm::runtime {
   }
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-  outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
-                                                size_t size) {
+  outcome::result<ApplyRet> Env::applyMessage(const UnsignedMessage &message,
+                                              size_t size) {
     auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
         gsl::finally([] { metricVmApplyCount().Increment(); })};
 
@@ -158,14 +159,14 @@ namespace fc::vm::runtime {
       return RuntimeError::kUnknown;
     }
     auto execution = Execution::make(shared_from_this(), message);
-    Apply apply;
+    ApplyRet apply;
     auto msg_gas_cost{pricelist.onChainMessage(size)};
     if (msg_gas_cost > message.gas_limit) {
-      apply.penalty = msg_gas_cost * tipset->getParentBaseFee();
+      apply.penalty = msg_gas_cost * base_fee;
       apply.receipt.exit_code = VMExitCode::kSysErrOutOfGas;
       return apply;
     }
-    apply.penalty = message.gas_limit * tipset->getParentBaseFee();
+    apply.penalty = message.gas_limit * base_fee;
     OUTCOME_TRY(maybe_from, state_tree->tryGet(message.from));
     if (!maybe_from) {
       apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
@@ -232,7 +233,6 @@ namespace fc::vm::runtime {
       }
     }
     BOOST_ASSERT_MSG(used <= limit, "runtime charged gas over limit");
-    auto base_fee{tipset->getParentBaseFee()};
     auto fee_cap{message.gas_fee_cap};
     auto base_fee_pay{std::min(base_fee, fee_cap)};
     apply.penalty = base_fee > fee_cap ? TokenAmount{base_fee - fee_cap} * used
@@ -283,6 +283,12 @@ namespace fc::vm::runtime {
     dvm::onReceipt(receipt);
 
     return receipt;
+  }
+
+  outcome::result<CID> Env::flush() {
+    OUTCOME_TRY(root, state_tree->flush());
+    OUTCOME_TRY(ipld->flush(root));
+    return std::move(root);
   }
 
   outcome::result<void> Execution::chargeGas(GasAmount amount) {
@@ -394,15 +400,17 @@ namespace fc::vm::runtime {
       if (message.value < 0) {
         return VMExitCode::kSysErrForbidden;
       }
-      if (to_id != caller_id) {
+      if (to_id != caller_id || network_version >= NetworkVersion::kVersion15) {
         OUTCOME_TRY(from_actor, state_tree->get(caller_id));
         if (from_actor.balance < message.value) {
           return VMExitCode::kSysErrInsufficientFunds;
         }
-        from_actor.balance -= message.value;
-        to_actor.balance += message.value;
-        OUTCOME_TRY(state_tree->set(caller_id, from_actor));
-        OUTCOME_TRY(state_tree->set(to_id, to_actor));
+        if (to_id != caller_id) {
+          from_actor.balance -= message.value;
+          to_actor.balance += message.value;
+          OUTCOME_TRY(state_tree->set(caller_id, from_actor));
+          OUTCOME_TRY(state_tree->set(to_id, to_actor));
+        }
       }
     }
 

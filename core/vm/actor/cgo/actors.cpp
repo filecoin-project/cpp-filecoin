@@ -81,7 +81,7 @@ namespace fc::vm::actor::cgo {
     runtimes_lock.unlock();
     const auto &message{runtime->getMessage().get()};
     auto version{runtime->getNetworkVersion()};
-    const auto &base_fee{runtime->execution()->env->tipset->getParentBaseFee()};
+    const auto &base_fee{runtime->execution()->env->base_fee};
     arg << id << version << base_fee << message.from << message.to
         << runtime->getCurrentEpoch() << message.value << code << message.method
         << message.params;

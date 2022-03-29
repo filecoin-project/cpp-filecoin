@@ -148,7 +148,7 @@ namespace fc::mining {
       forceSendWithoutLock();
     } else {
       const auto temp_cutoff = std::chrono::milliseconds(
-          (cutoff_epoch - current_epoch) * kEpochDurationSeconds);
+          (cutoff_epoch - current_epoch) * kBlockDelaySecs);
       if ((closest_cutoff_
                - std::chrono::duration_cast<std::chrono::milliseconds>(
                    std::chrono::system_clock::now() - cutoff_start_)

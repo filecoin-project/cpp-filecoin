@@ -610,7 +610,11 @@ func (rt *rt) VerifyReplicaUpdate(info proof7.ReplicaUpdateInfo) error {
 func (rt *rt) VerifyConsensusFault(block1, block2, extra []byte) (*rt1.ConsensusFault, error) {
 	ret := rt.gocRet(C.gocRtVerifyConsensusFault(rt.gocArg().bytes(block1).bytes(block2).bytes(extra).arg()))
 	if ret.bool() {
-		target, epoch, _type := ret.addr(), abi.ChainEpoch(ret.int()), rt1.ConsensusFaultType(ret.int())
+		target_id, epoch, _type := ret.uint(), abi.ChainEpoch(ret.int()), rt1.ConsensusFaultType(ret.int())
+		target, e := address.NewIDAddress(target_id)
+		if e != nil {
+			panic(cgoErrors("VerifyConsensusFault NewIDAddress"))
+		}
 		return &rt1.ConsensusFault{target, epoch, _type}, nil
 	}
 	return nil, errors.New("VerifyConsensusFault")

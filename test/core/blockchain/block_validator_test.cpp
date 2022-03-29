@@ -18,7 +18,11 @@
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
+#include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/types/storage_power/policy.hpp"
+
 namespace fc::blockchain::block_validator {
+  using primitives::sector::RegisteredSealProof;
   using storage::InMemoryStorage;
 
   TEST(BlockValidator, Interopnet) {
@@ -27,6 +31,17 @@ namespace fc::blockchain::block_validator {
 
     // Works on network version 13
     setParamsInteropnet();
+
+    kFakeWinningPost = false;
+    kBlockDelaySecs = kEpochDurationSeconds;
+    kUpgradeChocolateHeight = INT64_MAX;
+    kUpgradeOhSnapHeight = INT64_MAX;
+    vm::actor::builtin::types::storage_power::kConsensusMinerMinPower = 2048;
+    vm::actor::builtin::types::miner::kSupportedProofs = {
+        RegisteredSealProof::kStackedDrg2KiBV1,
+        RegisteredSealProof::kStackedDrg8MiBV1,
+        RegisteredSealProof::kStackedDrg512MiBV1,
+    };
 
     vm::actor::cgo::configParams();
 

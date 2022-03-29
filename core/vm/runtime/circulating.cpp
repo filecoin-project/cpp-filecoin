@@ -48,12 +48,8 @@ namespace fc::vm {
     return circulating;
   }
 
-  outcome::result<TokenAmount> Circulating::circulating(
-      StateTreePtr state_tree, ChainEpoch epoch) const {
-    const auto ipld{state_tree->getStore()};
+  outcome::result<TokenAmount> Circulating::vested(ChainEpoch epoch) const {
     TokenAmount vested;
-    TokenAmount mined;
-
     auto vest{[&](auto days, TokenAmount amount) {
       ChainEpoch duration(days * kEpochsInDay);
       auto elapsed{epoch};
@@ -81,6 +77,14 @@ namespace fc::vm {
     if (epoch <= kUpgradeAssemblyHeight) {
       vested += genesis;
     }
+    return vested;
+  }
+
+  outcome::result<TokenAmount> Circulating::circulating(
+      StateTreePtr state_tree, ChainEpoch epoch) const {
+    const auto ipld{state_tree->getStore()};
+    OUTCOME_TRY(vested, this->vested(epoch));
+    TokenAmount mined;
 
     OUTCOME_TRY(reward_actor, state_tree->get(actor::kRewardAddress));
     OUTCOME_TRY(reward_state,
