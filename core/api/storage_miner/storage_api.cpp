@@ -114,7 +114,7 @@ namespace fc::api {
           sector_info->precommit_message,
           sector_info->message,
           sector_info->invalid_proofs,
-          miner->getSealing()->isMarkedForUpgrade(id),
+          sector_info->update,
       };
       if (not show_onchain_info) {
         return api_sector_info;
@@ -203,7 +203,7 @@ namespace fc::api {
       if (snap_deal) {
         return miner->getSealing()->markForSnapUpgrade(sector);
       }
-      return miner->getSealing()->markForUpgrade(sector);
+      return ERROR_TEXT("Old capacity sector upgrade deprecated, use snap deals capacity sector upgrade");
     };
 
     api->Version = [] {

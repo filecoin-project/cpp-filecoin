@@ -85,11 +85,7 @@ namespace fc::mining {
     outcome::result<void> forceSectorState(SectorNumber id,
                                            SealingState state) override;
 
-    outcome::result<void> markForUpgrade(SectorNumber id) override;
-
     outcome::result<void> markForSnapUpgrade(SectorNumber id) override;
-
-    bool isMarkedForUpgrade(SectorNumber id) override;
 
     outcome::result<void> startPacking(SectorNumber id) override;
 
@@ -120,10 +116,6 @@ namespace fc::mining {
         UnpaddedPieceSize size);
 
     outcome::result<SectorNumber> newDealSector();
-
-    TokenAmount tryUpgradeSector(SectorPreCommitInfo &params);
-
-    boost::optional<SectorNumber> maybeUpgradableSector();
 
     /**
      * Creates all FSM transitions
@@ -396,9 +388,6 @@ namespace fc::mining {
     // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_map<SectorNumber, UnsealedSectorInfo> unsealed_sectors_;
     std::shared_mutex unsealed_mutex_;
-
-    std::set<SectorNumber> to_upgrade_;
-    std::shared_mutex upgrade_mutex_;
 
     /** State machine */
     std::shared_ptr<Scheduler> scheduler_;

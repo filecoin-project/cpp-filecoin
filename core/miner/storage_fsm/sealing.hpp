@@ -57,11 +57,7 @@ namespace fc::mining {
     virtual outcome::result<void> forceSectorState(SectorNumber id,
                                                    SealingState state) = 0;
 
-    virtual outcome::result<void> markForUpgrade(SectorNumber id) = 0;
-
     virtual outcome::result<void> markForSnapUpgrade(SectorNumber id) = 0;
-
-    virtual bool isMarkedForUpgrade(SectorNumber id) = 0;
 
     virtual outcome::result<void> startPacking(SectorNumber id) = 0;
 
