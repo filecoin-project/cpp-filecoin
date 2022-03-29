@@ -109,6 +109,7 @@ namespace fc::cli::cli_node {
       RetrievalOrder order{};
       auto data_cid{cliArgv<CID>(argv, 0, "dataCid")};
       auto path{cliArgv<std::string>(argv, 1, "path")};
+      auto piece_cid = args.piece_cid.v;
       order.client =
           (args.from ? *args.from
                      : cliTry(api->WalletDefaultAddress(),
@@ -143,7 +144,7 @@ namespace fc::cli::cli_node {
       if (not local_found) {  // no local -> make retrieval
         std::vector<api::QueryOffer> clean;
         if (!args.provider) {
-          auto offers = cliTry(api->ClientFindData(data_cid, *args.piece_cid));
+          auto offers = cliTry(api->ClientFindData(data_cid, piece_cid));
           for (const auto &offer : offers) {
             if (offer.error.empty()) clean.push_back(offer);
           }
@@ -172,8 +173,7 @@ namespace fc::cli::cli_node {
           order.payment_interval = fin_offer.payment_interval;
           order.payment_interval_increase = fin_offer.payment_interval_increase;
           order.peer = fin_offer.peer;
-          auto maybe_result =
-              api->ClientRetrieve(order, file_ref);
+          auto maybe_result = api->ClientRetrieve(order, file_ref);
           if (maybe_result.has_error()) {
             fmt::print("Failure have appeared during retrieval request");
           } else
@@ -439,7 +439,7 @@ namespace fc::cli::cli_node {
       Node::Api api{argm};
       auto deals = cliTry(api->ClientListDeals());
       StorageMarketDealInfo result;
-      if(args.deal_id) {
+      if (args.deal_id) {
         for (const auto &deal : deals) {
           if (deal.deal_id == *args.deal_id) {
             result = deal;
@@ -544,9 +544,10 @@ namespace fc::cli::cli_node {
             deal_from_info.state.sector_start_epoch != -1 ? fmt::format(
                 "Yes (epoch: {})", deal_from_info.state.sector_start_epoch)
                                                           : "None";
-        row["Slashed"] = deal_from_info.state.slash_epoch != -1 ? fmt::format(
-                             "Yes (epoch: {})", deal_from_info.state.slash_epoch)
-                                                                : "None";
+        row["Slashed"] = deal_from_info.state.slash_epoch != -1
+                             ? fmt::format("Yes (epoch: {})",
+                                           deal_from_info.state.slash_epoch)
+                             : "None";
         row["Piece CID"] = fmt::to_string(deal.piece_cid);
         row["Size"] = fmt::to_string(deal.size);
         row["Price"] = fmt::to_string(deal.price_per_epoch);

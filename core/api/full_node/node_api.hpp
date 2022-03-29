@@ -582,6 +582,10 @@ namespace fc::api {
                InvocResult,
                const UnsignedMessage &,
                const TipsetKey &)
+    API_METHOD(StateVerifiedRegistryRootKey,
+               jwt::kReadPermission,
+               Address,
+               const TipsetKey &)
     API_METHOD(StateDealProviderCollateralBounds,
                jwt::kReadPermission,
                DealCollateralBounds,
@@ -850,6 +854,7 @@ namespace fc::api {
     f(a.PaychVoucherCreate);
     f(a.StateAccountKey);
     f(a.StateCall);
+    f(a.StateVerifiedRegistryRootKey);
     f(a.StateDealProviderCollateralBounds);
     f(a.StateGetActor);
     f(a.StateGetRandomnessFromBeacon);
