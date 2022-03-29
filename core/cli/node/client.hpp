@@ -64,6 +64,7 @@ namespace fc::cli::cli_node {
     auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
     auto version = cliTry(api->StateNetworkVersion(TipsetKey()),
                           "Getting Chain Version...");
+    ipfs->actor_version = actorVersion(version);
     auto state =
         cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
     auto res = cliTry(cliTry(state->getVerifiedClientDataCap(vid)),
@@ -108,6 +109,7 @@ namespace fc::cli::cli_node {
       RetrievalOrder order{};
       auto data_cid{cliArgv<CID>(argv, 0, "dataCid")};
       auto path{cliArgv<std::string>(argv, 1, "path")};
+      auto piece_cid = args.piece_cid.v;
       order.client =
           (args.from ? *args.from
                      : cliTry(api->WalletDefaultAddress(),
@@ -142,7 +144,7 @@ namespace fc::cli::cli_node {
       if (not local_found) {  // no local -> make retrieval
         std::vector<api::QueryOffer> clean;
         if (!args.provider) {
-          auto offers = cliTry(api->ClientFindData(data_cid, *args.piece_cid));
+          auto offers = cliTry(api->ClientFindData(data_cid, piece_cid));
           for (const auto &offer : offers) {
             if (offer.error.empty()) clean.push_back(offer);
           }
@@ -154,7 +156,7 @@ namespace fc::cli::cli_node {
                     });
           fin_offer = offers[0];
         }else{
-          fin_offer = cliTry(api->ClientMinerQueryOffer(*args.provider, data_cid, *args.piece_cid), "Cannot get retrieval offer from {}", fmt::to_string(*args.provider));
+          fin_offer = cliTry(api->ClientMinerQueryOffer(*args.provider, data_cid, piece_cid), "Cannot get retrieval offer from {}", fmt::to_string(*args.provider));
         }
 
         if(fin_offer.min_price > args.max_price->fil){
@@ -505,7 +507,6 @@ namespace fc::cli::cli_node {
 
     CLI_RUN() {
       Node::Api api{argm};
-      fmt::print("Not supported yet\n");
       auto local_deals =
           cliTry(api->ClientListDeals(), "Getting local client deals...");
       TableWriter table_writer{
@@ -680,6 +681,8 @@ namespace fc::cli::cli_node {
       auto ipfs = std::make_shared<ApiIpfsDatastore>(api.api);
       auto version = cliTry(api->StateNetworkVersion(TipsetKey()),
                             "Getting Chain Version...");
+      ipfs->actor_version = actorVersion(version);
+
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
 
