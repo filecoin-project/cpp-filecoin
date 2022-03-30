@@ -387,33 +387,6 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  outcome::result<void> SealingImpl::markForUpgrade(SectorNumber id) {
-    std::unique_lock lock(upgrade_mutex_);
-
-    if (to_upgrade_.find(id) != to_upgrade_.end()) {
-      return SealingError::kAlreadyUpgradeMarked;
-    }
-
-    OUTCOME_TRY(sector_info, getSectorInfo(id));
-
-    if (sector_info->state != SealingState::kProving) {
-      return SealingError::kNotProvingState;
-    }
-
-    if (sector_info->pieces.size() != 1) {
-      return SealingError::kUpgradeSeveralPieces;
-    }
-
-    if (sector_info->pieces[0].deal_info.has_value()) {
-      return SealingError::kUpgradeWithDeal;
-    }
-
-    // TODO(ortyomka): more checks to match actor constraints
-    to_upgrade_.insert(id);
-
-    return outcome::success();
-  }
-
   outcome::result<void> SealingImpl::markForSnapUpgrade(SectorNumber id) {
     // TODO(a.chernyshov)
     // https://github.com/filecoin-project/lotus/blob/362c73bfbdb8c6d5f1d110b25ee33faa2b5c8dcc/extern/storage-sealing/upgrade_queue.go#L53-L62
@@ -455,11 +428,6 @@ namespace fc::mining {
                      std::make_shared<SectorStartCCUpdateContext>());
 
     return outcome::success();
-  }
-
-  bool SealingImpl::isMarkedForUpgrade(SectorNumber id) {
-    std::shared_lock lock(upgrade_mutex_);
-    return to_upgrade_.find(id) != to_upgrade_.end();
   }
 
   outcome::result<void> SealingImpl::pledgeSector() {
@@ -1398,9 +1366,7 @@ namespace fc::mining {
                 api_->StateMinerPreCommitDepositForPower(
                     miner_address_, params, head->key));
 
-    const auto deposit = std::max(tryUpgradeSector(params), collateral);
-
-    return SealingImpl::PreCommitParams{std::move(params), deposit, head->key};
+    return SealingImpl::PreCommitParams{std::move(params), collateral, head->key};
   }
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -1461,15 +1427,6 @@ namespace fc::mining {
          self{shared_from_this()}](
             const outcome::result<api::SignedMessage> &maybe_signed_message) {
           if (maybe_signed_message.has_error()) {
-            if (precommit_params->info.replace_capacity) {
-              const auto maybe_error =
-                  self->markForUpgrade(precommit_params->info.replace_sector);
-              if (maybe_error.has_error()) {
-                logger->error("error re-marking sector {} as for upgrade: {}",
-                              info->sector_number,
-                              maybe_error.error().message());
-              }
-            }
             logger->error("pushing message to mpool: {}",
                           maybe_signed_message.error().message());
             OUTCOME_EXCEPT(
@@ -3067,64 +3024,6 @@ namespace fc::mining {
         .ticket = randomness,
         .epoch = ticket_epoch,
     };
-  }
-
-  TokenAmount SealingImpl::tryUpgradeSector(SectorPreCommitInfo &params) {
-    if (params.deal_ids.empty()) {
-      return 0;
-    }
-
-    const auto replace = maybeUpgradableSector();
-    if (replace) {
-      const auto maybe_location = api_->StateSectorPartition(
-          miner_address_, *replace, api::TipsetKey());
-      if (maybe_location.has_error()) {
-        logger_->error(
-            "error calling StateSectorPartition for replaced sector: {}",
-            maybe_location.error().message());
-        return 0;
-      }
-
-      params.replace_capacity = true;
-      params.replace_sector = *replace;
-      params.replace_deadline = maybe_location.value().deadline;
-      params.replace_partition = maybe_location.value().partition;
-
-      const auto maybe_replace_info =
-          api_->StateSectorGetInfo(miner_address_, *replace, api::TipsetKey());
-      if (maybe_replace_info.has_error()) {
-        logger_->error(
-            "error calling StateSectorGetInfo for replaced sector: {}",
-            maybe_replace_info.error().message());
-        return 0;
-      }
-      const auto &info{maybe_replace_info.value()};
-      if (!info) {
-        logger_->error("couldn't find sector info for sector to replace {}",
-                       *replace);
-        return 0;
-      }
-
-      params.expiration = std::min(params.expiration, info->expiration);
-
-      return info->init_pledge;
-    }
-
-    return 0;
-  }
-
-  boost::optional<SectorNumber> SealingImpl::maybeUpgradableSector() {
-    std::lock_guard lock(upgrade_mutex_);
-    if (to_upgrade_.empty()) {
-      return boost::none;
-    }
-
-    // TODO(ortyomka): checks to match actor constraints
-    // Note: maybe here should be loop
-
-    const auto result = *(to_upgrade_.begin());
-    to_upgrade_.erase(to_upgrade_.begin());
-    return result;
   }
 
   outcome::result<RegisteredSealProof> SealingImpl::getCurrentSealProof()
