@@ -3,14 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/rpc/json.hpp"
+#include "codec/json/coding.hpp"
 
 #include <gtest/gtest.h>
 
+#include "api/full_node/types.hpp"
 #include "codec/json/json.hpp"
+#include "crypto/signature/signature.hpp"
+#include "primitives/address/address_codec.hpp"
+#include "primitives/block/block.hpp"
+#include "primitives/cid/json_cid.hpp"
+#include "primitives/rle_bitset/rle_bitset.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/types/miner/miner_info.hpp"
 
 #define J32 "\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\""
 #define J65                                                                    \
@@ -20,7 +25,15 @@
   "\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB" \
   "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB\""
 
-namespace fc::api {
+namespace fc::codec::json {
+  using api::MinerInfo;
+  using crypto::signature::BlsSignature;
+  using crypto::signature::Secp256k1Signature;
+  using crypto::signature::Signature;
+  using primitives::RleBitset;
+  using primitives::address::Address;
+  using primitives::block::Ticket;
+  using primitives::sector::RegisteredPoStProof;
 
   const auto b32 =
       "0101010101010101010101010101010101010101010101010101010101010101"_blob32;
@@ -39,20 +52,19 @@ namespace fc::api {
 
   template <typename T>
   void expectJson(const T &value, std::string _expected) {
-    auto encoded = jsonEncode(fc::api::encode(value));
+    auto encoded = jsonEncode(encode<T>(value));
     EXPECT_EQ(std::string(encoded.begin(), encoded.end()), _expected);
     EXPECT_OUTCOME_TRUE(
-        decoded,
-        fc::api::decode<T>(jsonDecode(fc::common::span::cbytes(_expected))));
-    encoded = jsonEncode(fc::api::encode(decoded));
+        decoded, decode<T>(jsonDecode(fc::common::span::cbytes(_expected))));
+    encoded = jsonEncode(encode<T>(decoded));
     EXPECT_EQ(std::string(encoded.begin(), encoded.end()), _expected);
   }
 
   /// Following tests check json encoding and decoding
 
   TEST(ApiJsonTest, WrongType) {
-    EXPECT_OUTCOME_ERROR(fc::api::JsonError::kWrongType,
-                         fc::api::decode<Ticket>(jsonDecode(
+    EXPECT_OUTCOME_ERROR(JsonError::kWrongType,
+                         decode<Ticket>(jsonDecode(
                              fc::common::span::cbytes(std::string_view{"4"}))));
   }
 
@@ -112,4 +124,4 @@ namespace fc::api {
                "\"Multiaddrs\":[],\"WindowPoStProofType\":5,"
                "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1}");
   }
-}  // namespace fc::api
+}  // namespace fc::codec::json

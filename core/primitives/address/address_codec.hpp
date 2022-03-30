@@ -8,6 +8,7 @@
 #include <spdlog/fmt/fmt.h>
 
 #include "codec/cbor/streams_annotation.hpp"
+#include "codec/json/coding.hpp"
 #include "common/bytes.hpp"
 #include "primitives/address/address.hpp"
 
@@ -40,6 +41,17 @@ namespace fc::primitives::address {
   CBOR_DECODE(Address, address) {
     address = decode(s.template get<Bytes>()).value();
     return s;
+  }
+
+  JSON_ENCODE(Address) {
+    return fc::codec::json::encode(
+                                   primitives::address::encodeToString(v), allocator);
+  }
+  JSON_DECODE(Address) {
+    OUTCOME_EXCEPT(
+        decoded,
+        primitives::address::decodeFromString(fc::codec::json::AsString(j)));
+    v = std::move(decoded);
   }
 
   /**

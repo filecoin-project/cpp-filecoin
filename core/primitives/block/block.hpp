@@ -38,6 +38,19 @@ namespace fc::primitives::block {
   }
   CBOR_TUPLE(Ticket, bytes)
 
+  JSON_ENCODE(Ticket) {
+    using codec::json::Value;
+    using codec::json::Set;
+    Value j{rapidjson::kObjectType};
+    Set(j, "VRFProof", gsl::make_span(v.bytes), allocator);
+    return j;
+  }
+
+  JSON_DECODE(Ticket) {
+    using codec::json::Get;
+    codec::json::decode(v.bytes, Get(j, "VRFProof"));
+  }
+
   struct ElectionProof {
     int64_t win_count = 0;
     Bytes vrf_proof;

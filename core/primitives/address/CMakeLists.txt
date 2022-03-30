@@ -11,4 +11,5 @@ target_link_libraries(address
     blob
     cbor
     outcome
+    json
     )
