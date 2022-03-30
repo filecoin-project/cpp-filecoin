@@ -199,11 +199,14 @@ namespace fc::api {
       });
     };
 
-    api->SectorMarkForUpgrade = [=](SectorNumber sector, bool snap_deal) {
+    api->SectorMarkForUpgrade = [=](SectorNumber sector,
+                                    bool snap_deal) -> outcome::result<void> {
       if (snap_deal) {
         return miner->getSealing()->markForSnapUpgrade(sector);
       }
-      return ERROR_TEXT("Old capacity sector upgrade deprecated, use snap deals capacity sector upgrade");
+      return ERROR_TEXT(
+          "Old capacity sector upgrade deprecated, use snap deals capacity "
+          "sector upgrade");
     };
 
     api->Version = [] {
