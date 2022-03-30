@@ -6,9 +6,12 @@
 #pragma once
 
 #include "api/utils.hpp"
+#include "fwd.hpp"
 
 namespace fc::api {
   namespace jwt = primitives::jwt;
+  using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
 
   class NetworkApi {
    public:
@@ -31,6 +34,11 @@ namespace fc::api {
      * Removes provided peer from list of connected.
      */
     API_METHOD(NetDisconnect, jwt::kWritePermission, void, const PeerInfo &)
+
+    API_METHOD(NetProtectAdd,
+               jwt::kAdminPermission,
+               void,
+               const std::vector<PeerId> &);
   };
 
   template <typename A, typename F>
@@ -39,6 +47,7 @@ namespace fc::api {
     f(a.NetConnect);
     f(a.NetPeers);
     f(a.NetDisconnect);
+    f(a.NetProtectAdd);
   }
 
 };  // namespace fc::api

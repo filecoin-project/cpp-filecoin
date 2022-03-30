@@ -19,7 +19,7 @@
 #include "node/pubsub_gate.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
 #include "vm/interpreter/interpreter.hpp"
-#include "vm/runtime/env.hpp"
+#include "vm/runtime/make_vm.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/state/resolve_key.hpp"
 #include "vm/toolchain/toolchain.hpp"
@@ -31,6 +31,7 @@ namespace fc::storage::mpool {
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::interpreter::InterpreterCache;
   using vm::message::UnsignedMessage;
+  using vm::state::StateTreeImpl;
 
   constexpr GasAmount kMinGas{1298450};
   constexpr size_t kMaxBlocks{15};
@@ -628,11 +629,15 @@ namespace fc::storage::mpool {
       std::shared_lock head_lock(head_mutex_);
       const auto height = head_->height();
       OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head_->key));
-      OUTCOME_TRY(env, vm::runtime::Env::make(env_context, ts_main, head_));
+      const auto buf_ipld{std::make_shared<vm::IpldBuffered>(ipld)};
+      OUTCOME_TRY(env,
+                  vm::makeVm(buf_ipld,
+                             env_context,
+                             ts_main,
+                             head_->getParentBaseFee(),
+                             interpeted.state_root,
+                             head_->epoch() + 1));
       head_lock.unlock();
-      env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
-          env->ipld, interpeted.state_root);
-      ++env->epoch;
       std::shared_lock pending_lock{pending_mutex_};
       auto pending_it{pending_.find(msg.from)};
       if (pending_it != pending_.end()) {
@@ -641,7 +646,18 @@ namespace fc::storage::mpool {
         }
       }
       pending_lock.unlock();
-      OUTCOME_TRY(actor, env->state_tree->get(msg.from));
+      OUTCOME_TRY(state, env->flush());
+      OUTCOME_TRY(actor,
+                  vm::state::StateTreeImpl{
+                      withVersion(buf_ipld, head_->height()), state}
+                      .get(msg.from));
+      OUTCOME_TRYA(env,
+                   vm::makeVm(buf_ipld,
+                              env_context,
+                              ts_main,
+                              head_->getParentBaseFee(),
+                              state,
+                              head_->epoch() + 1));
       msg.nonce = actor.nonce;
       OUTCOME_TRY(
           apply,

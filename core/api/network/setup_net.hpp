@@ -44,6 +44,10 @@ namespace fc::api {
       host->disconnect(peer.id);
       return outcome::success();
     };
+
+    api->NetProtectAdd = [](const std::vector<PeerId> &) {
+      return outcome::success();
+    };
   }
 
 }  // namespace fc::api
