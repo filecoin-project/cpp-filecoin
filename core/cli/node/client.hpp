@@ -318,6 +318,10 @@ namespace fc::cli::cli_node {
       auto path_to{cliArgv<boost::filesystem::path>(argv, 0, "input-path")};
       auto path_out{cliArgv<boost::filesystem::path>(argv, 1, "output-path")};
 
+      if (not boost::filesystem::exists(path_to)) {
+        throw CliError("Input file does not exist.\n");
+      }
+
       auto tmp_path = path_to.string() + ".unixfs-tmp.car";
       auto ipld = cliTry(MemoryIndexedCar::make(tmp_path, true),
                          "Creting IPLD instance of {}",
@@ -338,7 +342,7 @@ namespace fc::cli::cli_node {
       for (auto it = result.begin(); it != result.end(); it++) {
         fmt::print("Root CID: {} \n", it->root.toString().value());
         fmt::print("Source: {}\n", it->source);
-        fmt::print("Path: {}\n", it->path);
+        fmt::print("Path: {}\n\n", it->path);
       }
     }
   };
@@ -628,7 +632,7 @@ namespace fc::cli::cli_node {
       auto dcap = checkNotary(api.api, *args.from);
       if (dcap < allowness)
         throw CliError(
-            "cannot allot more allowance than notary data cap: {} < {}",
+            "cannot allow more allowance than notary data cap: {} < {}",
             dcap,
             allowness);
       auto encoded_params = cliTry(codec::cbor::encode(
