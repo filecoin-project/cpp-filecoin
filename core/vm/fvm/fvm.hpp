@@ -7,7 +7,7 @@
 
 #include "vm/fvm/stub.hpp"
 #include "vm/runtime/env_context.hpp"
-#include "vm/runtime/i_vm.hpp"
+#include "vm/runtime/virtual_machine.hpp"
 
 namespace fc::vm::fvm {
   using runtime::EnvironmentContext;

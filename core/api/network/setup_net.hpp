@@ -46,6 +46,7 @@ namespace fc::api {
     };
 
     api->NetProtectAdd = [](const std::vector<PeerId> &) {
+      // note: not supported by cpp-libp2p
       return outcome::success();
     };
   }

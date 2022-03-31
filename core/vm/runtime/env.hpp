@@ -10,9 +10,9 @@
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/env_context.hpp"
-#include "vm/runtime/i_vm.hpp"
 #include "vm/runtime/pricelist.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
+#include "vm/runtime/virtual_machine.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::vm::runtime {

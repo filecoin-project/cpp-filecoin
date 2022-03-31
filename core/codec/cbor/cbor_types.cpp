@@ -72,7 +72,6 @@ namespace fc::data_transfer {
     {
       v.restart.reset();
       auto l{CborDecodeStream::named(m, "RestartChannel").list()};
-      ChannelId restart;
       std::string initiator;
       std::string responder;
       TransferId id;
