@@ -399,6 +399,10 @@ namespace fc::sector_storage {
                 storageFindSector(sector_.id, SectorFileType::FTUnsealed, _))
         .WillOnce(testing::Return(
             outcome::success(std::vector<stores::SectorStorageInfo>())));
+    EXPECT_CALL(*sector_index_,
+                storageFindSector(sector_.id, SectorFileType::FTSealed, _))
+        .WillOnce(testing::Return(
+            outcome::success(std::vector<stores::SectorStorageInfo>())));
 
     CallId call_id{.sector = sector_.id, .id = "some UUID"};
     EXPECT_CALL(*worker_, finalizeSector(sector_, keep_unsealed))
