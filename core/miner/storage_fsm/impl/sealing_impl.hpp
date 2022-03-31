@@ -112,6 +112,9 @@ namespace fc::mining {
       RequiredPadding padding;
     };
 
+    /**
+     * Returns unsealed sector that fits for piece size or creates new one.
+     */
     outcome::result<SectorPaddingResponse> getSectorAndPadding(
         UnpaddedPieceSize size);
 
@@ -212,12 +215,6 @@ namespace fc::mining {
      * @brief Handle incoming in kProving state
      */
     outcome::result<void> handleProvingSector(
-        const std::shared_ptr<SectorInfo> &info);
-
-    /**
-     * @brief Handle SnapDeals start waiting
-     */
-    outcome::result<void> handleSnapDealsWaitDeal(
         const std::shared_ptr<SectorInfo> &info);
 
     /**

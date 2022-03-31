@@ -272,8 +272,7 @@ namespace fc::mining {
       piece_location.sector = sector_and_padding.sector;
       piece_location.size = size.padded();
 
-      std::shared_ptr<SectorAddPiecesContext> context =
-          std::make_shared<SectorAddPiecesContext>();
+      auto context = std::make_shared<SectorAddPiecesContext>();
       context->pieces.reserve(sector_and_padding.padding.pads.size());
 
       auto sector_ref = minerSector(seal_proof_type, piece_location.sector);
@@ -424,6 +423,16 @@ namespace fc::mining {
       return SealingError::kSectorExpirationError;
     }
 
+    {
+      std::unique_lock lock(unsealed_mutex_);
+      unsealed_sectors_[id] = UnsealedSectorInfo{
+          .deals_number = 0,
+          .stored = PaddedPieceSize(0),
+          .piece_sizes = {},
+      };
+    }
+
+    logger_->info("Sector {} is marked for Snap upgrade.", id);
     FSM_SEND_CONTEXT(sector_info,
                      SealingEvent::kSectorStartCCUpdate,
                      std::make_shared<SectorStartCCUpdateContext>());
@@ -825,14 +834,11 @@ namespace fc::mining {
         // Snap Deals
         SealingTransition(SealingEvent::kSectorAddPieces)
             .from(SealingState::kSnapDealsWaitDeals)
-            .to(SealingState::kSnapDealsAddPiece),
+            .toSameState()
+            .action(CALLBACK_ACTION),
         SealingTransition(SealingEvent::kSectorStartPacking)
             .from(SealingState::kSnapDealsWaitDeals)
             .to(SealingState::kSnapDealsPacking),
-
-        SealingTransition(SealingEvent::kSectorPieceAdded)
-            .from(SealingState::kSnapDealsAddPiece)
-            .to(SealingState::kSnapDealsWaitDeals),
         SealingTransition(SealingEvent::kSectorAddPieceFailed)
             .from(SealingState::kSnapDealsAddPiece)
             .to(SealingState::kSnapDealsAddPieceFailed),
@@ -843,7 +849,8 @@ namespace fc::mining {
 
         SealingTransition(SealingEvent::kSectorReplicaUpdate)
             .from(SealingState::kUpdateReplica)
-            .to(SealingState::kProveReplicaUpdate),
+            .to(SealingState::kProveReplicaUpdate)
+            .action(CALLBACK_ACTION),
         SealingTransition(SealingEvent::kSectorUpdateReplicaFailed)
             .from(SealingState::kUpdateReplica)
             .to(SealingState::kReplicaUpdateFailed),
@@ -856,7 +863,8 @@ namespace fc::mining {
 
         SealingTransition(SealingEvent::kSectorProveReplicaUpdate)
             .from(SealingState::kProveReplicaUpdate)
-            .to(SealingState::kSubmitReplicaUpdate),
+            .to(SealingState::kSubmitReplicaUpdate)
+            .action(CALLBACK_ACTION),
         SealingTransition(SealingEvent::kSectorProveReplicaUpdateFailed)
             .from(SealingState::kProveReplicaUpdate)
             .to(SealingState::kReplicaUpdateFailed),
@@ -872,7 +880,8 @@ namespace fc::mining {
 
         SealingTransition(SealingEvent::kSectorReplicaUpdateSubmitted)
             .from(SealingState::kSubmitReplicaUpdate)
-            .to(SealingState::kReplicaUpdateWait),
+            .to(SealingState::kReplicaUpdateWait)
+            .action(CALLBACK_ACTION),
         SealingTransition(SealingEvent::kSectorSubmitReplicaUpdateFailed)
             .from(SealingState::kSubmitReplicaUpdate)
             .to(SealingState::kReplicaUpdateFailed),
@@ -953,7 +962,8 @@ namespace fc::mining {
 
         SealingTransition(SealingEvent::kSectorStartCCUpdate)
             .from(SealingState::kProving)
-            .to(SealingState::kSnapDealsWaitDeals),
+            .to(SealingState::kSnapDealsWaitDeals)
+            .action(CALLBACK_ACTION),
     };
   }
 
@@ -969,10 +979,6 @@ namespace fc::mining {
 
     const auto maybe_error = [&]() -> outcome::result<void> {
       switch (to) {
-        case SealingState::kWaitDeals: {
-          logger_->info("Waiting for deals {}", info->sector_number);
-          return outcome::success();
-        }
         case SealingState::kPacking:
           return handlePacking(info);
         case SealingState::kPreCommit1:
@@ -997,7 +1003,9 @@ namespace fc::mining {
           return handleFinalizeSector(info);
 
         case SealingState::kSnapDealsWaitDeals:
-          return handleSnapDealsWaitDeal(info);
+          return outcome::success();
+        case SealingState::kSnapDealsPacking:
+          return handlePacking(info);
         case SealingState::kUpdateReplica:
           return handleReplicaUpdate(info);
         case SealingState::kProveReplicaUpdate:
@@ -1369,7 +1377,8 @@ namespace fc::mining {
                 api_->StateMinerPreCommitDepositForPower(
                     miner_address_, params, head->key));
 
-    return SealingImpl::PreCommitParams{std::move(params), collateral, head->key};
+    return SealingImpl::PreCommitParams{
+        std::move(params), collateral, head->key};
   }
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -1929,15 +1938,11 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  outcome::result<void> SealingImpl::handleSnapDealsWaitDeal(
-      const std::shared_ptr<SectorInfo> &info) {
-    // TODO
-
-    return outcome::success();
-  }
-
   outcome::result<void> SealingImpl::handleReplicaUpdate(
       const std::shared_ptr<SectorInfo> &info) {
+    logger_->info("Performing replica update for the sector {}",
+                  info->sector_number);
+
     const auto maybe_error = checks::checkPieces(miner_address_, info, api_);
     if (maybe_error.has_error()) {
       if (maybe_error == outcome::failure(ChecksError::kInvalidDeal)) {
@@ -2086,6 +2091,8 @@ namespace fc::mining {
     const auto maybe_error = checks::checkUpdate(
         miner_address_, info, head->key, api_, sealer_->getProofEngine());
     if (maybe_error.has_error()) {
+      logger_->error("SubmitReplicaUpdate check update error: {}",
+                     maybe_error.error().message());
       FSM_SEND(info, SealingEvent::kSectorSubmitReplicaUpdateFailed);
       return outcome::success();
     }

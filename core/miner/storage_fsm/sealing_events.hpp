@@ -19,7 +19,6 @@ namespace fc::mining {
     kSectorStart = 1,
     kSectorStartWithPieces,
     kSectorAddPieces,
-    kSectorPieceAdded,
     kSectorRetryWaitDeals,
     kSectorStartPacking,
     kSectorPacked,

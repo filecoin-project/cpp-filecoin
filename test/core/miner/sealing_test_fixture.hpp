@@ -94,6 +94,9 @@ namespace fc::mining {
               },
           .deal_info = boost::none,
       }};
+      info.sector_type = RegisteredSealProof::kStackedDrg2KiBV1_1;
+      info.comm_r = "010001020010"_cid;
+      info.comm_d = "010001020011"_cid;
       EXPECT_OUTCOME_TRUE(buf, codec::cbor::encode(info));
       const std::string string_key = "empty_sector";
       const Bytes key(string_key.begin(), string_key.end());
