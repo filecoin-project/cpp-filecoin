@@ -41,9 +41,9 @@ namespace fc::primitives {
 
   inline bool operator<(const TaskType &lhs, const TaskType &rhs) {
     static std::unordered_map<std::string, int> order = {
+        {kTTFinalizeReplicaUpdate, -3},
         {kTTFinalize, -2},
         {kTTFetch, -1},
-        {kTTFinalizeReplicaUpdate, 0},
         {kTTReadUnsealed, 0},
         {kTTUnseal, 1},
         {kTTCommit1, 2},
@@ -56,6 +56,11 @@ namespace fc::primitives {
         {kTTAddPiece, 9},
         {kTTRegenSectorKey, 10}};
 
+    // Task types must be comparable
+    BOOST_ASSERT_MSG(order.count(lhs) > 0,
+                     "Task type priority has not been set");
+    BOOST_ASSERT_MSG(order.count(rhs) > 0,
+                     "Task type priority has not been set");
     return order[lhs] < order[rhs];
   }
 }  // namespace fc::primitives

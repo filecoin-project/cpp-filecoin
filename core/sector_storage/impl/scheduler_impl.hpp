@@ -36,7 +36,7 @@ namespace fc::sector_storage {
           work(std::move(work)),
           cb(std::move(cb)) {
       const auto &resource_table{primitives::getResourceTable()};
-      const auto resource_iter = resource_table.find(task_type);
+      const auto resource_iter = resource_table.find(this->task_type);
       if (resource_iter != resource_table.end()) {
         need_resources = resource_iter->second.at(sector.proof_type);
       }
