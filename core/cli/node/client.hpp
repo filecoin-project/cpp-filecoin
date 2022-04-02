@@ -23,6 +23,9 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+
+#include <rapidjson/prettywriter.h>
+
 namespace fc::cli::cli_node {
   using api::FileRef;
   using api::FullNodeApi;
@@ -134,6 +137,7 @@ namespace fc::cli::cli_node {
         for (const auto &import : imports) {
           if (import.root == data_cid) {
             result.from_local_car = import.path;
+            result.root = import.root;
             local_found = true;
             break;
           }
@@ -157,28 +161,30 @@ namespace fc::cli::cli_node {
           fin_offer = offers[0];
         } else {
           fin_offer = cliTry(api->ClientMinerQueryOffer(
-                                 *args.provider, data_cid, *args.piece_cid),
+              *args.provider, data_cid, *args.piece_cid),
                              "Cannot get retrieval offer from {}",
                              fmt::to_string(*args.provider));
         }
-
-        if (fin_offer.min_price > args.max_price->fil) {
-          fmt::print("Cannot find suitable offer for provided proposal");
-        } else {
-          order.root = fin_offer.root;
-          order.piece = fin_offer.piece;
-          order.size = fin_offer.size;
-          order.total = fin_offer.min_price;
-          order.unseal_price = fin_offer.unseal_price;
-          order.payment_interval = fin_offer.payment_interval;
-          order.payment_interval_increase = fin_offer.payment_interval_increase;
-          order.peer = fin_offer.peer;
-          auto maybe_result = api->ClientRetrieve(order, file_ref);
-          if (maybe_result.has_error()) {
-            fmt::print("Failure have appeared during retrieval request");
-          } else
-            fmt::print("Success");
-        }
+      }
+      else {
+        fin_offer.root = result.root;
+      }
+      if (fin_offer.min_price > args.max_price->fil) {
+        fmt::print("Cannot find suitable offer for provided proposal");
+      } else {
+        order.root = fin_offer.root;
+        order.piece = fin_offer.piece;
+        order.size = fin_offer.size;
+        order.total = fin_offer.min_price;
+        order.unseal_price = fin_offer.unseal_price;
+        order.payment_interval = fin_offer.payment_interval;
+        order.payment_interval_increase = fin_offer.payment_interval_increase;
+        order.peer = fin_offer.peer;
+        auto maybe_result = api->ClientRetrieve(order, file_ref);
+        if (maybe_result.has_error()) {
+          fmt::print("Failure have appeared during retrieval request");
+        } else
+          fmt::print("Success");
       }
     }
   };
@@ -211,41 +217,41 @@ namespace fc::cli::cli_node {
                    "manually specify piece commitment for data (dataCid must "
                    "be to a car file)",
                    CID)
-      man_piece_cid;
+          man_piece_cid;
       CLI_DEFAULT("manual-piece-size",
                   "if manually specifying piece cid, used to specify size "
                   "(dataCid must be to a car file)",
                   uint64_t,
                   {0})
-      man_piece_size;
+          man_piece_size;
       CLI_BOOL("manual-stateless-deal",
                "instructs the node to send an offline deal without registering "
                "it with the deallist/fsm")
-      man_stateless;
+          man_stateless;
       CLI_OPTIONAL("from", "specify address to fund the deal with", Address)
-      from;
+          from;
       CLI_DEFAULT("start-epoch",
                   "specify the epoch that the deal should start at",
                   ChainEpoch,
                   {-1})
-      start_epoch;
+          start_epoch;
       CLI_DEFAULT("cid-base",
                   "Multibase encoding used for version 1 CIDs in output.",
                   std::string,
                   {"base-32"})
-      cid_base;
+          cid_base;
       CLI_BOOL("fast-retrieval",
                "indicates that data should be available for fast retrieval")
-      fast_ret;
+          fast_ret;
       CLI_BOOL("verified-deal",
                "indicate that the deal counts towards verified client tota")
-      verified_deal;
+          verified_deal;
       CLI_DEFAULT(
           "provider-collateral",
           "specify the requested provider collateral the miner should put up",
           TokenAmount,
           {0})
-      collateral;
+          collateral;
 
       CLI_OPTS() {
         Opts opts;
@@ -282,9 +288,9 @@ namespace fc::cli::cli_node {
       if (args.man_piece_cid) {
         UnpaddedPieceSize piece_size{*args.man_piece_size};
         data_ref = {.transfer_type = "manual",
-                    .root = data_cid,
-                    .piece_cid = *args.man_piece_cid,
-                    .piece_size = piece_size};
+            .root = data_cid,
+            .piece_cid = *args.man_piece_cid,
+            .piece_size = piece_size};
       } else {
         data_ref = {.transfer_type = "graphsync", .root = data_cid};
       }
@@ -299,14 +305,14 @@ namespace fc::cli::cli_node {
             address_from);
 
       StartDealParams deal_params = {.data = data_ref,
-                                     .wallet = address_from,
-                                     .miner = miner,
-                                     .epoch_price = price,
-                                     .min_blocks_duration = duration,
-                                     .provider_collateral = *args.collateral,
-                                     .deal_start_epoch = *args.start_epoch,
-                                     .fast_retrieval = args.fast_ret,
-                                     .verified_deal = isVerified};
+          .wallet = address_from,
+          .miner = miner,
+          .epoch_price = price,
+          .min_blocks_duration = duration,
+          .provider_collateral = *args.collateral,
+          .deal_start_epoch = *args.start_epoch,
+          .fast_retrieval = args.fast_ret,
+          .verified_deal = isVerified};
       auto proposal_cid = cliTry(api->ClientStartDeal(deal_params));
       fmt::print("Deal proposal CID: {}\n",
                  cliTry(proposal_cid.toString(), "Cannot extract CID"));
@@ -352,7 +358,7 @@ namespace fc::cli::cli_node {
       CLI_OPTIONAL("piece-cid",
                    "require data to be retrieved from a specific Piece CID",
                    CID)
-      piece_cid;
+          piece_cid;
       CLI_OPTS() {
         Opts opts;
         piece_cid(opts);
@@ -363,7 +369,7 @@ namespace fc::cli::cli_node {
       auto data_cid{cliArgv<CID>(argv, 0, "data-cid")};
       Node::Api api{argm};
       auto querry_offers =
-          cliTry(api->ClientFindData(data_cid, *args.piece_cid));
+          cliTry(api->ClientFindData(data_cid, args.piece_cid.v));
       for (const auto &offer : querry_offers) {
         if (offer.error == "") {
           fmt::print("ERROR: {}@{}: {}\n",
@@ -430,7 +436,7 @@ namespace fc::cli::cli_node {
   struct Node_client_inspectDeal {
     struct Args {
       CLI_OPTIONAL("proposal-cid", "proposal cid of deal to be inspected", CID)
-      proposal_cid;
+          proposal_cid;
       CLI_OPTIONAL("deal-id", "id of deal to be inspected", DealId) deal_id;
       CLI_OPTS() {
         Opts opts;
@@ -479,7 +485,7 @@ namespace fc::cli::cli_node {
                   "list all deals stats that was made after given period",
                   ChainEpoch,
                   {0})
-      newer;
+          newer;
       CLI_OPTS() {
         Opts opts;
         newer(opts);
@@ -549,9 +555,9 @@ namespace fc::cli::cli_node {
                 "Yes (epoch: {})", deal_from_info.state.sector_start_epoch)
                                                           : "None";
         row["Slashed"] = deal_from_info.state.slash_epoch != -1
-                             ? fmt::format("Yes (epoch: {})",
-                                           deal_from_info.state.slash_epoch)
-                             : "None";
+                         ? fmt::format("Yes (epoch: {})",
+                                       deal_from_info.state.slash_epoch)
+                         : "None";
         row["Piece CID"] = fmt::to_string(deal.piece_cid);
         row["Size"] = fmt::to_string(deal.size);
         row["Price"] = fmt::to_string(deal.price_per_epoch);
@@ -606,7 +612,18 @@ namespace fc::cli::cli_node {
           api::encode(api::CliDealStat{.deal_info = deal_info, .deal = res});
       auto bytes_json = cliTry(codec::json::format(&jsoned));
       auto response = common::span::bytestr(bytes_json);
-      fmt::print("{}", response);
+
+//      using rapidjson_prettywriter = rapidjson::PrettyWriter<stdout>;
+
+
+//      rapidjson::Document document;
+//      document.Parse(response.data());
+//
+//      rapidjson::StringBuffer buffer;
+//      rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+//
+//      document.Accept(writer);
+//      fmt::print("{}", buffer.GetString());
     }
   };
 
@@ -617,7 +634,7 @@ namespace fc::cli::cli_node {
       CLI_OPTIONAL("from",
                    "specifies the adrress of notary to send message from",
                    Address)
-      from;
+          from;
       CLI_OPTS() {
         Opts opts;
         from(opts);
