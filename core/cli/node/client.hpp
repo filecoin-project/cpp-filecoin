@@ -24,8 +24,6 @@
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 
-#include <rapidjson/prettywriter.h>
-
 namespace fc::cli::cli_node {
   using api::FileRef;
   using api::FullNodeApi;
@@ -130,14 +128,13 @@ namespace fc::cli::cli_node {
 
       FileRef file_ref{.path = path, .is_car = args.car};
 
-      ExportRef result;
       bool local_found{false};
       if (args.allow_local) {
         auto imports = cliTry(api->ClientListImports());
         for (const auto &import : imports) {
           if (import.root == data_cid) {
-            result.from_local_car = import.path;
-            result.root = import.root;
+            fmt::print("Root: {}", fmt::to_string(import.root));
+            fmt::print("Local path: {}", import.path);
             local_found = true;
             break;
           }
@@ -161,31 +158,29 @@ namespace fc::cli::cli_node {
           fin_offer = offers[0];
         } else {
           fin_offer = cliTry(api->ClientMinerQueryOffer(
-              *args.provider, data_cid, *args.piece_cid),
+                                 *args.provider, data_cid, *args.piece_cid),
                              "Cannot get retrieval offer from {}",
                              fmt::to_string(*args.provider));
         }
+        if (fin_offer.min_price > args.max_price->fil) {
+          fmt::print("Cannot find suitable offer for provided proposal");
+        } else {
+          order.root = fin_offer.root;
+          order.piece = fin_offer.piece;
+          order.size = fin_offer.size;
+          order.total = fin_offer.min_price;
+          order.unseal_price = fin_offer.unseal_price;
+          order.payment_interval = fin_offer.payment_interval;
+          order.payment_interval_increase = fin_offer.payment_interval_increase;
+          order.peer = fin_offer.peer;
+          auto maybe_result = api->ClientRetrieve(order, file_ref);
+          if (maybe_result.has_error()) {
+            fmt::print("Failure have appeared during retrieval request");
+          } else
+            fmt::print("Success");
+        }
       }
-      else {
-        fin_offer.root = result.root;
-      }
-      if (fin_offer.min_price > args.max_price->fil) {
-        fmt::print("Cannot find suitable offer for provided proposal");
-      } else {
-        order.root = fin_offer.root;
-        order.piece = fin_offer.piece;
-        order.size = fin_offer.size;
-        order.total = fin_offer.min_price;
-        order.unseal_price = fin_offer.unseal_price;
-        order.payment_interval = fin_offer.payment_interval;
-        order.payment_interval_increase = fin_offer.payment_interval_increase;
-        order.peer = fin_offer.peer;
-        auto maybe_result = api->ClientRetrieve(order, file_ref);
-        if (maybe_result.has_error()) {
-          fmt::print("Failure have appeared during retrieval request");
-        } else
-          fmt::print("Success");
-      }
+      fmt::print("End of retrieve.");
     }
   };
 
@@ -613,17 +608,7 @@ namespace fc::cli::cli_node {
       auto bytes_json = cliTry(codec::json::format(&jsoned));
       auto response = common::span::bytestr(bytes_json);
 
-//      using rapidjson_prettywriter = rapidjson::PrettyWriter<stdout>;
-
-
-//      rapidjson::Document document;
-//      document.Parse(response.data());
-//
-//      rapidjson::StringBuffer buffer;
-//      rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-//
-//      document.Accept(writer);
-//      fmt::print("{}", buffer.GetString());
+      fmt::print("{}", response);
     }
   };
 
