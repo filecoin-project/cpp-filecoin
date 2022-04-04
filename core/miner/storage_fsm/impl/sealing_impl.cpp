@@ -1979,7 +1979,7 @@ namespace fc::mining {
           OUTCOME_EXCEPT(
               fsm->send(info, SealingEvent::kSectorReplicaUpdate, context));
         },
-        kDealSectorPriority);
+        info->sealingPriority());
     return outcome::success();
   }
 
