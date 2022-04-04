@@ -55,7 +55,8 @@ namespace fc::remote_worker {
         [=]() -> outcome::result<api::CodecSetAsMap<primitives::TaskType>> {
       OUTCOME_TRY(supported_tasks, worker->getSupportedTask());
       // N.B. set encoded as JSON map
-      return api::CodecSetAsMap<primitives::TaskType>{supported_tasks};
+      return api::CodecSetAsMap<primitives::TaskType>{
+          std::move(supported_tasks)};
     };
 
     worker_api->SealPreCommit1 = [=](const SectorRef &sector,
@@ -81,7 +82,7 @@ namespace fc::remote_worker {
     };
     worker_api->FinalizeSector = [=](const SectorRef &sector,
                                      std::vector<Range> keep_unsealed) {
-      return worker->finalizeSector(sector, keep_unsealed);
+      return worker->finalizeSector(sector, std::move(keep_unsealed));
     };
 
     worker_api->ReplicaUpdate = [=](const SectorRef &sector,
