@@ -6,19 +6,9 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 
 namespace fc::primitives {
-
-  class TaskType : public std::string {
-   public:
-    TaskType() = default;
-    explicit TaskType(const std::string &str) : std::string(str){};
-
-    bool operator<(const TaskType &other) const {
-      return this->compare(other) < 0;
-    }
-  };
+  using TaskType = std::string;
 
   const TaskType kTTAddPiece("seal/v0/addpiece");
   const TaskType kTTPreCommit1("seal/v0/precommit/1");

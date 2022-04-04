@@ -378,14 +378,6 @@ namespace fc::api {
       v = AsString(j);
     }
 
-    ENCODE(TaskType) {
-      return encode(std::string_view(v));
-    }
-
-    DECODE(TaskType) {
-      v = TaskType(AsString(j));
-    }
-
     ENCODE(gsl::span<const uint8_t>) {
       return encode(base64::encode(v.data(), v.size()));
     }
