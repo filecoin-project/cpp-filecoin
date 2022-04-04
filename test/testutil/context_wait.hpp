@@ -18,5 +18,6 @@ inline void stopAfterSteps(boost::asio::io_context &io, size_t steps) {
 
 inline void runForSteps(boost::asio::io_context &io, size_t steps) {
   stopAfterSteps(io, steps);
+  io.restart();
   io.run();
 }

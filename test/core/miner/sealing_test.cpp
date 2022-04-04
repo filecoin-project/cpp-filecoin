@@ -4,8 +4,10 @@
  */
 
 #include "core/miner/sealing_test_fixture.hpp"
+#include "vm/actor/builtin/types/market/policy.hpp"
 
 namespace fc::mining {
+  using vm::actor::builtin::types::market::kDealMinDuration;
 
   class SealingTest : public SealingTestFixture {};
 
@@ -511,13 +513,9 @@ namespace fc::mining {
         .WillOnce(testing::Invoke(
             [=](auto, auto, auto cb, auto) { cb(outcome::success()); }));
 
-    auto state{SealingState::kStateUnknown};
-    while (state != SealingState::kProving) {
-      runForSteps(*context_, 100);
-      EXPECT_OUTCOME_TRUE(sector_info, sealing_->getSectorInfo(sector));
-      ASSERT_NE(sector_info->state, state);
-      state = sector_info->state;
-    }
+    runForSteps(*context_, 100);
+    EXPECT_OUTCOME_TRUE(sector_info, sealing_->getSectorInfo(sector));
+    EXPECT_EQ(sector_info->state, SealingState::kProving);
   }
 
   /**
@@ -556,4 +554,202 @@ namespace fc::mining {
     ASSERT_EQ(sealing_->getListSectors().size(), 2);
   }
 
+  /**
+   * @given sector in Proving state and marked for CCUpdate
+   * @when try to seal sector
+   * @then success
+   */
+  TEST_F(SealingTest, CCUpdateToProving) {
+    // watched sector in Proving state
+    auto sector = sealing_->getListSectors().front();
+    EXPECT_EQ(sector->state, SealingState::kProving);
+
+    ChainEpoch height = 100;
+    TipsetKey key{{CbCid::hash("01"_unhex)}};
+    auto head = std::make_shared<Tipset>(
+        key, std::vector<BlockHeader>{BlockHeader{.height = height}});
+    api_->ChainHead = [&]() -> outcome::result<TipsetCPtr> { return head; };
+    api_->StateMinerActiveSectors = [&](const Address &, const TipsetKey &)
+        -> outcome::result<std::vector<SectorOnChainInfo>> {
+      // contains upgraded sector
+      return std::vector<SectorOnChainInfo>{
+          SectorOnChainInfo{.sector = update_sector_id_}};
+    };
+    api_->StateSectorGetInfo =
+        [&](const Address &, SectorNumber, const TipsetKey &key)
+        -> outcome::result<boost::optional<SectorOnChainInfo>> {
+      // expiration is more than head + deal duration
+      return SectorOnChainInfo{.expiration = height + kDealMinDuration};
+    };
+
+    // Mark sector ready for snap deals
+    EXPECT_OUTCOME_TRUE_1(sealing_->markForSnapUpgrade(sector->sector_number));
+    runForSteps(*context_, 1);
+    EXPECT_EQ(sector->state, SealingState::kSnapDealsWaitDeals);
+
+    // Add deal
+    UnpaddedPieceSize piece_size(2032);
+    PieceData piece("/dev/random");
+    CID piece_cid = "010001020001"_cid;
+    DealInfo deal{
+        .publish_cid = piece_cid,
+        .deal_id = 0,
+        .deal_schedule =
+            {
+                .start_epoch = 1,
+                .end_epoch = 2,
+            },
+        .is_keep_unsealed = true,
+    };
+
+    SectorId sector_id{.miner = miner_id_, .sector = sector->sector_number};
+
+    PieceInfo info{
+        .size = piece_size.padded(),
+        .cid = piece_cid,
+    };
+
+    SectorRef sector_ref{.id = sector_id, .proof_type = seal_proof_type_};
+    EXPECT_CALL(*manager_,
+                doAddPieceSync(
+                    sector_ref, IsEmpty(), piece_size, _, kDealSectorPriority))
+        .WillOnce(testing::Return(info));
+
+    // add deal
+    EXPECT_OUTCOME_TRUE_1(
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
+
+    std::vector<PieceInfo> infos = {info};
+
+    // ReplicaUpdate
+    sector_storage::ReplicaUpdateOut replica_update_out;
+    replica_update_out.sealed_cid = "010001020006"_cid;
+    replica_update_out.unsealed_cid = "010001020011"_cid;
+    EXPECT_CALL(*manager_,
+                replicaUpdate(sector_ref, infos, _, kDealSectorPriority))
+        .WillOnce(testing::Invoke(
+            [=](auto, auto, auto cb, auto) { cb(replica_update_out); }));
+    DealProposal proposal;
+    proposal.piece_cid = info.cid;
+    proposal.piece_size = info.size;
+    proposal.start_epoch = head->height() + 1;
+    proposal.provider = miner_addr_;
+    StorageDeal storage_deal;
+    storage_deal.proposal = proposal;
+    storage_deal.proposal = proposal;
+    api_->StateMarketStorageDeal =
+        [&](DealId deal_id,
+            const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
+      if (deal_id == deal.deal_id and tipset_key == key) {
+        return storage_deal;
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    // ProveReplicaUpdate1
+    sector_storage::ReplicaVanillaProofs vanilla_proofs;
+    EXPECT_CALL(*manager_,
+                proveReplicaUpdate1(sector_ref,
+                                    sector->comm_r.get(),
+                                    replica_update_out.sealed_cid,
+                                    replica_update_out.unsealed_cid,
+                                    _,
+                                    kDealSectorPriority))
+        .WillOnce(testing::Invoke([=](auto, auto, auto, auto, auto cb, auto) {
+          cb(vanilla_proofs);
+        }));
+
+    // ProveReplicaUpdate2
+    sector_storage::ReplicaUpdateProof replica_update_proof;
+    EXPECT_CALL(*manager_,
+                proveReplicaUpdate2(sector_ref,
+                                    sector->comm_r.get(),
+                                    replica_update_out.sealed_cid,
+                                    replica_update_out.unsealed_cid,
+                                    vanilla_proofs,
+                                    _,
+                                    kDealSectorPriority))
+        .WillOnce(
+            testing::Invoke([=](auto, auto, auto, auto, auto, auto cb, auto) {
+              cb(replica_update_proof);
+            }));
+
+    // SubmitReplicaUpdate
+    EXPECT_CALL(*proofs_, verifyUpdateProof(_))
+        .WillOnce(testing::Return(outcome::success(true)));
+    api_->StateSectorPartition =
+        [&](const Address &address,
+            SectorNumber sector,
+            const TipsetKey &tsk) -> outcome::result<api::SectorLocation> {
+      return api::SectorLocation{.deadline = 42, .partition = 43};
+    };
+    api_->StateSectorGetInfo =
+        [&](const Address &, SectorNumber, const TipsetKey &key)
+        -> outcome::result<boost::optional<SectorOnChainInfo>> {
+      if (key == head->key) {
+        return SectorOnChainInfo{};
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
+    api_->StateMinerInitialPledgeCollateral =
+        [](const Address &,
+           const SectorPreCommitInfo &,
+           const TipsetKey &) -> outcome::result<TokenAmount> { return 0; };
+    CID update_msg_cid;  // for commit stage
+    api_->MpoolPushMessage = [&update_msg_cid](
+                                 const UnsignedMessage &msg,
+                                 const boost::optional<api::MessageSendSpec> &)
+        -> outcome::result<SignedMessage> {
+      update_msg_cid = msg.getCid();
+      return SignedMessage{.message = msg, .signature = BlsSignature()};
+    };
+    sector_storage::SectorCids cids{.sealed_cid = "010001020010"_cid,
+                                    .unsealed_cid = "010001020011"_cid};
+    api_->StateCall =
+        [&](const UnsignedMessage &message,
+            const TipsetKey &tipset_key) -> outcome::result<InvocResult> {
+      InvocResult result;
+      ComputeDataCommitment::Result call_res{.commds = {cids.unsealed_cid}};
+      EXPECT_OUTCOME_TRUE(unsealed_buffer, codec::cbor::encode(call_res));
+      result.receipt = MessageReceipt{
+          .exit_code = vm::VMExitCode::kOk,
+          .return_value = unsealed_buffer,
+      };
+      return result;
+    };
+
+    // ReplicaUpdateWait
+    api_->StateWaitMsg =
+        [&](const CID &msg_cid, auto, auto, auto) -> outcome::result<MsgWait> {
+      if (msg_cid == update_msg_cid) {
+        MsgWait result;
+        result.tipset = head->key;
+        result.receipt.exit_code = vm::VMExitCode::kOk;
+        return result;
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    // FinalizeReplicaUpdate
+    EXPECT_CALL(*manager_,
+                finalizeReplicaUpdate(sector_ref, _, _, kDealSectorPriority))
+        .WillOnce(testing::Invoke(
+            [=](auto, auto, auto cb, auto) { cb(outcome::success()); }));
+
+    // UpdateActivating
+    EXPECT_CALL(*events_, chainAt(_, _, kInteractivePoRepConfidence, _))
+        .WillOnce(testing::Invoke(
+            [](auto apply, auto, auto, auto) -> outcome::result<void> {
+              EXPECT_OUTCOME_TRUE_1(apply({}, 0));
+              return outcome::success();
+            }));
+
+    // ReleaseSectorKey
+    EXPECT_CALL(*manager_, releaseSectorKey(sector_ref))
+        .WillOnce(testing::Return(outcome::success()));
+
+    runForSteps(*context_, 100);
+    EXPECT_EQ(sector->state, SealingState::kProving);
+  }
 }  // namespace fc::mining

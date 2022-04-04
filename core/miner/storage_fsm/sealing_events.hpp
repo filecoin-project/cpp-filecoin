@@ -19,7 +19,6 @@ namespace fc::mining {
     kSectorStart = 1,
     kSectorStartWithPieces,
     kSectorAddPieces,
-    kSectorPieceAdded,
     kSectorRetryWaitDeals,
     kSectorStartPacking,
     kSectorPacked,
@@ -261,7 +260,18 @@ namespace fc::mining {
     }
   };
 
-  struct SectorProveReplicaUpdateContext final : public SealingEventContext{
+  struct SectorReplicaUpdateContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->update_sealed = update_sealed;
+      info->update_unsealed = update_unsealed;
+    }
+
+    CID update_sealed;
+    CID update_unsealed;
+  };
+
+  struct SectorProveReplicaUpdateContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->update_proof = proof;
@@ -270,7 +280,8 @@ namespace fc::mining {
     sector_storage::ReplicaUpdateProof proof;
   };
 
-  struct SectorReplicaUpdateSubmittedContext final : public SealingEventContext {
+  struct SectorReplicaUpdateSubmittedContext final
+      : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->update_message = message;

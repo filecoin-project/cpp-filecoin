@@ -768,7 +768,8 @@ namespace fc::sector_storage {
     auto path_type = PathType::kStorage;
     {
       OUTCOME_CB(auto sealed_stores,
-                 index_->storageFindSector(sector.id, main_type, boost::none));
+                 index_->storageFindSector(
+                     sector.id, SectorFileType::FTSealed, boost::none));
 
       for (const auto &store : sealed_stores) {
         if (store.can_seal) {
