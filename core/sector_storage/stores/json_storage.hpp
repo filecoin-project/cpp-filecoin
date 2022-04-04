@@ -7,9 +7,7 @@
 
 #include "codec/json/coding.hpp"
 
-#include "sector_storage/stores/index.hpp"
 #include "sector_storage/stores/storage.hpp"
-#include "sector_storage/stores/store.hpp"
 
 namespace fc::sector_storage::stores {
   using codec::json::Get;

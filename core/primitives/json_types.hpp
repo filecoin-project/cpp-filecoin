@@ -6,7 +6,7 @@
 #pragma once
 
 #include "codec/json/coding.hpp"
-#include "primitives/json_types.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::primitives {
   using codec::json::Get;
