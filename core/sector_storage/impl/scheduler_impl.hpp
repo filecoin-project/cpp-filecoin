@@ -12,7 +12,6 @@
 #include <mutex>
 #include <unordered_map>
 #include <utility>
-#include "common/map_utils.hpp"
 #include "primitives/resources/resources.hpp"
 #include "storage/buffer_map.hpp"
 
@@ -57,28 +56,10 @@ namespace fc::sector_storage {
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
-    // Get TaskType order if present. For TaskTypes not present order is 0.
-    static std::map<TaskType, int> order = {
-        {primitives::kTTFinalize, -2},
-        {primitives::kTTFetch, -1},
-        {primitives::kTTReadUnsealed, 0},
-        {primitives::kTTUnseal, 1},
-        {primitives::kTTCommit1, 2},
-        {primitives::kTTCommit2, 3},
-        {primitives::kTTPreCommit2, 4},
-        {primitives::kTTPreCommit1, 5},
-        {primitives::kTTProveReplicaUpdate1, 6},
-        {primitives::kTTProveReplicaUpdate2, 7},
-        {primitives::kTTReplicaUpdate, 8},
-        {primitives::kTTAddPiece, 9},
-        {primitives::kTTRegenSectorKey, 10}};
-    const auto left_order = common::getOrDefault(order, lhs.task_type, 0);
-    const auto right_order = common::getOrDefault(order, rhs.task_type, 0);
-
     return less(lhs.priority,
                 rhs.priority,
-                left_order,
-                right_order,
+                primitives::getTaskTypePiority(lhs.task_type),
+                primitives::getTaskTypePiority(rhs.task_type),
                 lhs.sector.id.sector,
                 rhs.sector.id.sector);
   }

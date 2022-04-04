@@ -7,6 +7,8 @@
 
 #include <string>
 
+#include "common/map_utils.hpp"
+
 namespace fc::primitives {
   using TaskType = std::string;
 
@@ -32,4 +34,25 @@ namespace fc::primitives {
   const TaskType kTTProveReplicaUpdate2("seal/v0/provereplicaupdate/2");
   const TaskType kTTRegenSectorKey("seal/v0/regensectorkey");
   const TaskType kTTFinalizeReplicaUpdate("seal/v0/finalize/replicaupdate");
+
+  /**
+   * Returns task type order. If task type not on the list, 0 returned.
+   */
+  inline int getTaskTypePiority(std::string_view task) {
+    static std::unordered_map<std::string_view, int> order = {
+        {kTTFinalize, -2},
+        {kTTFetch, -1},
+        {kTTUnseal, 1},
+        {kTTCommit1, 2},
+        {kTTCommit2, 3},
+        {kTTPreCommit2, 4},
+        {kTTPreCommit1, 5},
+        {kTTProveReplicaUpdate1, 6},
+        {kTTProveReplicaUpdate2, 7},
+        {kTTReplicaUpdate, 8},
+        {kTTAddPiece, 9},
+        {kTTRegenSectorKey, 10}};
+
+    return common::getOrDefault(order, task, 0);
+  }
 }  // namespace fc::primitives
