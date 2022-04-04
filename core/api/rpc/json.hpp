@@ -5,6 +5,12 @@
 
 #pragma once
 
+/**
+ * @note This file collects all the encodings that are used in the serialization
+ * of structures for the server. If you want to use any structures outside the
+ * server, then you can freely take them there, and write #include here.
+ */
+
 #include "codec/json/coding.hpp"
 
 #include "api/full_node/node_api.hpp"
@@ -57,46 +63,64 @@ namespace fc::codec::json {
   }
 }  // namespace fc::codec::json
 
-namespace fc::adt {
-  using codec::json::encode;
-  using codec::json::innerDecode;
+namespace boost::multiprecision {
+  using fc::codec::json::AsString;
+  using fc::codec::json::encode;
 
-  template <typename T>
-  JSON_ENCODE(adt::Array<T>) {
-    return encode(v.amt.cid());
+  JSON_ENCODE(cpp_int) {
+    return encode(boost::lexical_cast<std::string>(v), allocator);
   }
 
-  template <typename T>
-  JSON_DECODE(adt::Array<T>) {
-    v.amt = {nullptr, innerDecode<CID>(j)};
+  JSON_DECODE(cpp_int) {
+    v = cpp_int{AsString(j)};
   }
-}  // namespace fc::adt
+}  // namespace boost::multiprecision
 
-namespace fc::markets::retrieval::client {
-  using codec::json::Get;
-  using codec::json::Set;
-  using codec::json::Value;
+namespace libp2p {
+  using fc::codec::json::AsString;
 
-  JSON_ENCODE(RetrievalDeal) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Proposal", v.proposal, allocator);
-    Set(j, "Accepted", v.accepted, allocator);
-    Set(j, "AllBlocks", v.all_blocks, allocator);
-    Set(j, "Client", v.client_wallet, allocator);
-    Set(j, "Provider", v.miner_wallet, allocator);
-    Set(j, "TotalFunds", v.total_funds, allocator);
-    return j;
-  }
+  using fc::codec::json::Get;
+  using fc::codec::json::Set;
+  using fc::codec::json::Value;
 
-  JSON_DECODE(RetrievalDeal) {
-    Get(j, "Proposal", v.proposal);
-    Get(j, "Accepted", v.accepted);
-    Get(j, "AllBlocks", v.all_blocks);
-    Get(j, "Client", v.client_wallet);
-    Get(j, "Provider", v.miner_wallet);
-    Get(j, "TotalFunds", v.total_funds);
-  }
-}  // namespace fc::markets::retrieval::client
+  namespace multi {
+    using fc::codec::json::encode;
+
+    JSON_ENCODE(Multiaddress) {
+      return encode(v.getStringAddress(), allocator);
+    }
+
+    JSON_DECODE(Multiaddress) {
+      OUTCOME_EXCEPT(_v, Multiaddress::create(AsString(j)));
+      v = std::move(_v);
+    }
+  }  // namespace multi
+
+  namespace peer {
+    using fc::codec::json::encode;
+
+    JSON_ENCODE(PeerId) {
+      return encode(v.toBase58(), allocator);
+    }
+
+    JSON_DECODE(PeerId) {
+      OUTCOME_EXCEPT(id, PeerId::fromBase58(AsString(j)));
+      v = std::move(id);
+    }
+
+    JSON_ENCODE(PeerInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id, allocator);
+      Set(j, "Addrs", v.addresses, allocator);
+      return j;
+    }
+
+    JSON_DECODE(PeerInfo) {
+      Get(j, "ID", v.id);
+      Get(j, "Addrs", v.addresses);
+    }
+  }  // namespace peer
+}  // namespace libp2p
 
 namespace fc {
   using codec::json::AsString;
@@ -116,19 +140,6 @@ namespace fc {
     v = std::move(cid);
   }
 }  // namespace fc
-
-namespace fc::vm::version {
-  using codec::json::decodeEnum;
-  using codec::json::encode;
-
-  JSON_ENCODE(NetworkVersion) {
-    return encode(common::to_int(v), allocator);
-  }
-
-  JSON_DECODE(NetworkVersion) {
-    decodeEnum(v, j);
-  }
-}  // namespace fc::vm::version
 
 namespace fc::primitives {
   using codec::json::encode;
@@ -150,455 +161,474 @@ namespace fc::primitives {
     v = TaskType(AsString(j));
   }
 
-}  // namespace fc::primitives
-namespace fc::primitives::address {
-  using codec::json::AsString;
-  using codec::json::encode;
-
-  JSON_ENCODE(Address) {
-    return encode(encodeToString(v), allocator);
-  }
-
-  JSON_DECODE(Address) {
-    OUTCOME_EXCEPT(decoded, decodeFromString(AsString(j)));
-    v = std::move(decoded);
-  }
-}  // namespace fc::primitives::address
-
-namespace fc::primitives::sector_file {
-  using codec::json::decodeEnum;
-  using codec::json::encode;
-
-  JSON_ENCODE(SectorFileType) {
-    return encode(common::to_int(v), allocator);
-  }
-
-  JSON_DECODE(SectorFileType) {
-    decodeEnum(v, j);
-  }
-}  // namespace fc::primitives::sector_file
-
-namespace fc::primitives::sector {
-
-  using codec::json::decodeEnum;
-  using codec::json::encode;
-
-  JSON_ENCODE(RegisteredSealProof) {
-    return encode(common::to_int(v), allocator);
-  }
-
-  JSON_DECODE(RegisteredSealProof) {
-    decodeEnum(v, j);
-  }
-
-  JSON_ENCODE(RegisteredPoStProof) {
-    return encode(common::to_int(v), allocator);
-  }
-
-  JSON_DECODE(RegisteredPoStProof) {
-    decodeEnum(v, j);
-  }
-
-  JSON_ENCODE(PoStProof) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "PoStProof", v.registered_proof, allocator);
-    Set(j, "ProofBytes", gsl::make_span(v.proof), allocator);
-    return j;
-  }
-
-  JSON_DECODE(PoStProof) {
-    Get(j, "PoStProof", v.registered_proof);
-    Get(j, "ProofBytes", v.proof);
-  }
-
-  JSON_ENCODE(SectorId) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Miner", v.miner, allocator);
-    Set(j, "Number", v.sector, allocator);
-    return j;
-  }
-
-  JSON_DECODE(SectorId) {
-    Get(j, "Miner", v.miner);
-    Get(j, "Number", v.sector);
-  }
-
-  JSON_ENCODE(ExtendedSectorInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "SealProof", v.registered_proof, allocator);
-    Set(j, "SectorKey", v.sector_key, allocator);
-    Set(j, "SectorNumber", v.sector, allocator);
-    Set(j, "SealedCID", v.sealed_cid, allocator);
-    return j;
-  }
-
-  JSON_DECODE(ExtendedSectorInfo) {
-    Get(j, "SealProof", v.registered_proof);
-    Get(j, "SectorKey", v.sector_key);
-    Get(j, "SectorNumber", v.sector);
-    Get(j, "SealedCID", v.sealed_cid);
-  }
-
-  JSON_ENCODE(SectorRef) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "ID", v.id, allocator);
-    Set(j, "ProofType", v.proof_type, allocator);
-    return j;
-  }
-
-  JSON_DECODE(SectorRef) {
-    Get(j, "ID", v.id);
-    Get(j, "ProofType", v.proof_type);
-  }
-}  // namespace fc::primitives::sector
-
-namespace fc::primitives::piece {
-  using codec::json::encode;
-  using codec::json::innerDecode;
-  using fc::codec::json::Get;
-  using fc::codec::json::Set;
-  using fc::codec::json::Value;
-
-  JSON_ENCODE(PaddedPieceSize) {
-    return encode(static_cast<uint64_t>(v), allocator);
-  }
-
-  JSON_DECODE(PaddedPieceSize) {
-    v = innerDecode<uint64_t>(j);
-  }
-
-  JSON_ENCODE(UnpaddedPieceSize) {
-    return encode(static_cast<uint64_t>(v), allocator);
-  }
-
-  JSON_DECODE(UnpaddedPieceSize) {
-    v = innerDecode<uint64_t>(j);
-  }
-
-  JSON_ENCODE(PieceInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Size", v.size, allocator);
-    Set(j, "PieceCID", v.cid, allocator);
-    return j;
-  }
-
-  JSON_DECODE(PieceInfo) {
-    Get(j, "Size", v.size);
-    Get(j, "PieceCID", v.cid);
-  }
-
-  JSON_ENCODE(MetaPieceData) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Type", v.type.toString(), allocator);
-    Set(j, "Info", v.info, allocator);
-    return j;
-  }
-
-  JSON_DECODE(MetaPieceData) {
-    std::string type;
-    Get(j, "Type", type);
-    v.type = ReaderType::fromString(type);
-    Get(j, "Info", v.info);
-  }
-
-}  // namespace fc::primitives::piece
-
-namespace fc::vm::actor {
-  JSON_ENCODE(Actor) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Code", v.code, allocator);
-    Set(j, "Head", v.head, allocator);
-    Set(j, "Nonce", v.nonce, allocator);
-    Set(j, "Balance", v.balance, allocator);
-    return j;
-  }
-
-  JSON_DECODE(Actor) {
-    Get(j, "Code", v.code);
-    Get(j, "Head", v.head);
-    Get(j, "Nonce", v.nonce);
-    Get(j, "Balance", v.balance);
-  }
-}  // namespace fc::vm::actor
-namespace fc::vm::actor::builtin::types::payment_channel {
-  using crypto::signature::Signature;
-
-  JSON_ENCODE(SignedVoucher) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "ChannelAddr", v.channel, allocator);
-    Set(j, "TimeLockMin", v.time_lock_min, allocator);
-    Set(j, "TimeLockMax", v.time_lock_max, allocator);
-    Set(j, "SecretPreimage", gsl::make_span(v.secret_preimage), allocator);
-    Set(j, "Extra", v.extra, allocator);
-    Set(j, "Lane", v.lane, allocator);
-    Set(j, "Nonce", v.nonce, allocator);
-    Set(j, "Amount", v.amount, allocator);
-    Set(j, "MinSettleHeight", v.min_close_height, allocator);
-    Set(j, "Merges", v.merges, allocator);
-    const auto sig{v.signature_bytes.map(
-        [](auto &bytes) { return Signature::fromBytes(bytes).value(); })};
-    Set(j, "Signature", sig, allocator);
-    return j;
-  }
-
-  JSON_DECODE(SignedVoucher) {
-    Get(j, "ChannelAddr", v.channel);
-    Get(j, "TimeLockMin", v.time_lock_min);
-    Get(j, "TimeLockMax", v.time_lock_max);
-    Get(j, "SecretPreimage", v.secret_preimage);
-    Get(j, "Extra", v.extra);
-    Get(j, "Lane", v.lane);
-    Get(j, "Nonce", v.nonce);
-    Get(j, "Amount", v.amount);
-    Get(j, "MinSettleHeight", v.min_close_height);
-    Get(j, "Merges", v.merges);
-    boost::optional<Signature> sig;
-    Get(j, "Signature", sig);
-    v.signature_bytes = sig.map([](auto &sig) { return sig.toBytes(); });
-  }
-}  // namespace fc::vm::actor::builtin::types::payment_channel
-
-namespace fc::storage::mpool {
-  using fc::codec::json::decodeEnum;
-  using fc::codec::json::Get;
-  using fc::codec::json::Set;
-  using fc::codec::json::Value;
-
-  JSON_ENCODE(MpoolUpdate) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Type", common::to_int(v.type), allocator);
-    Set(j, "Message", v.message, allocator);
-    return j;
-  }
-
-  JSON_DECODE(MpoolUpdate) {
-    decodeEnum(v.type, Get(j, "Type"));
-    Get(j, "Message", v.message);
-  }
-}  // namespace fc::storage::mpool
-
-namespace fc::primitives::block {
-  using fc::codec::json::Get;
-  using fc::codec::json::Set;
-  using fc::codec::json::Value;
-
-  JSON_ENCODE(Ticket) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "VRFProof", gsl::make_span(v.bytes), allocator);
-    return j;
-  }
-
-  JSON_DECODE(Ticket) {
-    Get(j, "VRFProof", v.bytes);
-  }
-
-  JSON_ENCODE(ElectionProof) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "WinCount", v.win_count, allocator);
-    Set(j, "VRFProof", v.vrf_proof, allocator);
-    return j;
-  }
-
-  JSON_DECODE(ElectionProof) {
-    Get(j, "WinCount", v.win_count);
-    Get(j, "VRFProof", v.vrf_proof);
-  }
-
-  JSON_ENCODE(BlockHeader) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Miner", v.miner, allocator);
-    Set(j, "Ticket", v.ticket, allocator);
-    Set(j, "ElectionProof", v.election_proof, allocator);
-    Set(j, "BeaconEntries", v.beacon_entries, allocator);
-    Set(j, "WinPoStProof", v.win_post_proof, allocator);
-    Set(j, "Parents", v.parents, allocator);
-    Set(j, "ParentWeight", v.parent_weight, allocator);
-    Set(j, "Height", v.height, allocator);
-    Set(j, "ParentStateRoot", v.parent_state_root, allocator);
-    Set(j, "ParentMessageReceipts", v.parent_message_receipts, allocator);
-    Set(j, "Messages", v.messages, allocator);
-    Set(j, "BLSAggregate", v.bls_aggregate, allocator);
-    Set(j, "Timestamp", v.timestamp, allocator);
-    Set(j, "BlockSig", v.block_sig, allocator);
-    Set(j, "ForkSignaling", v.fork_signaling, allocator);
-    Set(j, "ParentBaseFee", v.parent_base_fee, allocator);
-    return j;
-  }
-
-  JSON_DECODE(BlockHeader) {
-    Get(j, "Miner", v.miner);
-    Get(j, "Ticket", v.ticket);
-    Get(j, "ElectionProof", v.election_proof);
-    Get(j, "BeaconEntries", v.beacon_entries);
-    Get(j, "WinPoStProof", v.win_post_proof);
-    Get(j, "Parents", v.parents);
-    Get(j, "ParentWeight", v.parent_weight);
-    Get(j, "Height", v.height);
-    Get(j, "ParentStateRoot", v.parent_state_root);
-    Get(j, "ParentMessageReceipts", v.parent_message_receipts);
-    Get(j, "Messages", v.messages);
-    Get(j, "BLSAggregate", v.bls_aggregate);
-    Get(j, "Timestamp", v.timestamp);
-    Get(j, "BlockSig", v.block_sig);
-    Get(j, "ForkSignaling", v.fork_signaling);
-    Get(j, "ParentBaseFee", v.parent_base_fee);
-  }
-
-  JSON_ENCODE(BlockTemplate) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Miner", v.miner, allocator);
-    Set(j, "Parents", v.parents, allocator);
-    Set(j, "Ticket", v.ticket, allocator);
-    Set(j, "Eproof", v.election_proof, allocator);
-    Set(j, "BeaconValues", v.beacon_entries, allocator);
-    Set(j, "Messages", v.messages, allocator);
-    Set(j, "Epoch", v.height, allocator);
-    Set(j, "Timestamp", v.timestamp, allocator);
-    Set(j, "WinningPoStProof", v.win_post_proof, allocator);
-    return j;
-  }
-
-  JSON_DECODE(BlockTemplate) {
-    Get(j, "Miner", v.miner);
-    Get(j, "Parents", v.parents);
-    Get(j, "Ticket", v.ticket);
-    Get(j, "Eproof", v.election_proof);
-    Get(j, "BeaconValues", v.beacon_entries);
-    Get(j, "Messages", v.messages);
-    Get(j, "Epoch", v.height);
-    Get(j, "Timestamp", v.timestamp);
-    Get(j, "WinningPoStProof", v.win_post_proof);
-  }
-
-  JSON_ENCODE(BlockWithCids) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Header", v.header, allocator);
-    Set(j, "BlsMessages", v.bls_messages, allocator);
-    Set(j, "SecpkMessages", v.secp_messages, allocator);
-    return j;
-  }
-
-  JSON_DECODE(BlockWithCids) {
-    Get(j, "Header", v.header);
-    Get(j, "BlsMessages", v.bls_messages);
-    Get(j, "SecpkMessages", v.secp_messages);
-  }
-}  // namespace fc::primitives::block
-
-namespace libp2p::multi {
-  using fc::codec::json::AsString;
-  using fc::codec::json::encode;
-
-  JSON_ENCODE(Multiaddress) {
-    return encode(v.getStringAddress(), allocator);
-  }
-
-  JSON_DECODE(Multiaddress) {
-    OUTCOME_EXCEPT(_v, Multiaddress::create(AsString(j)));
-    v = std::move(_v);
-  }
-}  // namespace libp2p::multi
-
-namespace libp2p::peer {
-  using fc::codec::json::AsString;
-  using fc::codec::json::encode;
-  using fc::codec::json::Get;
-  using fc::codec::json::Set;
-  using fc::codec::json::Value;
-
-  JSON_ENCODE(PeerId) {
-    return encode(v.toBase58(), allocator);
-  }
-
-  JSON_DECODE(PeerId) {
-    OUTCOME_EXCEPT(id, PeerId::fromBase58(AsString(j)));
-    v = std::move(id);
-  }
-
-  JSON_ENCODE(PeerInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "ID", v.id, allocator);
-    Set(j, "Addrs", v.addresses, allocator);
-    return j;
-  }
-
-  JSON_DECODE(PeerInfo) {
-    Get(j, "ID", v.id);
-    Get(j, "Addrs", v.addresses);
-  }
-}  // namespace libp2p::peer
-
-namespace fc::crypto::randomness {
-  using codec::json::decodeEnum;
-  using codec::json::encode;
-
-  JSON_ENCODE(DomainSeparationTag) {
-    return encode(common::to_int(v), allocator);
-  }
-
-  JSON_DECODE(DomainSeparationTag) {
-    decodeEnum(v, j);
-  }
-}  // namespace fc::crypto::randomness
-
-namespace fc::crypto::signature {
-  using codec::json::Get;
-  using codec::json::innerDecode;
-  using codec::json::JsonError;
-  using codec::json::Set;
-  using codec::json::Value;
-
-  JSON_ENCODE(Signature) {
-    uint64_t type = Type::kUndefined;
-    gsl::span<const uint8_t> data;
-    visit_in_place(
-        v,
-        [&](const BlsSignature &bls) {
-          type = Type::kBls;
-          data = gsl::make_span(bls);
-        },
-        [&](const Secp256k1Signature &secp) {
-          type = Type::kSecp256k1;
-          data = gsl::make_span(secp);
-        });
-    Value j{rapidjson::kObjectType};
-    Set(j, "Type", type, allocator);
-    Set(j, "Data", data, allocator);
-    return j;
-  }
-
-  JSON_DECODE(Signature) {
-    uint64_t type = Type::kUndefined;
-    Get(j, "Type", type);
-    const auto &data = Get(j, "Data");
-    if (type == Type::kBls) {
-      v = innerDecode<BlsSignature>(data);
-    } else if (type == Type::kSecp256k1) {
-      v = innerDecode<Secp256k1Signature>(data);
-    } else {
-      outcome::raise(JsonError::kWrongEnum);
+  namespace address {
+    using codec::json::encode;
+    JSON_ENCODE(Address) {
+      return encode(encodeToString(v), allocator);
     }
-  }
-}  // namespace fc::crypto::signature
 
-namespace boost::multiprecision {
-  using fc::codec::json::AsString;
-  using fc::codec::json::encode;
+    JSON_DECODE(Address) {
+      OUTCOME_EXCEPT(decoded, decodeFromString(AsString(j)));
+      v = std::move(decoded);
+    }
+  }  // namespace address
 
-  JSON_ENCODE(cpp_int) {
-    return encode(boost::lexical_cast<std::string>(v), allocator);
+  namespace sector_file {
+    using codec::json::decodeEnum;
+    using codec::json::encode;
+
+    JSON_ENCODE(SectorFileType) {
+      return encode(common::to_int(v), allocator);
+    }
+
+    JSON_DECODE(SectorFileType) {
+      decodeEnum(v, j);
+    }
+  }  // namespace sector_file
+
+  namespace sector {
+    using codec::json::decodeEnum;
+    using codec::json::encode;
+
+    JSON_ENCODE(RegisteredSealProof) {
+      return encode(common::to_int(v), allocator);
+    }
+
+    JSON_DECODE(RegisteredSealProof) {
+      decodeEnum(v, j);
+    }
+
+    JSON_ENCODE(RegisteredPoStProof) {
+      return encode(common::to_int(v), allocator);
+    }
+
+    JSON_DECODE(RegisteredPoStProof) {
+      decodeEnum(v, j);
+    }
+
+    JSON_ENCODE(PoStProof) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PoStProof", v.registered_proof, allocator);
+      Set(j, "ProofBytes", gsl::make_span(v.proof), allocator);
+      return j;
+    }
+
+    JSON_DECODE(PoStProof) {
+      Get(j, "PoStProof", v.registered_proof);
+      Get(j, "ProofBytes", v.proof);
+    }
+
+    JSON_ENCODE(SectorId) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Miner", v.miner, allocator);
+      Set(j, "Number", v.sector, allocator);
+      return j;
+    }
+
+    JSON_DECODE(SectorId) {
+      Get(j, "Miner", v.miner);
+      Get(j, "Number", v.sector);
+    }
+
+    JSON_ENCODE(ExtendedSectorInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "SealProof", v.registered_proof, allocator);
+      Set(j, "SectorKey", v.sector_key, allocator);
+      Set(j, "SectorNumber", v.sector, allocator);
+      Set(j, "SealedCID", v.sealed_cid, allocator);
+      return j;
+    }
+
+    JSON_DECODE(ExtendedSectorInfo) {
+      Get(j, "SealProof", v.registered_proof);
+      Get(j, "SectorKey", v.sector_key);
+      Get(j, "SectorNumber", v.sector);
+      Get(j, "SealedCID", v.sealed_cid);
+    }
+
+    JSON_ENCODE(SectorRef) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id, allocator);
+      Set(j, "ProofType", v.proof_type, allocator);
+      return j;
+    }
+
+    JSON_DECODE(SectorRef) {
+      Get(j, "ID", v.id);
+      Get(j, "ProofType", v.proof_type);
+    }
+  }  // namespace sector
+
+  namespace piece {
+    using codec::json::encode;
+    using codec::json::innerDecode;
+    using fc::codec::json::Get;
+    using fc::codec::json::Set;
+    using fc::codec::json::Value;
+
+    JSON_ENCODE(PaddedPieceSize) {
+      return encode(static_cast<uint64_t>(v), allocator);
+    }
+
+    JSON_DECODE(PaddedPieceSize) {
+      v = innerDecode<uint64_t>(j);
+    }
+
+    JSON_ENCODE(UnpaddedPieceSize) {
+      return encode(static_cast<uint64_t>(v), allocator);
+    }
+
+    JSON_DECODE(UnpaddedPieceSize) {
+      v = innerDecode<uint64_t>(j);
+    }
+
+    JSON_ENCODE(PieceInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Size", v.size, allocator);
+      Set(j, "PieceCID", v.cid, allocator);
+      return j;
+    }
+
+    JSON_DECODE(PieceInfo) {
+      Get(j, "Size", v.size);
+      Get(j, "PieceCID", v.cid);
+    }
+
+    JSON_ENCODE(MetaPieceData) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Type", v.type.toString(), allocator);
+      Set(j, "Info", v.info, allocator);
+      return j;
+    }
+
+    JSON_DECODE(MetaPieceData) {
+      std::string type;
+      Get(j, "Type", type);
+      v.type = ReaderType::fromString(type);
+      Get(j, "Info", v.info);
+    }
+
+  }  // namespace piece
+
+  namespace block {
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
+
+    JSON_ENCODE(Ticket) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "VRFProof", gsl::make_span(v.bytes), allocator);
+      return j;
+    }
+
+    JSON_DECODE(Ticket) {
+      Get(j, "VRFProof", v.bytes);
+    }
+
+    JSON_ENCODE(ElectionProof) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "WinCount", v.win_count, allocator);
+      Set(j, "VRFProof", v.vrf_proof, allocator);
+      return j;
+    }
+
+    JSON_DECODE(ElectionProof) {
+      Get(j, "WinCount", v.win_count);
+      Get(j, "VRFProof", v.vrf_proof);
+    }
+
+    JSON_ENCODE(BlockHeader) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Miner", v.miner, allocator);
+      Set(j, "Ticket", v.ticket, allocator);
+      Set(j, "ElectionProof", v.election_proof, allocator);
+      Set(j, "BeaconEntries", v.beacon_entries, allocator);
+      Set(j, "WinPoStProof", v.win_post_proof, allocator);
+      Set(j, "Parents", v.parents, allocator);
+      Set(j, "ParentWeight", v.parent_weight, allocator);
+      Set(j, "Height", v.height, allocator);
+      Set(j, "ParentStateRoot", v.parent_state_root, allocator);
+      Set(j, "ParentMessageReceipts", v.parent_message_receipts, allocator);
+      Set(j, "Messages", v.messages, allocator);
+      Set(j, "BLSAggregate", v.bls_aggregate, allocator);
+      Set(j, "Timestamp", v.timestamp, allocator);
+      Set(j, "BlockSig", v.block_sig, allocator);
+      Set(j, "ForkSignaling", v.fork_signaling, allocator);
+      Set(j, "ParentBaseFee", v.parent_base_fee, allocator);
+      return j;
+    }
+
+    JSON_DECODE(BlockHeader) {
+      Get(j, "Miner", v.miner);
+      Get(j, "Ticket", v.ticket);
+      Get(j, "ElectionProof", v.election_proof);
+      Get(j, "BeaconEntries", v.beacon_entries);
+      Get(j, "WinPoStProof", v.win_post_proof);
+      Get(j, "Parents", v.parents);
+      Get(j, "ParentWeight", v.parent_weight);
+      Get(j, "Height", v.height);
+      Get(j, "ParentStateRoot", v.parent_state_root);
+      Get(j, "ParentMessageReceipts", v.parent_message_receipts);
+      Get(j, "Messages", v.messages);
+      Get(j, "BLSAggregate", v.bls_aggregate);
+      Get(j, "Timestamp", v.timestamp);
+      Get(j, "BlockSig", v.block_sig);
+      Get(j, "ForkSignaling", v.fork_signaling);
+      Get(j, "ParentBaseFee", v.parent_base_fee);
+    }
+
+    JSON_ENCODE(BlockTemplate) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Miner", v.miner, allocator);
+      Set(j, "Parents", v.parents, allocator);
+      Set(j, "Ticket", v.ticket, allocator);
+      Set(j, "Eproof", v.election_proof, allocator);
+      Set(j, "BeaconValues", v.beacon_entries, allocator);
+      Set(j, "Messages", v.messages, allocator);
+      Set(j, "Epoch", v.height, allocator);
+      Set(j, "Timestamp", v.timestamp, allocator);
+      Set(j, "WinningPoStProof", v.win_post_proof, allocator);
+      return j;
+    }
+
+    JSON_DECODE(BlockTemplate) {
+      Get(j, "Miner", v.miner);
+      Get(j, "Parents", v.parents);
+      Get(j, "Ticket", v.ticket);
+      Get(j, "Eproof", v.election_proof);
+      Get(j, "BeaconValues", v.beacon_entries);
+      Get(j, "Messages", v.messages);
+      Get(j, "Epoch", v.height);
+      Get(j, "Timestamp", v.timestamp);
+      Get(j, "WinningPoStProof", v.win_post_proof);
+    }
+
+    JSON_ENCODE(BlockWithCids) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Header", v.header, allocator);
+      Set(j, "BlsMessages", v.bls_messages, allocator);
+      Set(j, "SecpkMessages", v.secp_messages, allocator);
+      return j;
+    }
+
+    JSON_DECODE(BlockWithCids) {
+      Get(j, "Header", v.header);
+      Get(j, "BlsMessages", v.bls_messages);
+      Get(j, "SecpkMessages", v.secp_messages);
+    }
+  }  // namespace block
+
+  namespace tipset {
+    using codec::json::AsString;
+    using codec::json::encode;
+    using codec::json::Get;
+    using codec::json::innerDecode;
+    using codec::json::JsonError;
+    using codec::json::Set;
+    using codec::json::Value;
+
+    JSON_ENCODE(TipsetKey) {
+      return encode(v.cids(), allocator);
+    }
+
+    JSON_DECODE(TipsetKey) {
+      v = innerDecode<std::vector<CbCid>>(j);
+    }
+
+    JSON_ENCODE(TipsetCPtr) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Cids", v->key.cids(), allocator);
+      Set(j, "Blocks", v->blks, allocator);
+      Set(j, "Height", v->height(), allocator);
+      return j;
+    }
+
+    JSON_DECODE(TipsetCPtr) {
+      std::vector<primitives::block::BlockHeader> blks;
+      Get(j, "Blocks", blks);
+
+      // TODO (a.gorbachev) decode and verify excessive values
+
+      OUTCOME_EXCEPT(tipset,
+                     primitives::tipset::Tipset::create(std::move(blks)));
+      v = std::move(tipset);
+    }
+
+    JSON_ENCODE(HeadChange) {
+      const char *type{};
+      if (v.type == HeadChangeType::CURRENT) {
+        type = "current";
+      } else if (v.type == HeadChangeType::REVERT) {
+        type = "revert";
+      } else if (v.type == HeadChangeType::APPLY) {
+        type = "apply";
+      }
+      Value j{rapidjson::kObjectType};
+      Set(j, "Type", type, allocator);
+      Set(j, "Val", v.value, allocator);
+      return j;
+    }
+
+    JSON_DECODE(HeadChange) {
+      auto type = AsString(Get(j, "Type"));
+      if (type == "current") {
+        v.type = HeadChangeType::CURRENT;
+      } else if (type == "revert") {
+        v.type = HeadChangeType::REVERT;
+      } else if (type == "apply") {
+        v.type = HeadChangeType::APPLY;
+      } else {
+        outcome::raise(JsonError::kWrongEnum);
+      }
+      Get(j, "Val", v.value);
+    }
+  }  // namespace tipset
+
+}  // namespace fc::primitives
+
+namespace fc::proofs {
+  JSON_ENCODE(SealedAndUnsealedCID) {
+    Value j{rapidjson::kObjectType};
+    Set(j, "Sealed", v.sealed_cid, allocator);
+    Set(j, "Unsealed", v.unsealed_cid, allocator);
+    return j;
   }
 
-  JSON_DECODE(cpp_int) {
-    v = cpp_int{AsString(j)};
+  JSON_DECODE(SealedAndUnsealedCID) {
+    Get(j, "Sealed", v.sealed_cid);
+    Get(j, "Unsealed", v.unsealed_cid);
   }
-}  // namespace boost::multiprecision
+}  // namespace fc::proofs
+
+namespace fc::crypto {
+
+  namespace randomness {
+    using codec::json::decodeEnum;
+    using codec::json::encode;
+
+    JSON_ENCODE(DomainSeparationTag) {
+      return encode(common::to_int(v), allocator);
+    }
+
+    JSON_DECODE(DomainSeparationTag) {
+      decodeEnum(v, j);
+    }
+  }  // namespace randomness
+
+  namespace signature {
+    using codec::json::Get;
+    using codec::json::innerDecode;
+    using codec::json::JsonError;
+    using codec::json::Set;
+    using codec::json::Value;
+
+    JSON_ENCODE(Signature) {
+      uint64_t type = Type::kUndefined;
+      gsl::span<const uint8_t> data;
+      visit_in_place(
+          v,
+          [&](const BlsSignature &bls) {
+            type = Type::kBls;
+            data = gsl::make_span(bls);
+          },
+          [&](const Secp256k1Signature &secp) {
+            type = Type::kSecp256k1;
+            data = gsl::make_span(secp);
+          });
+      Value j{rapidjson::kObjectType};
+      Set(j, "Type", type, allocator);
+      Set(j, "Data", data, allocator);
+      return j;
+    }
+
+    JSON_DECODE(Signature) {
+      uint64_t type = Type::kUndefined;
+      Get(j, "Type", type);
+      const auto &data = Get(j, "Data");
+      if (type == Type::kBls) {
+        v = innerDecode<BlsSignature>(data);
+      } else if (type == Type::kSecp256k1) {
+        v = innerDecode<Secp256k1Signature>(data);
+      } else {
+        outcome::raise(JsonError::kWrongEnum);
+      }
+    }
+  }  // namespace signature
+}  // namespace fc::crypto
 
 namespace fc::sector_storage {
   using codec::json::decodeEnum;
   using codec::json::encode;
   using common::fromString;
   using common::toString;
+
+  namespace stores {
+    using codec::json::encode;
+
+    JSON_ENCODE(AcquireMode) {
+      return encode(toString(v), allocator);
+    }
+
+    JSON_DECODE(AcquireMode) {
+      v = fromString<AcquireMode>(AsString(j)).value();
+    }
+
+    JSON_ENCODE(PathType) {
+      return encode(toString(v).value(), allocator);
+    }
+
+    JSON_DECODE(PathType) {
+      v = fromString<PathType>(AsString(j)).value();
+    }
+
+    JSON_ENCODE(HealthReport) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Stat", v.stat, allocator);
+      return j;
+    }
+
+    JSON_DECODE(HealthReport) {
+      Get(j, "Stat", v.stat);
+    }
+
+    JSON_ENCODE(StorageInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id, allocator);
+      Set(j, "URLs", v.urls, allocator);
+      Set(j, "Weight", v.weight, allocator);
+      Set(j, "CanSeal", v.can_seal, allocator);
+      Set(j, "CanStore", v.can_store, allocator);
+      return j;
+    }
+
+    JSON_DECODE(StorageInfo) {
+      Get(j, "ID", v.id);
+      Get(j, "URLs", v.urls);
+      Get(j, "Weight", v.weight);
+      Get(j, "CanSeal", v.can_seal);
+      Get(j, "CanStore", v.can_store);
+    }
+
+    JSON_ENCODE(SectorStorageInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id, allocator);
+      Set(j, "URLs", v.urls, allocator);
+      Set(j, "Weight", v.weight, allocator);
+      Set(j, "CanSeal", v.can_seal, allocator);
+      Set(j, "CanStore", v.can_store, allocator);
+      Set(j, "Primary", v.is_primary, allocator);
+      return j;
+    }
+
+    JSON_DECODE(SectorStorageInfo) {
+      Get(j, "ID", v.id);
+      Get(j, "URLs", v.urls);
+      Get(j, "Weight", v.weight);
+      Get(j, "CanSeal", v.can_seal);
+      Get(j, "CanStore", v.can_store);
+      Get(j, "Primary", v.is_primary);
+    }
+  }  // namespace stores
 
   JSON_ENCODE(CallErrorCode) {
     return encode(common::to_int(v), allocator);
@@ -645,290 +675,39 @@ namespace fc::sector_storage {
   }
 }  // namespace fc::sector_storage
 
-namespace fc::sector_storage::stores {
+namespace fc::adt {
   using codec::json::encode;
-  using common::fromString;
-  using common::toString;
+  using codec::json::innerDecode;
 
-  JSON_ENCODE(AcquireMode) {
-    return encode(toString(v), allocator);
+  template <typename T>
+  JSON_ENCODE(adt::Array<T>) {
+    return encode(v.amt.cid());
   }
 
-  JSON_DECODE(AcquireMode) {
-    v = fromString<AcquireMode>(AsString(j)).value();
+  template <typename T>
+  JSON_DECODE(adt::Array<T>) {
+    v.amt = {nullptr, innerDecode<CID>(j)};
   }
+}  // namespace fc::adt
 
-  JSON_ENCODE(PathType) {
-    return encode(toString(v).value(), allocator);
-  }
+namespace fc::storage::mpool {
+  using fc::codec::json::decodeEnum;
+  using fc::codec::json::Get;
+  using fc::codec::json::Set;
+  using fc::codec::json::Value;
 
-  JSON_DECODE(PathType) {
-    v = fromString<PathType>(AsString(j)).value();
-  }
-
-  JSON_ENCODE(HealthReport) {
+  JSON_ENCODE(MpoolUpdate) {
     Value j{rapidjson::kObjectType};
-    Set(j, "Stat", v.stat, allocator);
+    Set(j, "Type", common::to_int(v.type), allocator);
+    Set(j, "Message", v.message, allocator);
     return j;
   }
 
-  JSON_DECODE(HealthReport) {
-    Get(j, "Stat", v.stat);
+  JSON_DECODE(MpoolUpdate) {
+    decodeEnum(v.type, Get(j, "Type"));
+    Get(j, "Message", v.message);
   }
-
-  JSON_ENCODE(StorageInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "ID", v.id, allocator);
-    Set(j, "URLs", v.urls, allocator);
-    Set(j, "Weight", v.weight, allocator);
-    Set(j, "CanSeal", v.can_seal, allocator);
-    Set(j, "CanStore", v.can_store, allocator);
-    return j;
-  }
-
-  JSON_DECODE(StorageInfo) {
-    Get(j, "ID", v.id);
-    Get(j, "URLs", v.urls);
-    Get(j, "Weight", v.weight);
-    Get(j, "CanSeal", v.can_seal);
-    Get(j, "CanStore", v.can_store);
-  }
-
-  JSON_ENCODE(SectorStorageInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "ID", v.id, allocator);
-    Set(j, "URLs", v.urls, allocator);
-    Set(j, "Weight", v.weight, allocator);
-    Set(j, "CanSeal", v.can_seal, allocator);
-    Set(j, "CanStore", v.can_store, allocator);
-    Set(j, "Primary", v.is_primary, allocator);
-    return j;
-  }
-
-  JSON_DECODE(SectorStorageInfo) {
-    Get(j, "ID", v.id);
-    Get(j, "URLs", v.urls);
-    Get(j, "Weight", v.weight);
-    Get(j, "CanSeal", v.can_seal);
-    Get(j, "CanStore", v.can_store);
-    Get(j, "Primary", v.is_primary);
-  }
-}  // namespace fc::sector_storage::stores
-
-namespace fc::vm::actor::builtin::types::miner {
-  using codec::json::Get;
-  using codec::json::Set;
-  using codec::json::Value;
-
-  JSON_ENCODE(SectorPreCommitOnChainInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Info", v.info, allocator);
-    Set(j, "PreCommitDeposit", v.precommit_deposit, allocator);
-    Set(j, "PreCommitEpoch", v.precommit_epoch, allocator);
-    Set(j, "DealWeight", v.deal_weight, allocator);
-    Set(j, "VerifiedDealWeight", v.verified_deal_weight, allocator);
-    return j;
-  }
-
-  JSON_DECODE(SectorPreCommitOnChainInfo) {
-    Get(j, "Info", v.info);
-    Get(j, "PreCommitDeposit", v.precommit_deposit);
-    Get(j, "PreCommitEpoch", v.precommit_epoch);
-    Get(j, "DealWeight", v.deal_weight);
-    Get(j, "VerifiedDealWeight", v.verified_deal_weight);
-  }
-
-  JSON_ENCODE(DeadlineInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "CurrentEpoch", v.current_epoch, allocator);
-    Set(j, "PeriodStart", v.period_start, allocator);
-    Set(j, "Index", v.index, allocator);
-    Set(j, "Open", v.open, allocator);
-    Set(j, "Close", v.close, allocator);
-    Set(j, "Challenge", v.challenge, allocator);
-    Set(j, "FaultCutoff", v.fault_cutoff, allocator);
-    Set(j, "WPoStPeriodDeadlines", v.wpost_period_deadlines, allocator);
-    Set(j, "WPoStProvingPeriod", v.wpost_proving_period, allocator);
-    Set(j, "WPoStChallengeWindow", v.wpost_challenge_window, allocator);
-    Set(j, "WPoStChallengeLookback", v.wpost_challenge_lookback, allocator);
-    Set(j, "FaultDeclarationCutoff", v.fault_declaration_cutoff, allocator);
-    return j;
-  }
-
-  JSON_DECODE(DeadlineInfo) {
-    Get(j, "CurrentEpoch", v.current_epoch);
-    Get(j, "PeriodStart", v.period_start);
-    Get(j, "Index", v.index);
-    Get(j, "Open", v.open);
-    Get(j, "Close", v.close);
-    Get(j, "Challenge", v.challenge);
-    Get(j, "FaultCutoff", v.fault_cutoff);
-    Get(j, "WPoStPeriodDeadlines", v.wpost_period_deadlines);
-    Get(j, "WPoStProvingPeriod", v.wpost_proving_period);
-    Get(j, "WPoStChallengeWindow", v.wpost_challenge_window);
-    Get(j, "WPoStChallengeLookback", v.wpost_challenge_lookback);
-    Get(j, "FaultDeclarationCutoff", v.fault_declaration_cutoff);
-  }
-
-  JSON_ENCODE(SectorOnChainInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "SectorNumber", v.sector, allocator);
-    Set(j, "SealProof", v.seal_proof, allocator);
-    Set(j, "SealedCID", v.sealed_cid, allocator);
-    Set(j, "DealIDs", v.deals, allocator);
-    Set(j, "Activation", v.activation_epoch, allocator);
-    Set(j, "Expiration", v.expiration, allocator);
-    Set(j, "DealWeight", v.deal_weight, allocator);
-    Set(j, "VerifiedDealWeight", v.verified_deal_weight, allocator);
-    Set(j, "InitialPledge", v.init_pledge, allocator);
-    Set(j, "ExpectedDayReward", v.expected_day_reward, allocator);
-    Set(j, "ExpectedStoragePledge", v.expected_storage_pledge, allocator);
-    return j;
-  }
-
-  JSON_DECODE(SectorOnChainInfo) {
-    Get(j, "SectorNumber", v.sector);
-    Get(j, "SealProof", v.seal_proof);
-    Get(j, "SealedCID", v.sealed_cid);
-    Get(j, "DealIDs", v.deals);
-    Get(j, "Activation", v.activation_epoch);
-    Get(j, "Expiration", v.expiration);
-    Get(j, "DealWeight", v.deal_weight);
-    Get(j, "VerifiedDealWeight", v.verified_deal_weight);
-    Get(j, "InitialPledge", v.init_pledge);
-    Get(j, "ExpectedDayReward", v.expected_day_reward);
-    Get(j, "ExpectedStoragePledge", v.expected_storage_pledge);
-  }
-
-  JSON_ENCODE(SectorPreCommitInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "SealProof", v.registered_proof, allocator);
-    Set(j, "SectorNumber", v.sector, allocator);
-    Set(j, "SealedCID", v.sealed_cid, allocator);
-    Set(j, "SealRandEpoch", v.seal_epoch, allocator);
-    Set(j, "DealIDs", v.deal_ids, allocator);
-    Set(j, "Expiration", v.expiration, allocator);
-    return j;
-  }
-
-  JSON_DECODE(SectorPreCommitInfo) {
-    Get(j, "SealProof", v.registered_proof);
-    Get(j, "SectorNumber", v.sector);
-    Get(j, "SealedCID", v.sealed_cid);
-    Get(j, "SealRandEpoch", v.seal_epoch);
-    Get(j, "DealIDs", v.deal_ids);
-    Get(j, "Expiration", v.expiration);
-  }
-}  // namespace fc::vm::actor::builtin::types::miner
-
-namespace fc::vm::actor::builtin::types::market {
-  using codec::json::Get;
-  using codec::json::Set;
-  using codec::json::Value;
-
-  JSON_ENCODE(DealState) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "SectorStartEpoch", v.sector_start_epoch, allocator);
-    Set(j, "LastUpdatedEpoch", v.last_updated_epoch, allocator);
-    Set(j, "SlashEpoch", v.slash_epoch, allocator);
-    return j;
-  }
-
-  JSON_DECODE(DealState) {
-    Get(j, "SectorStartEpoch", v.sector_start_epoch);
-    Get(j, "LastUpdatedEpoch", v.last_updated_epoch);
-    Get(j, "SlashEpoch", v.slash_epoch);
-  }
-
-  JSON_ENCODE(DealProposal) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "PieceCID", v.piece_cid, allocator);
-    Set(j, "PieceSize", v.piece_size, allocator);
-    Set(j, "VerifiedDeal", v.verified, allocator);
-    Set(j, "Client", v.client, allocator);
-    Set(j, "Provider", v.provider, allocator);
-    Set(j, "StartEpoch", v.start_epoch, allocator);
-    Set(j, "EndEpoch", v.end_epoch, allocator);
-    Set(j, "StoragePricePerEpoch", v.storage_price_per_epoch, allocator);
-    Set(j, "ProviderCollateral", v.provider_collateral, allocator);
-    Set(j, "ClientCollateral", v.client_collateral, allocator);
-    return j;
-  }
-
-  JSON_DECODE(DealProposal) {
-    Get(j, "PieceCID", v.piece_cid);
-    Get(j, "PieceSize", v.piece_size);
-    Get(j, "VerifiedDeal", v.verified);
-    Get(j, "Client", v.client);
-    Get(j, "Provider", v.provider);
-    Get(j, "StartEpoch", v.start_epoch);
-    Get(j, "EndEpoch", v.end_epoch);
-    Get(j, "StoragePricePerEpoch", v.storage_price_per_epoch);
-    Get(j, "ProviderCollateral", v.provider_collateral);
-    Get(j, "ClientCollateral", v.client_collateral);
-  }
-}  // namespace fc::vm::actor::builtin::types::market
-
-namespace fc::markets::storage {
-  using codec::json::decodeEnum;
-  using codec::json::encode;
-
-  JSON_ENCODE(StorageDeal) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Proposal", v.proposal, allocator);
-    Set(j, "State", v.state, allocator);
-    return j;
-  }
-
-  JSON_DECODE(StorageDeal) {
-    Get(j, "Proposal", v.proposal);
-    Get(j, "State", v.state);
-  }
-
-  JSON_ENCODE(StorageDealStatus) {
-    return encode(common::to_int(v), allocator);
-  }
-
-  JSON_DECODE(StorageDealStatus) {
-    decodeEnum(v, j);
-  }
-
-  JSON_ENCODE(DataRef) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "TransferType", v.transfer_type, allocator);
-    Set(j, "Root", v.root, allocator);
-    Set(j, "PieceCid", v.piece_cid, allocator);
-    Set(j, "PieceSize", v.piece_size, allocator);
-    return j;
-  }
-
-  JSON_DECODE(DataRef) {
-    Get(j, "TransferType", v.transfer_type);
-    Get(j, "Root", v.root);
-    Get(j, "PieceCid", v.piece_cid);
-    Get(j, "PieceSize", v.piece_size);
-  }
-
-  JSON_ENCODE(StorageAsk) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Price", v.price, allocator);
-    Set(j, "MinPieceSize", v.min_piece_size, allocator);
-    Set(j, "Miner", v.miner, allocator);
-    Set(j, "Timestamp", v.timestamp, allocator);
-    Set(j, "Expiry", v.expiry, allocator);
-    Set(j, "SeqNo", v.seq_no, allocator);
-    return j;
-  }
-
-  JSON_DECODE(StorageAsk) {
-    Get(j, "Price", v.price);
-    Get(j, "MinPieceSize", v.min_piece_size);
-    Get(j, "Miner", v.miner);
-    Get(j, "Timestamp", v.timestamp);
-    Get(j, "Expiry", v.expiry);
-    Get(j, "SeqNo", v.seq_no);
-  }
-}  // namespace fc::markets::storage
+}  // namespace fc::storage::mpool
 
 namespace fc::drand {
   using codec::json::Get;
@@ -948,124 +727,57 @@ namespace fc::drand {
   }
 }  // namespace fc::drand
 
-namespace fc::vm::message {
-  using codec::json::Get;
-  using codec::json::Set;
-  using codec::json::Value;
-  using primitives::cid::getCidOfCbor;
-
-  JSON_ENCODE(UnsignedMessage) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Version", v.version, allocator);
-    Set(j, "To", v.to, allocator);
-    Set(j, "From", v.from, allocator);
-    Set(j, "Nonce", v.nonce, allocator);
-    Set(j, "Value", v.value, allocator);
-    Set(j, "GasLimit", v.gas_limit, allocator);
-    Set(j, "GasFeeCap", v.gas_fee_cap, allocator);
-    Set(j, "GasPremium", v.gas_premium, allocator);
-    Set(j, "Method", v.method, allocator);
-    Set(j, "Params", gsl::make_span(v.params), allocator);
-    return j;
-  }
-
-  JSON_DECODE(UnsignedMessage) {
-    Get(j, "Version", v.version);
-    Get(j, "To", v.to);
-    Get(j, "From", v.from);
-    Get(j, "Nonce", v.nonce);
-    Get(j, "Value", v.value);
-    Get(j, "GasLimit", v.gas_limit);
-    Get(j, "GasFeeCap", v.gas_fee_cap);
-    Get(j, "GasPremium", v.gas_premium);
-    Get(j, "Method", v.method);
-    Get(j, "Params", v.params);
-  }
-
-  JSON_ENCODE(SignedMessage) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Message", v.message, allocator);
-    Set(j, "Signature", v.signature, allocator);
-    OUTCOME_EXCEPT(
-        cid, v.signature.isBls() ? getCidOfCbor(v.message) : getCidOfCbor(v));
-    Set(j, "CID", cid, allocator);
-    return j;
-  }
-
-  JSON_DECODE(SignedMessage) {
-    Get(j, "Message", v.message);
-    Get(j, "Signature", v.signature);
-  }
-}  // namespace fc::vm::message
-
-namespace fc::primitives::tipset {
-  using codec::json::AsString;
-  using codec::json::encode;
-  using codec::json::Get;
-  using codec::json::innerDecode;
-  using codec::json::JsonError;
-  using codec::json::Set;
-  using codec::json::Value;
-
-  JSON_ENCODE(TipsetKey) {
-    return encode(v.cids(), allocator);
-  }
-
-  JSON_DECODE(TipsetKey) {
-    v = innerDecode<std::vector<CbCid>>(j);
-  }
-
-  JSON_ENCODE(TipsetCPtr) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Cids", v->key.cids(), allocator);
-    Set(j, "Blocks", v->blks, allocator);
-    Set(j, "Height", v->height(), allocator);
-    return j;
-  }
-
-  JSON_DECODE(TipsetCPtr) {
-    std::vector<primitives::block::BlockHeader> blks;
-    Get(j, "Blocks", blks);
-
-    // TODO (a.gorbachev) decode and verify excessive values
-
-    OUTCOME_EXCEPT(tipset, primitives::tipset::Tipset::create(std::move(blks)));
-    v = std::move(tipset);
-  }
-
-  JSON_ENCODE(HeadChange) {
-    const char *type{};
-    if (v.type == HeadChangeType::CURRENT) {
-      type = "current";
-    } else if (v.type == HeadChangeType::REVERT) {
-      type = "revert";
-    } else if (v.type == HeadChangeType::APPLY) {
-      type = "apply";
-    }
-    Value j{rapidjson::kObjectType};
-    Set(j, "Type", type, allocator);
-    Set(j, "Val", v.value, allocator);
-    return j;
-  }
-
-  JSON_DECODE(HeadChange) {
-    auto type = AsString(Get(j, "Type"));
-    if (type == "current") {
-      v.type = HeadChangeType::CURRENT;
-    } else if (type == "revert") {
-      v.type = HeadChangeType::REVERT;
-    } else if (type == "apply") {
-      v.type = HeadChangeType::APPLY;
-    } else {
-      outcome::raise(JsonError::kWrongEnum);
-    }
-    Get(j, "Val", v.value);
-  }
-}  // namespace fc::primitives::tipset
-
 namespace fc::mining {
   using codec::json::decodeEnum;
   using codec::json::encode;
+
+  namespace types {
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
+
+    JSON_ENCODE(DealSchedule) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "StartEpoch", v.start_epoch, allocator);
+      Set(j, "EndEpoch", v.end_epoch, allocator);
+      return j;
+    }
+
+    JSON_DECODE(DealSchedule) {
+      Get(j, "StartEpoch", v.end_epoch);
+      Get(j, "EndEpoch", v.end_epoch);
+    }
+
+    JSON_ENCODE(DealInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PublishCid", v.publish_cid, allocator);
+      Set(j, "DealID", v.deal_id, allocator);
+      Set(j, "DealProposal", v.deal_proposal, allocator);
+      Set(j, "DealSchedule", v.deal_schedule, allocator);
+      Set(j, "KeepUnsealed", v.is_keep_unsealed, allocator);
+      return j;
+    }
+
+    JSON_DECODE(DealInfo) {
+      Get(j, "PublishCid", v.publish_cid);
+      Get(j, "DealID", v.deal_id);
+      Get(j, "DealProposal", v.deal_proposal);
+      Get(j, "DealSchedule", v.deal_schedule);
+      Get(j, "KeepUnsealed", v.is_keep_unsealed);
+    }
+
+    JSON_ENCODE(Piece) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Piece", v.piece, allocator);
+      Set(j, "DealInfo", v.deal_info, allocator);
+      return j;
+    }
+
+    JSON_DECODE(Piece) {
+      Get(j, "Piece", v.piece);
+      Get(j, "DealInfo", v.deal_info);
+    }
+  }  // namespace types
 
   JSON_ENCODE(SealingState) {
     return encode(common::to_int(v), allocator);
@@ -1124,180 +836,393 @@ namespace fc::miner::types {
   }
 }  // namespace fc::miner::types
 
-namespace fc::mining::types {
-  using codec::json::Get;
-  using codec::json::Set;
-  using codec::json::Value;
+namespace fc::vm::actor::builtin::types {
+  namespace miner {
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
 
-  JSON_ENCODE(DealSchedule) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "StartEpoch", v.start_epoch, allocator);
-    Set(j, "EndEpoch", v.end_epoch, allocator);
-    return j;
-  }
+    JSON_ENCODE(SectorPreCommitOnChainInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Info", v.info, allocator);
+      Set(j, "PreCommitDeposit", v.precommit_deposit, allocator);
+      Set(j, "PreCommitEpoch", v.precommit_epoch, allocator);
+      Set(j, "DealWeight", v.deal_weight, allocator);
+      Set(j, "VerifiedDealWeight", v.verified_deal_weight, allocator);
+      return j;
+    }
 
-  JSON_DECODE(DealSchedule) {
-    Get(j, "StartEpoch", v.end_epoch);
-    Get(j, "EndEpoch", v.end_epoch);
-  }
+    JSON_DECODE(SectorPreCommitOnChainInfo) {
+      Get(j, "Info", v.info);
+      Get(j, "PreCommitDeposit", v.precommit_deposit);
+      Get(j, "PreCommitEpoch", v.precommit_epoch);
+      Get(j, "DealWeight", v.deal_weight);
+      Get(j, "VerifiedDealWeight", v.verified_deal_weight);
+    }
 
-  JSON_ENCODE(DealInfo) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "PublishCid", v.publish_cid, allocator);
-    Set(j, "DealID", v.deal_id, allocator);
-    Set(j, "DealProposal", v.deal_proposal, allocator);
-    Set(j, "DealSchedule", v.deal_schedule, allocator);
-    Set(j, "KeepUnsealed", v.is_keep_unsealed, allocator);
-    return j;
-  }
+    JSON_ENCODE(DeadlineInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "CurrentEpoch", v.current_epoch, allocator);
+      Set(j, "PeriodStart", v.period_start, allocator);
+      Set(j, "Index", v.index, allocator);
+      Set(j, "Open", v.open, allocator);
+      Set(j, "Close", v.close, allocator);
+      Set(j, "Challenge", v.challenge, allocator);
+      Set(j, "FaultCutoff", v.fault_cutoff, allocator);
+      Set(j, "WPoStPeriodDeadlines", v.wpost_period_deadlines, allocator);
+      Set(j, "WPoStProvingPeriod", v.wpost_proving_period, allocator);
+      Set(j, "WPoStChallengeWindow", v.wpost_challenge_window, allocator);
+      Set(j, "WPoStChallengeLookback", v.wpost_challenge_lookback, allocator);
+      Set(j, "FaultDeclarationCutoff", v.fault_declaration_cutoff, allocator);
+      return j;
+    }
 
-  JSON_DECODE(DealInfo) {
-    Get(j, "PublishCid", v.publish_cid);
-    Get(j, "DealID", v.deal_id);
-    Get(j, "DealProposal", v.deal_proposal);
-    Get(j, "DealSchedule", v.deal_schedule);
-    Get(j, "KeepUnsealed", v.is_keep_unsealed);
-  }
+    JSON_DECODE(DeadlineInfo) {
+      Get(j, "CurrentEpoch", v.current_epoch);
+      Get(j, "PeriodStart", v.period_start);
+      Get(j, "Index", v.index);
+      Get(j, "Open", v.open);
+      Get(j, "Close", v.close);
+      Get(j, "Challenge", v.challenge);
+      Get(j, "FaultCutoff", v.fault_cutoff);
+      Get(j, "WPoStPeriodDeadlines", v.wpost_period_deadlines);
+      Get(j, "WPoStProvingPeriod", v.wpost_proving_period);
+      Get(j, "WPoStChallengeWindow", v.wpost_challenge_window);
+      Get(j, "WPoStChallengeLookback", v.wpost_challenge_lookback);
+      Get(j, "FaultDeclarationCutoff", v.fault_declaration_cutoff);
+    }
 
-  JSON_ENCODE(Piece) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Piece", v.piece, allocator);
-    Set(j, "DealInfo", v.deal_info, allocator);
-    return j;
-  }
+    JSON_ENCODE(SectorOnChainInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "SectorNumber", v.sector, allocator);
+      Set(j, "SealProof", v.seal_proof, allocator);
+      Set(j, "SealedCID", v.sealed_cid, allocator);
+      Set(j, "DealIDs", v.deals, allocator);
+      Set(j, "Activation", v.activation_epoch, allocator);
+      Set(j, "Expiration", v.expiration, allocator);
+      Set(j, "DealWeight", v.deal_weight, allocator);
+      Set(j, "VerifiedDealWeight", v.verified_deal_weight, allocator);
+      Set(j, "InitialPledge", v.init_pledge, allocator);
+      Set(j, "ExpectedDayReward", v.expected_day_reward, allocator);
+      Set(j, "ExpectedStoragePledge", v.expected_storage_pledge, allocator);
+      return j;
+    }
 
-  JSON_DECODE(Piece) {
-    Get(j, "Piece", v.piece);
-    Get(j, "DealInfo", v.deal_info);
-  }
-}  // namespace fc::mining::types
-namespace fc::vm::actor::builtin::types::payment_channel {
-  using codec::json::Get;
-  using codec::json::Set;
-  using codec::json::Value;
+    JSON_DECODE(SectorOnChainInfo) {
+      Get(j, "SectorNumber", v.sector);
+      Get(j, "SealProof", v.seal_proof);
+      Get(j, "SealedCID", v.sealed_cid);
+      Get(j, "DealIDs", v.deals);
+      Get(j, "Activation", v.activation_epoch);
+      Get(j, "Expiration", v.expiration);
+      Get(j, "DealWeight", v.deal_weight);
+      Get(j, "VerifiedDealWeight", v.verified_deal_weight);
+      Get(j, "InitialPledge", v.init_pledge);
+      Get(j, "ExpectedDayReward", v.expected_day_reward);
+      Get(j, "ExpectedStoragePledge", v.expected_storage_pledge);
+    }
 
-  JSON_ENCODE(ModularVerificationParameter) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Actor", v.actor, allocator);
-    Set(j, "Method", v.method, allocator);
-    Set(j, "Params", gsl::make_span(v.params), allocator);
-    return j;
-  }
+    JSON_ENCODE(SectorPreCommitInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "SealProof", v.registered_proof, allocator);
+      Set(j, "SectorNumber", v.sector, allocator);
+      Set(j, "SealedCID", v.sealed_cid, allocator);
+      Set(j, "SealRandEpoch", v.seal_epoch, allocator);
+      Set(j, "DealIDs", v.deal_ids, allocator);
+      Set(j, "Expiration", v.expiration, allocator);
+      return j;
+    }
 
-  JSON_DECODE(ModularVerificationParameter) {
-    Get(j, "Actor", v.actor);
-    Get(j, "Method", v.method);
-    Get(j, "Params", v.params);
-  }
+    JSON_DECODE(SectorPreCommitInfo) {
+      Get(j, "SealProof", v.registered_proof);
+      Get(j, "SectorNumber", v.sector);
+      Get(j, "SealedCID", v.sealed_cid);
+      Get(j, "SealRandEpoch", v.seal_epoch);
+      Get(j, "DealIDs", v.deal_ids);
+      Get(j, "Expiration", v.expiration);
+    }
+  }  // namespace miner
 
-  JSON_ENCODE(Merge) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Lane", v.lane, allocator);
-    Set(j, "Nonce", v.nonce, allocator);
-    return j;
-  }
+  namespace market {
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
 
-  JSON_DECODE(Merge) {
-    Get(j, "Lane", v.lane);
-    Get(j, "Nonce", v.nonce);
-  }
-}  // namespace fc::vm::actor::builtin::types::payment_channel
-namespace fc::vm::actor::builtin::types::storage_power {
-  using codec::json::Get;
-  using codec::json::Set;
-  using codec::json::Value;
+    JSON_ENCODE(DealState) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "SectorStartEpoch", v.sector_start_epoch, allocator);
+      Set(j, "LastUpdatedEpoch", v.last_updated_epoch, allocator);
+      Set(j, "SlashEpoch", v.slash_epoch, allocator);
+      return j;
+    }
 
-  JSON_ENCODE(Claim) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "RawBytePower", v.raw_power, allocator);
-    Set(j, "QualityAdjPower", v.qa_power, allocator);
-    return j;
-  }
+    JSON_DECODE(DealState) {
+      Get(j, "SectorStartEpoch", v.sector_start_epoch);
+      Get(j, "LastUpdatedEpoch", v.last_updated_epoch);
+      Get(j, "SlashEpoch", v.slash_epoch);
+    }
 
-  JSON_DECODE(Claim) {
-    Get(j, "RawBytePower", v.raw_power);
-    Get(j, "QualityAdjPower", v.qa_power);
-  }
-}  // namespace fc::vm::actor::builtin::types::storage_power
+    JSON_ENCODE(DealProposal) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PieceCID", v.piece_cid, allocator);
+      Set(j, "PieceSize", v.piece_size, allocator);
+      Set(j, "VerifiedDeal", v.verified, allocator);
+      Set(j, "Client", v.client, allocator);
+      Set(j, "Provider", v.provider, allocator);
+      Set(j, "StartEpoch", v.start_epoch, allocator);
+      Set(j, "EndEpoch", v.end_epoch, allocator);
+      Set(j, "StoragePricePerEpoch", v.storage_price_per_epoch, allocator);
+      Set(j, "ProviderCollateral", v.provider_collateral, allocator);
+      Set(j, "ClientCollateral", v.client_collateral, allocator);
+      return j;
+    }
 
-namespace fc::vm::runtime {
-  using codec::json::decodeEnum;
-  using codec::json::Get;
-  using codec::json::Set;
-  using codec::json::Value;
+    JSON_DECODE(DealProposal) {
+      Get(j, "PieceCID", v.piece_cid);
+      Get(j, "PieceSize", v.piece_size);
+      Get(j, "VerifiedDeal", v.verified);
+      Get(j, "Client", v.client);
+      Get(j, "Provider", v.provider);
+      Get(j, "StartEpoch", v.start_epoch);
+      Get(j, "EndEpoch", v.end_epoch);
+      Get(j, "StoragePricePerEpoch", v.storage_price_per_epoch);
+      Get(j, "ProviderCollateral", v.provider_collateral);
+      Get(j, "ClientCollateral", v.client_collateral);
+    }
+  }  // namespace market
 
-  JSON_ENCODE(MessageReceipt) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "ExitCode", common::to_int(v.exit_code), allocator);
-    Set(j, "Return", gsl::make_span(v.return_value), allocator);
-    Set(j, "GasUsed", v.gas_used, allocator);
-    return j;
-  }
+  namespace payment_channel {
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
+    using crypto::signature::Signature;
 
-  JSON_DECODE(MessageReceipt) {
-    decodeEnum(v.exit_code, Get(j, "ExitCode"));
-    Get(j, "Return", v.return_value);
-    Get(j, "GasUsed", v.gas_used);
-  }
+    JSON_ENCODE(SignedVoucher) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ChannelAddr", v.channel, allocator);
+      Set(j, "TimeLockMin", v.time_lock_min, allocator);
+      Set(j, "TimeLockMax", v.time_lock_max, allocator);
+      Set(j, "SecretPreimage", gsl::make_span(v.secret_preimage), allocator);
+      Set(j, "Extra", v.extra, allocator);
+      Set(j, "Lane", v.lane, allocator);
+      Set(j, "Nonce", v.nonce, allocator);
+      Set(j, "Amount", v.amount, allocator);
+      Set(j, "MinSettleHeight", v.min_close_height, allocator);
+      Set(j, "Merges", v.merges, allocator);
+      const auto sig{v.signature_bytes.map(
+          [](auto &bytes) { return Signature::fromBytes(bytes).value(); })};
+      Set(j, "Signature", sig, allocator);
+      return j;
+    }
 
-  JSON_ENCODE(ExecutionResult) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Msg", v.message, allocator);
-    Set(j, "MsgRct", v.receipt, allocator);
-    Set(j, "Error", v.error, allocator);
-    return j;
-  }
+    JSON_DECODE(SignedVoucher) {
+      Get(j, "ChannelAddr", v.channel);
+      Get(j, "TimeLockMin", v.time_lock_min);
+      Get(j, "TimeLockMax", v.time_lock_max);
+      Get(j, "SecretPreimage", v.secret_preimage);
+      Get(j, "Extra", v.extra);
+      Get(j, "Lane", v.lane);
+      Get(j, "Nonce", v.nonce);
+      Get(j, "Amount", v.amount);
+      Get(j, "MinSettleHeight", v.min_close_height);
+      Get(j, "Merges", v.merges);
+      boost::optional<Signature> sig;
+      Get(j, "Signature", sig);
+      v.signature_bytes = sig.map([](auto &sig) { return sig.toBytes(); });
+    }
 
-  JSON_DECODE(ExecutionResult) {
-    Get(j, "Msg", v.message);
-    Get(j, "MsgRct", v.receipt);
-    v.error = AsString(Get(j, "Error"));
-  }
-}  // namespace fc::vm::runtime
+    JSON_ENCODE(ModularVerificationParameter) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Actor", v.actor, allocator);
+      Set(j, "Method", v.method, allocator);
+      Set(j, "Params", gsl::make_span(v.params), allocator);
+      return j;
+    }
 
-namespace fc::markets::storage::provider {
-  JSON_ENCODE(MinerDeal) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Proposal", v.client_deal_proposal.proposal, allocator);
-    Set(j,
-        "ClientSignature",
-        v.client_deal_proposal.client_signature,
-        allocator);
-    Set(j, "ProposalCid", v.proposal_cid, allocator);
-    Set(j, "AddFundsCid", v.add_funds_cid, allocator);
-    Set(j, "PublishCid", v.publish_cid, allocator);
-    Set(j, "Client", v.client, allocator);
-    Set(j, "State", v.state, allocator);
-    Set(j, "PiecePath", v.piece_path, allocator);
-    Set(j, "MetadataPath", v.metadata_path, allocator);
-    Set(j, "FastRetrieval", v.is_fast_retrieval, allocator);
-    Set(j, "Message", v.message, allocator);
-    Set(j, "Ref", v.ref, allocator);
-    Set(j, "DealId", v.deal_id, allocator);
-    return j;
-  }
+    JSON_DECODE(ModularVerificationParameter) {
+      Get(j, "Actor", v.actor);
+      Get(j, "Method", v.method);
+      Get(j, "Params", v.params);
+    }
 
-  JSON_DECODE(MinerDeal) {
-    Get(j, "Proposal", v.client_deal_proposal.proposal);
-    Get(j, "ClientSignature", v.client_deal_proposal.client_signature);
-    Get(j, "ProposalCid", v.proposal_cid);
-    Get(j, "AddFundsCid", v.add_funds_cid);
-    Get(j, "PublishCid", v.publish_cid);
-    Get(j, "Client", v.client);
-    Get(j, "State", v.state);
-    Get(j, "PiecePath", v.piece_path);
-    Get(j, "MetadataPath", v.metadata_path);
-    Get(j, "FastRetrieval", v.is_fast_retrieval);
-    Get(j, "Message", v.message);
-    Get(j, "Ref", v.ref);
-    Get(j, "DealId", v.deal_id);
-  }
-}  // namespace fc::markets::storage::provider
+    JSON_ENCODE(Merge) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Lane", v.lane, allocator);
+      Set(j, "Nonce", v.nonce, allocator);
+      return j;
+    }
+
+    JSON_DECODE(Merge) {
+      Get(j, "Lane", v.lane);
+      Get(j, "Nonce", v.nonce);
+    }
+  }  // namespace payment_channel
+
+  namespace storage_power {
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
+
+    JSON_ENCODE(Claim) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "RawBytePower", v.raw_power, allocator);
+      Set(j, "QualityAdjPower", v.qa_power, allocator);
+      return j;
+    }
+
+    JSON_DECODE(Claim) {
+      Get(j, "RawBytePower", v.raw_power);
+      Get(j, "QualityAdjPower", v.qa_power);
+    }
+  }  // namespace storage_power
+}  // namespace fc::vm::actor::builtin::types
+
+namespace fc::vm {
+  namespace version {
+    using codec::json::decodeEnum;
+    using codec::json::encode;
+
+    JSON_ENCODE(NetworkVersion) {
+      return encode(common::to_int(v), allocator);
+    }
+
+    JSON_DECODE(NetworkVersion) {
+      decodeEnum(v, j);
+    }
+  }  // namespace version
+  namespace actor {
+
+    JSON_ENCODE(Actor) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Code", v.code, allocator);
+      Set(j, "Head", v.head, allocator);
+      Set(j, "Nonce", v.nonce, allocator);
+      Set(j, "Balance", v.balance, allocator);
+      return j;
+    }
+
+    JSON_DECODE(Actor) {
+      Get(j, "Code", v.code);
+      Get(j, "Head", v.head);
+      Get(j, "Nonce", v.nonce);
+      Get(j, "Balance", v.balance);
+    }
+  }  // namespace actor
+  namespace runtime {
+    using codec::json::decodeEnum;
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
+
+    JSON_ENCODE(MessageReceipt) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ExitCode", common::to_int(v.exit_code), allocator);
+      Set(j, "Return", gsl::make_span(v.return_value), allocator);
+      Set(j, "GasUsed", v.gas_used, allocator);
+      return j;
+    }
+
+    JSON_DECODE(MessageReceipt) {
+      decodeEnum(v.exit_code, Get(j, "ExitCode"));
+      Get(j, "Return", v.return_value);
+      Get(j, "GasUsed", v.gas_used);
+    }
+
+    JSON_ENCODE(ExecutionResult) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Msg", v.message, allocator);
+      Set(j, "MsgRct", v.receipt, allocator);
+      Set(j, "Error", v.error, allocator);
+      return j;
+    }
+
+    JSON_DECODE(ExecutionResult) {
+      Get(j, "Msg", v.message);
+      Get(j, "MsgRct", v.receipt);
+      v.error = AsString(Get(j, "Error"));
+    }
+  }  // namespace runtime
+  namespace message {
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
+    using primitives::cid::getCidOfCbor;
+
+    JSON_ENCODE(UnsignedMessage) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Version", v.version, allocator);
+      Set(j, "To", v.to, allocator);
+      Set(j, "From", v.from, allocator);
+      Set(j, "Nonce", v.nonce, allocator);
+      Set(j, "Value", v.value, allocator);
+      Set(j, "GasLimit", v.gas_limit, allocator);
+      Set(j, "GasFeeCap", v.gas_fee_cap, allocator);
+      Set(j, "GasPremium", v.gas_premium, allocator);
+      Set(j, "Method", v.method, allocator);
+      Set(j, "Params", gsl::make_span(v.params), allocator);
+      return j;
+    }
+
+    JSON_DECODE(UnsignedMessage) {
+      Get(j, "Version", v.version);
+      Get(j, "To", v.to);
+      Get(j, "From", v.from);
+      Get(j, "Nonce", v.nonce);
+      Get(j, "Value", v.value);
+      Get(j, "GasLimit", v.gas_limit);
+      Get(j, "GasFeeCap", v.gas_fee_cap);
+      Get(j, "GasPremium", v.gas_premium);
+      Get(j, "Method", v.method);
+      Get(j, "Params", v.params);
+    }
+
+    JSON_ENCODE(SignedMessage) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Message", v.message, allocator);
+      Set(j, "Signature", v.signature, allocator);
+      OUTCOME_EXCEPT(
+          cid, v.signature.isBls() ? getCidOfCbor(v.message) : getCidOfCbor(v));
+      Set(j, "CID", cid, allocator);
+      return j;
+    }
+
+    JSON_DECODE(SignedMessage) {
+      Get(j, "Message", v.message);
+      Get(j, "Signature", v.signature);
+    }
+  }  // namespace message
+}  // namespace fc::vm
 
 namespace fc::markets::retrieval {
   using codec::json::Get;
   using codec::json::Set;
   using codec::json::Value;
+
+  namespace client {
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
+
+    JSON_ENCODE(RetrievalDeal) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Proposal", v.proposal, allocator);
+      Set(j, "Accepted", v.accepted, allocator);
+      Set(j, "AllBlocks", v.all_blocks, allocator);
+      Set(j, "Client", v.client_wallet, allocator);
+      Set(j, "Provider", v.miner_wallet, allocator);
+      Set(j, "TotalFunds", v.total_funds, allocator);
+      return j;
+    }
+
+    JSON_DECODE(RetrievalDeal) {
+      Get(j, "Proposal", v.proposal);
+      Get(j, "Accepted", v.accepted);
+      Get(j, "AllBlocks", v.all_blocks);
+      Get(j, "Client", v.client_wallet);
+      Get(j, "Provider", v.miner_wallet);
+      Get(j, "TotalFunds", v.total_funds);
+    }
+  }  // namespace client
 
   JSON_ENCODE(RetrievalAsk) {
     Value j{rapidjson::kObjectType};
@@ -1363,9 +1288,129 @@ namespace fc::markets::retrieval {
 }  // namespace fc::markets::retrieval
 
 namespace fc::markets::storage {
+  using codec::json::decodeEnum;
+  using codec::json::encode;
   using codec::json::Get;
   using codec::json::Set;
   using codec::json::Value;
+
+  namespace provider {
+    JSON_ENCODE(MinerDeal) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Proposal", v.client_deal_proposal.proposal, allocator);
+      Set(j,
+          "ClientSignature",
+          v.client_deal_proposal.client_signature,
+          allocator);
+      Set(j, "ProposalCid", v.proposal_cid, allocator);
+      Set(j, "AddFundsCid", v.add_funds_cid, allocator);
+      Set(j, "PublishCid", v.publish_cid, allocator);
+      Set(j, "Client", v.client, allocator);
+      Set(j, "State", v.state, allocator);
+      Set(j, "PiecePath", v.piece_path, allocator);
+      Set(j, "MetadataPath", v.metadata_path, allocator);
+      Set(j, "FastRetrieval", v.is_fast_retrieval, allocator);
+      Set(j, "Message", v.message, allocator);
+      Set(j, "Ref", v.ref, allocator);
+      Set(j, "DealId", v.deal_id, allocator);
+      return j;
+    }
+
+    JSON_DECODE(MinerDeal) {
+      Get(j, "Proposal", v.client_deal_proposal.proposal);
+      Get(j, "ClientSignature", v.client_deal_proposal.client_signature);
+      Get(j, "ProposalCid", v.proposal_cid);
+      Get(j, "AddFundsCid", v.add_funds_cid);
+      Get(j, "PublishCid", v.publish_cid);
+      Get(j, "Client", v.client);
+      Get(j, "State", v.state);
+      Get(j, "PiecePath", v.piece_path);
+      Get(j, "MetadataPath", v.metadata_path);
+      Get(j, "FastRetrieval", v.is_fast_retrieval);
+      Get(j, "Message", v.message);
+      Get(j, "Ref", v.ref);
+      Get(j, "DealId", v.deal_id);
+    }
+  }  // namespace provider
+  namespace client::import_manager {
+    using codec::json::Get;
+    using codec::json::Set;
+    using codec::json::Value;
+
+    JSON_ENCODE(Import) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "StoreId", v.store_id, allocator);
+      Set(j, "Error", v.error, allocator);
+      Set(j, "Root", v.root, allocator);
+      Set(j, "Source", v.source, allocator);
+      Set(j, "FilePath", v.path, allocator);
+      return j;
+    }
+
+    JSON_DECODE(Import) {
+      Get(j, "StoreId", v.store_id);
+      Get(j, "Error", v.error);
+      Get(j, "Root", v.root);
+      Get(j, "Source", v.source);
+      Get(j, "FilePath", v.path);
+    }
+  }  // namespace client::import_manager
+
+  JSON_ENCODE(StorageDeal) {
+    Value j{rapidjson::kObjectType};
+    Set(j, "Proposal", v.proposal, allocator);
+    Set(j, "State", v.state, allocator);
+    return j;
+  }
+
+  JSON_DECODE(StorageDeal) {
+    Get(j, "Proposal", v.proposal);
+    Get(j, "State", v.state);
+  }
+
+  JSON_ENCODE(StorageDealStatus) {
+    return encode(common::to_int(v), allocator);
+  }
+
+  JSON_DECODE(StorageDealStatus) {
+    decodeEnum(v, j);
+  }
+
+  JSON_ENCODE(DataRef) {
+    Value j{rapidjson::kObjectType};
+    Set(j, "TransferType", v.transfer_type, allocator);
+    Set(j, "Root", v.root, allocator);
+    Set(j, "PieceCid", v.piece_cid, allocator);
+    Set(j, "PieceSize", v.piece_size, allocator);
+    return j;
+  }
+
+  JSON_DECODE(DataRef) {
+    Get(j, "TransferType", v.transfer_type);
+    Get(j, "Root", v.root);
+    Get(j, "PieceCid", v.piece_cid);
+    Get(j, "PieceSize", v.piece_size);
+  }
+
+  JSON_ENCODE(StorageAsk) {
+    Value j{rapidjson::kObjectType};
+    Set(j, "Price", v.price, allocator);
+    Set(j, "MinPieceSize", v.min_piece_size, allocator);
+    Set(j, "Miner", v.miner, allocator);
+    Set(j, "Timestamp", v.timestamp, allocator);
+    Set(j, "Expiry", v.expiry, allocator);
+    Set(j, "SeqNo", v.seq_no, allocator);
+    return j;
+  }
+
+  JSON_DECODE(StorageAsk) {
+    Get(j, "Price", v.price);
+    Get(j, "MinPieceSize", v.min_piece_size);
+    Get(j, "Miner", v.miner);
+    Get(j, "Timestamp", v.timestamp);
+    Get(j, "Expiry", v.expiry);
+    Get(j, "SeqNo", v.seq_no);
+  }
 
   JSON_ENCODE(SignedStorageAskV1_1_0) {
     Value j{rapidjson::kObjectType};
@@ -1378,45 +1423,8 @@ namespace fc::markets::storage {
     Get(j, "Ask", v.ask);
     Get(j, "Signature", v.signature);
   }
+
 }  // namespace fc::markets::storage
-
-namespace fc::markets::storage::client::import_manager {
-  using codec::json::Get;
-  using codec::json::Set;
-  using codec::json::Value;
-
-  JSON_ENCODE(Import) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "StoreId", v.store_id, allocator);
-    Set(j, "Error", v.error, allocator);
-    Set(j, "Root", v.root, allocator);
-    Set(j, "Source", v.source, allocator);
-    Set(j, "FilePath", v.path, allocator);
-    return j;
-  }
-
-  JSON_DECODE(Import) {
-    Get(j, "StoreId", v.store_id);
-    Get(j, "Error", v.error);
-    Get(j, "Root", v.root);
-    Get(j, "Source", v.source);
-    Get(j, "FilePath", v.path);
-  }
-}  // namespace fc::markets::storage::client::import_manager
-
-namespace fc::proofs {
-  JSON_ENCODE(SealedAndUnsealedCID) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Sealed", v.sealed_cid, allocator);
-    Set(j, "Unsealed", v.unsealed_cid, allocator);
-    return j;
-  }
-
-  JSON_DECODE(SealedAndUnsealedCID) {
-    Get(j, "Sealed", v.sealed_cid);
-    Get(j, "Unsealed", v.unsealed_cid);
-  }
-}  // namespace fc::proofs
 
 namespace fc::api {
   using codec::cbor::CborDecodeStream;
