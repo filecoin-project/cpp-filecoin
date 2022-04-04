@@ -378,14 +378,6 @@ namespace fc::api {
       v = AsString(j);
     }
 
-    ENCODE(TaskType) {
-      return encode(std::string_view(v));
-    }
-
-    DECODE(TaskType) {
-      v = TaskType(AsString(j));
-    }
-
     ENCODE(gsl::span<const uint8_t>) {
       return encode(base64::encode(v.data(), v.size()));
     }
@@ -2303,21 +2295,6 @@ namespace fc::api {
       }
       return j;
     }
-    ENCODE(std::set<TaskType>) {
-      Value j{rapidjson::kObjectType};
-      j.MemberReserve(v.size(), allocator);
-      for (auto &pair : v) {
-        std::map<std::string, std::string> value;
-        Set(j, pair, value);
-      }
-      return j;
-    }
-
-    DECODE(std::set<TaskType>) {
-      for (auto it = j.MemberBegin(); it != j.MemberEnd(); ++it) {
-        v.emplace(TaskType(AsString(it->name)));
-      }
-    }
 
     template <typename T>
     DECODE(std::set<T>) {
@@ -2329,6 +2306,24 @@ namespace fc::api {
       }
       for (const auto &it : j.GetArray()) {
         v.emplace(decode<T>(it));
+      }
+    }
+
+    template <typename T>
+    ENCODE(CodecSetAsMap<T>) {
+      Value j{rapidjson::kObjectType};
+      j.MemberReserve(v.size(), allocator);
+      for (auto &pair : v) {
+        std::map<std::string, std::string> value;
+        Set(j, pair, value);
+      }
+      return j;
+    }
+
+    template <typename T>
+    DECODE(CodecSetAsMap<T>) {
+      for (auto it = j.MemberBegin(); it != j.MemberEnd(); ++it) {
+        v.emplace(TaskType(AsString(it->name)));
       }
     }
 

@@ -36,7 +36,7 @@ namespace fc::sector_storage {
           work(std::move(work)),
           cb(std::move(cb)) {
       const auto &resource_table{primitives::getResourceTable()};
-      const auto resource_iter = resource_table.find(task_type);
+      const auto resource_iter = resource_table.find(this->task_type);
       if (resource_iter != resource_table.end()) {
         need_resources = resource_iter->second.at(sector.proof_type);
       }
@@ -56,10 +56,10 @@ namespace fc::sector_storage {
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
-    return less(rhs.priority,
-                lhs.priority,
-                lhs.task_type,
-                rhs.task_type,
+    return less(lhs.priority,
+                rhs.priority,
+                primitives::getTaskTypePiority(lhs.task_type),
+                primitives::getTaskTypePiority(rhs.task_type),
                 lhs.sector.id.sector,
                 rhs.sector.id.sector);
   }

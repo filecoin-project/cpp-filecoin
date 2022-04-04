@@ -31,6 +31,13 @@ namespace fc::api {
   using sector_storage::SectorFileType;
   using sector_storage::Update1Output;
 
+  /**
+   * Set is encoded as an array: "[a, b, c]", but this class allows to encode
+   * set as map: "{a:{}, b:{}, c:{}}. Used for lotus compatibility.
+   */
+  template <typename T>
+  class CodecSetAsMap : public std::set<T> {};
+
   struct WorkerApi {
     API_METHOD(AddPiece,
                kAdminPermission,
@@ -120,7 +127,7 @@ namespace fc::api {
 
     API_METHOD(StorageAddLocal, kAdminPermission, void, const std::string &)
 
-    API_METHOD(TaskTypes, kAdminPermission, std::set<primitives::TaskType>)
+    API_METHOD(TaskTypes, kAdminPermission, CodecSetAsMap<primitives::TaskType>)
 
     API_METHOD(UnsealPiece,
                kAdminPermission,
