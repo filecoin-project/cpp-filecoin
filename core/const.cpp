@@ -21,11 +21,7 @@ namespace fc {
   DEFINE(kFakeWinningPost){};
 
   // Initialize parameters with mainnet values
-  DEFINE(kEpochDurationSeconds){30};
-  DEFINE(kEpochsInHour){kSecondsInHour / kEpochDurationSeconds};
-  DEFINE(kEpochsInDay){24 * kEpochsInHour};
-  DEFINE(kEpochsInYear){365 * kEpochsInDay};
-
+  DEFINE(kBlockDelaySecs){kEpochDurationSeconds};
   DEFINE(kPropagationDelaySecs){6};
 
   DEFINE(kUpgradeBreezeHeight){41280};
@@ -93,11 +89,7 @@ namespace fc::vm::actor::builtin::types::verified_registry {
 
 namespace fc {
   void setParams2K() {
-    kEpochDurationSeconds = 4;
-    kEpochsInHour = kSecondsInHour / kEpochDurationSeconds;
-    kEpochsInDay = 24 * kEpochsInHour;
-    kEpochsInYear = 365 * kEpochsInDay;
-
+    kBlockDelaySecs = 4;
     kPropagationDelaySecs = 1;
 
     // Network versions
@@ -124,8 +116,6 @@ namespace fc {
     kBreezeGasTampingDuration = 0;
 
     // Update actor constants
-    market::kDealUpdatesInterval = static_cast<EpochDuration>(kEpochsInDay);
-
     miner::kWPoStProvingPeriod = kEpochsInDay;
     miner::kWPoStChallengeWindow = 30 * 60 / kEpochDurationSeconds;
     miner::kMaxPreCommitRandomnessLookback =
@@ -148,57 +138,11 @@ namespace fc {
     miner::kPreCommitChallengeDelay = 10;
   }
 
-  void setParamsNoUpgrades() {
-    kEpochDurationSeconds = 4;
-    kEpochsInHour = kSecondsInHour / kEpochDurationSeconds;
-    kEpochsInDay = 24 * kEpochsInHour;
-    kEpochsInYear = 365 * kEpochsInDay;
-
+  void setParamsInteropnet() {
+    kFakeWinningPost = true;
+    kBlockDelaySecs = 5;
     kPropagationDelaySecs = 1;
 
-    // Network versions
-    kUpgradeBreezeHeight = INT64_MAX;
-    kUpgradeSmokeHeight = INT64_MAX;
-    kUpgradeIgnitionHeight = INT64_MAX;
-    kUpgradeRefuelHeight = INT64_MAX;
-    kUpgradeTapeHeight = INT64_MAX;
-    kUpgradeAssemblyHeight = INT64_MAX;
-    kUpgradeLiftoffHeight = INT64_MAX;
-    kUpgradeKumquatHeight = INT64_MAX;
-    kUpgradeCalicoHeight = INT64_MAX;
-    kUpgradePersianHeight = INT64_MAX;
-    kUpgradeOrangeHeight = INT64_MAX;
-    kUpgradeClausHeight = INT64_MAX;
-    kUpgradeTrustHeight = INT64_MAX;
-    kUpgradeNorwegianHeight = INT64_MAX;
-    kUpgradeTurboHeight = INT64_MAX;
-    kUpgradeChocolateHeight = INT64_MAX;
-    kUpgradeOhSnapHeight = INT64_MAX;
-
-    kBreezeGasTampingDuration = 0;
-
-    // Update actor constants
-    market::kDealUpdatesInterval = static_cast<EpochDuration>(kEpochsInDay);
-
-    miner::kWPoStProvingPeriod = kEpochsInDay;
-    miner::kWPoStChallengeWindow = 30 * 60 / kEpochDurationSeconds;
-    miner::kMaxPreCommitRandomnessLookback =
-        kEpochsInDay + miner::kChainFinality;
-    miner::kFaultMaxAge = miner::kWPoStProvingPeriod * 14;
-    miner::kMinSectorExpiration = 180 * kEpochsInDay;
-    miner::kMaxSectorExpirationExtension = 540 * kEpochsInDay;
-    miner::kMaxProveCommitDuration =
-        kEpochsInDay + miner::kPreCommitChallengeDelay;
-    miner::kSupportedProofs = {RegisteredSealProof::kStackedDrg2KiBV1};
-
-    payment_channel::kSettleDelay = kEpochsInHour * 12;
-
-    storage_power::kConsensusMinerMinPower = 2048;
-
-    verified_registry::kMinVerifiedDealSize = 256;
-  }
-
-  void setParamsInteropnet() {
     // Network versions
     kUpgradeBreezeHeight = -1;
     kUpgradeSmokeHeight = -1;
@@ -217,18 +161,18 @@ namespace fc {
     kUpgradeNorwegianHeight = -14;
     kUpgradeTurboHeight = -15;
     kUpgradeHyperdriveHeight = -16;
-    kUpgradeChocolateHeight = INT64_MAX;  // -17 in lotus
-    kUpgradeOhSnapHeight = INT64_MAX;     // -18 in lotus
+    kUpgradeChocolateHeight = -17;
+    kUpgradeOhSnapHeight = -18;
 
     kBreezeGasTampingDuration = 0;
 
     // Update actor constants
     miner::kSupportedProofs = {
-        RegisteredSealProof::kStackedDrg2KiBV1,
-        RegisteredSealProof::kStackedDrg8MiBV1,
         RegisteredSealProof::kStackedDrg512MiBV1,
+        RegisteredSealProof::kStackedDrg32GiBV1,
+        RegisteredSealProof::kStackedDrg64GiBV1,
     };
-    storage_power::kConsensusMinerMinPower = 2048;
+    storage_power::kConsensusMinerMinPower = StoragePower{2} << 30;
     verified_registry::kMinVerifiedDealSize = 256;
     miner::kPreCommitChallengeDelay = 10;
   }

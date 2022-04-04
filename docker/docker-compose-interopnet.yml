@@ -4,7 +4,7 @@ services:
   fuhon-node:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
       target: fuhon-node
     image: fuhon-node:develop-build
     ports:
@@ -14,7 +14,7 @@ services:
   fuhon-miner:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
       target: fuhon-miner
     image: fuhon-miner:develop-build
     volumes:
