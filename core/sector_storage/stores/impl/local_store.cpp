@@ -13,10 +13,10 @@
 #include <regex>
 #include <utility>
 
-#include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
 #include "common/libp2p/timer_loop.hpp"
+#include "primitives/json_types.hpp"
 #include "primitives/sector_file/sector_file.hpp"
 #include "sector_storage/stores/impl/util.hpp"
 #include "sector_storage/stores/storage_error.hpp"
@@ -312,7 +312,7 @@ namespace fc::sector_storage::stores {
     auto root = boost::filesystem::path(path);
     OUTCOME_TRY(text, common::readFile(root / kMetaFileName));
     OUTCOME_TRY(j_file, codec::json::parse(text));
-    OUTCOME_TRY(meta, api::decode<LocalStorageMeta>(j_file));
+    OUTCOME_TRY(meta, codec::json::decode<LocalStorageMeta>(j_file));
 
     auto path_iter = paths_.find(meta.id);
     if (path_iter != paths_.end()) {

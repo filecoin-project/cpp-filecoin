@@ -3,17 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "codec/json/coding.hpp"
-
 #include <gtest/gtest.h>
 
-#include "api/full_node/types.hpp"
+#include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
-#include "crypto/signature/signature.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "primitives/block/block.hpp"
-#include "primitives/cid/json_cid.hpp"
-#include "primitives/rle_bitset/rle_bitset.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -124,4 +117,4 @@ namespace fc::codec::json {
                "\"Multiaddrs\":[],\"WindowPoStProofType\":5,"
                "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1}");
   }
-}  // namespace fc::codec::json
+}  // namespace fc::api

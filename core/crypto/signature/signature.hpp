@@ -70,40 +70,4 @@ namespace fc::crypto::signature {
     return s;
   }
 
-  JSON_ENCODE(Signature) {
-    using fc::codec::json::Set;
-    using fc::codec::json::Value;
-    uint64_t type = Type::kUndefined;
-    gsl::span<const uint8_t> data;
-    visit_in_place(
-        v,
-        [&](const BlsSignature &bls) {
-          type = Type::kBls;
-          data = gsl::make_span(bls);
-        },
-        [&](const Secp256k1Signature &secp) {
-          type = Type::kSecp256k1;
-          data = gsl::make_span(secp);
-        });
-    Value j{rapidjson::kObjectType};
-    Set(j, "Type", type, allocator);
-    Set(j, "Data", data, allocator);
-    return j;
-  }
-
-  JSON_DECODE(Signature) {
-    using fc::codec::json::Get;
-    using fc::codec::json::JsonError;
-    uint64_t type = Type::kUndefined;
-    fc::codec::json::decode(type, Get(j, "Type"));
-    const auto &data = Get(j, "Data");
-    if (type == Type::kBls) {
-      v = fc::codec::json::innerDecode<BlsSignature>(data);
-    } else if (type == Type::kSecp256k1) {
-      v = fc::codec::json::innerDecode<Secp256k1Signature>(data);
-    } else {
-      outcome::raise(JsonError::kWrongEnum);
-    }
-  }
-
 }  // namespace fc::crypto::signature

@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "codec/json/coding.hpp"
 #include "common/blob.hpp"
 #include "common/cmp.hpp"
 #include "common/enum.hpp"
@@ -64,13 +63,6 @@ namespace fc::primitives::sector {
     kStackedDRG32GiBWindowPoSt,
     kStackedDRG64GiBWindowPoSt,
   };
-  JSON_ENCODE(RegisteredPoStProof) {
-    return codec::json::encode(common::to_int(v), allocator);
-  }
-
-  JSON_DECODE(RegisteredPoStProof) {
-    codec::json::decodeEnum(v, j);
-  }
 
   enum class RegisteredAggregationProof : int64_t {
     SnarkPackV1,

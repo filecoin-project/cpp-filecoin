@@ -114,7 +114,7 @@ namespace fc {
     OUTCOME_TRY(file, common::readFile(path));
     OUTCOME_TRY(j_file, codec::json::parse(gsl::make_span(file)));
     OUTCOME_TRY(
-        psm, api::decode<std::map<std::string, miner::types::Miner>>(j_file));
+        psm, codec::json::decode<std::map<std::string, miner::types::Miner>>(j_file));
 
     const auto it_psm = psm.find(encodeToString(maddr));
     if (it_psm == psm.end()) {

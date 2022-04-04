@@ -29,7 +29,6 @@
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 #include "vm/actor/builtin/types/storage_power/claim.hpp"
 #include "vm/runtime/runtime_types.hpp"
-#include "api/full_node/types.hpp"
 
 namespace fc::api {
   using crypto::randomness::DomainSeparationTag;
@@ -262,6 +261,17 @@ namespace fc::api {
 
   struct MessageSendSpec {
     TokenAmount max_fee;
+  };
+
+  struct MinerInfo {
+    Address owner;
+    Address worker;
+    std::vector<Address> control;
+    Bytes peer_id;
+    std::vector<Multiaddress> multiaddrs;
+    RegisteredPoStProof window_post_proof_type{RegisteredPoStProof::kUndefined};
+    SectorSize sector_size{};
+    uint64_t window_post_partition_sectors{};
   };
 
   struct DealCollateralBounds {

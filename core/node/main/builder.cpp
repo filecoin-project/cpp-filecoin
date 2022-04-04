@@ -257,7 +257,7 @@ namespace fc::node {
     std::string hex_string(std::istreambuf_iterator<char>{ifs}, {});
     OUTCOME_TRY(blob, common::unhex(hex_string));
     OUTCOME_TRY(json, codec::json::parse(blob));
-    OUTCOME_TRY(key_info, api::decode<KeyInfo>(json));
+    OUTCOME_TRY(key_info, codec::json::decode<KeyInfo>(json));
     return std::move(key_info);
   }
 

@@ -8,6 +8,7 @@ addtest(json_test
         )
 
 target_link_libraries(json_test
+        api
         json
         address
         rle_plus_codec

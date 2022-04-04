@@ -1,7 +1,7 @@
 /**
-* Copyright Soramitsu Co., Ltd. All Rights Reserved.
-* SPDX-License-Identifier: Apache-2.0
-*/
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #pragma once
 
@@ -60,6 +60,16 @@ namespace fc::codec::json {
       return {};
     }
     return base64::decode(AsString(j));
+  }
+
+  inline auto AsDocument(const Value &j) {
+    Document document;
+    static_cast<Value &>(document) = Value{j, document.GetAllocator()};
+    return document;
+  }
+
+  JSON_DECODE(Document) {
+    v = AsDocument(j);
   }
 
   JSON_ENCODE(int64_t) {

@@ -8,7 +8,6 @@
 #include <set>
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "codec/json/coding.hpp"
 #include "codec/rle/rle_plus.hpp"
 #include "common/outcome.hpp"
 
@@ -135,13 +134,5 @@ namespace fc::primitives {
     OUTCOME_EXCEPT(decoded, codec::rle::decode<RleBitset::value_type>(rle));
     set = RleBitset{std::move(decoded)};
     return s;
-  }
-
-  JSON_ENCODE(RleBitset) {
-    return codec::json::encode(codec::rle::toRuns(v), allocator);
-  }
-
-  JSON_DECODE(RleBitset) {
-    v = codec::rle::fromRuns(codec::json::innerDecode<codec::rle::Runs64>(j));
   }
 }  // namespace fc::primitives
