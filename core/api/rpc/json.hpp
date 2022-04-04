@@ -100,6 +100,13 @@ namespace fc::api {
   using markets::retrieval::DealProposalV1_0_0;
   using proofs::ParamFile;
 
+  /**
+   * Set is encoded as an array: "[a, b, c]", but this class allows to encode
+   * set as map: "{a:{}, b:{}, c:{}}. Used for lotus compatibility.
+   */
+  template <typename T>
+  class CodecSetAsMap : public std::set<T> {};
+
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
 
@@ -2295,21 +2302,6 @@ namespace fc::api {
       }
       return j;
     }
-    ENCODE(std::set<TaskType>) {
-      Value j{rapidjson::kObjectType};
-      j.MemberReserve(v.size(), allocator);
-      for (auto &pair : v) {
-        std::map<std::string, std::string> value;
-        Set(j, pair, value);
-      }
-      return j;
-    }
-
-    DECODE(std::set<TaskType>) {
-      for (auto it = j.MemberBegin(); it != j.MemberEnd(); ++it) {
-        v.emplace(TaskType(AsString(it->name)));
-      }
-    }
 
     template <typename T>
     DECODE(std::set<T>) {
@@ -2321,6 +2313,24 @@ namespace fc::api {
       }
       for (const auto &it : j.GetArray()) {
         v.emplace(decode<T>(it));
+      }
+    }
+
+    template <typename T>
+    ENCODE(CodecSetAsMap<T>) {
+      Value j{rapidjson::kObjectType};
+      j.MemberReserve(v.size(), allocator);
+      for (auto &pair : v) {
+        std::map<std::string, std::string> value;
+        Set(j, pair, value);
+      }
+      return j;
+    }
+
+    template <typename T>
+    DECODE(CodecSetAsMap<T>) {
+      for (auto it = j.MemberBegin(); it != j.MemberEnd(); ++it) {
+        v.emplace(TaskType(AsString(it->name)));
       }
     }
 

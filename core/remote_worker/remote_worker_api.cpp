@@ -4,6 +4,7 @@
  */
 
 #include "remote_worker/remote_worker_api.hpp"
+#include "api/rpc/json.hpp"
 
 namespace fc::remote_worker {
   using api::VersionResult;
@@ -53,7 +54,9 @@ namespace fc::remote_worker {
     worker_api->Paths = [=]() { return worker->getAccessiblePaths(); };
     worker_api->TaskTypes =
         [=]() -> outcome::result<std::set<primitives::TaskType>> {
-      return worker->getSupportedTask();
+      OUTCOME_TRY(supported_tasks, worker->getSupportedTask());
+      // N.B. set encoded as JSON map
+      return api::CodecSetAsMap<primitives::TaskType>{supported_tasks};
     };
 
     worker_api->SealPreCommit1 = [=](const SectorRef &sector,
