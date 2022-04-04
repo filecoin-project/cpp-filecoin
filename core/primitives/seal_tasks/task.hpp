@@ -14,6 +14,10 @@ namespace fc::primitives {
    public:
     TaskType() = default;
     explicit TaskType(const std::string &str) : std::string(str){};
+
+    bool operator<(const TaskType &other) const {
+      return this->compare(other) < 0;
+    }
   };
 
   const TaskType kTTAddPiece("seal/v0/addpiece");
@@ -37,30 +41,5 @@ namespace fc::primitives {
   const TaskType kTTProveReplicaUpdate1("seal/v0/provereplicaupdate/1");
   const TaskType kTTProveReplicaUpdate2("seal/v0/provereplicaupdate/2");
   const TaskType kTTRegenSectorKey("seal/v0/regensectorkey");
-  const TaskType kTTFinalizeReplicaUpdate("seal/v0/regensectorkey");
-
-  inline bool operator<(const TaskType &lhs, const TaskType &rhs) {
-    static std::unordered_map<std::string, int> order = {
-        {kTTFinalizeReplicaUpdate, -3},
-        {kTTFinalize, -2},
-        {kTTFetch, -1},
-        {kTTReadUnsealed, 0},
-        {kTTUnseal, 1},
-        {kTTCommit1, 2},
-        {kTTCommit2, 3},
-        {kTTPreCommit2, 4},
-        {kTTPreCommit1, 5},
-        {kTTProveReplicaUpdate1, 6},
-        {kTTProveReplicaUpdate2, 7},
-        {kTTReplicaUpdate, 8},
-        {kTTAddPiece, 9},
-        {kTTRegenSectorKey, 10}};
-
-    // Task types must be comparable
-    BOOST_ASSERT_MSG(order.count(lhs) > 0,
-                     "Task type priority has not been set");
-    BOOST_ASSERT_MSG(order.count(rhs) > 0,
-                     "Task type priority has not been set");
-    return order[lhs] < order[rhs];
-  }
+  const TaskType kTTFinalizeReplicaUpdate("seal/v0/finalize/replicaupdate");
 }  // namespace fc::primitives
