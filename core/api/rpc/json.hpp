@@ -100,13 +100,6 @@ namespace fc::api {
   using markets::retrieval::DealProposalV1_0_0;
   using proofs::ParamFile;
 
-  /**
-   * Set is encoded as an array: "[a, b, c]", but this class allows to encode
-   * set as map: "{a:{}, b:{}, c:{}}. Used for lotus compatibility.
-   */
-  template <typename T>
-  class CodecSetAsMap : public std::set<T> {};
-
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
 
