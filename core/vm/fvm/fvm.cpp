@@ -29,7 +29,7 @@
   } while (0)
 
 #define FVM_MACHINE()                               \
-  std::shared_lock lock{mutex};                     \
+  std::shared_lock lock{machines_mutex};            \
   const auto machine_it{machines.find(machine_id)}; \
   if (machine_it == machines.end()) {               \
     return FvmError::kInvalidHandle;                \
@@ -44,7 +44,7 @@ namespace fc::vm::fvm {
 
   inline void initCallbacks();
 
-  std::shared_mutex mutex;
+  std::shared_mutex machines_mutex;
   std::atomic<FvmMachineId> next_machine_id{0};
   std::map<FvmMachineId, std::weak_ptr<FvmMachine>> machines;
 
@@ -75,7 +75,7 @@ namespace fc::vm::fvm {
     machine->ts_branch = std::move(ts_branch);
     machine->epoch = epoch;
     machine->base_state = state;
-    std::unique_lock lock{mutex};
+    std::unique_lock lock{machines_mutex};
     machines.emplace(id, machine);
     lock.unlock();
 
@@ -102,7 +102,7 @@ namespace fc::vm::fvm {
   }
 
   FvmMachine::~FvmMachine() {
-    std::unique_lock lock{mutex};
+    std::unique_lock lock{machines_mutex};
     machines.erase(machine_id);
   }
 
@@ -212,15 +212,15 @@ namespace fc::vm::fvm {
                         Randomness &out_randomness) {
     FVM_MACHINE();
     using runtime::RuntimeRandomness;
-    const auto _randomness{
+    const auto randomness{
         ((*machine->envx.randomness)
          .*(beacon ? &RuntimeRandomness::getRandomnessFromBeacon
                    : &RuntimeRandomness::getRandomnessFromTickets))(
             machine->ts_branch, tag, epoch, seed)};
-    if (!_randomness) {
+    if (!randomness) {
       return FvmError::kIo;
     }
-    out_randomness = _randomness.value();
+    out_randomness = randomness.value();
     return FvmError::kOk;
   }
 
