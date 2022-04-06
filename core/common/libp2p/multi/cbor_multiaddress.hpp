@@ -8,9 +8,10 @@
 #include <libp2p/multi/multiaddress.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
+#include "common/default_t.hpp"
 #include "common/outcome.hpp"
 
-namespace fc::codec::cbor {
+namespace fc::common {
   using libp2p::multi::Multiaddress;
 
   /// Default value of Multiaddress for CBOR stream decoder

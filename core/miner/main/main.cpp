@@ -90,7 +90,7 @@ namespace fc {
   struct Config {
     boost::filesystem::path repo_path;
     std::pair<Multiaddress, std::string> node_api{
-        codec::cbor::kDefaultT<Multiaddress>(), {}};
+        common::kDefaultT<Multiaddress>(), {}};
     boost::optional<Address> actor, owner, worker;
     boost::optional<RegisteredSealProof> seal_type;
     std::vector<Address> precommit_control;

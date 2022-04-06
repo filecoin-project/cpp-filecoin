@@ -10,7 +10,7 @@
 #include "vm/actor/builtin/types/market/deal.hpp"
 
 namespace fc::markets::storage::provider {
-  using codec::cbor::kDefaultT;
+  using common::kDefaultT;
   using vm::actor::builtin::types::market::ClientDealProposal;
 
   /** MinerDeal is an internal local state of a deal in a storage provider  */

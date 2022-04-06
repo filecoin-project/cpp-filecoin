@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "codec/json/json_errors.hpp"
+#include "common/default_t.hpp"
 #include "common/outcome.hpp"
 
 #define COMMA ,
@@ -30,6 +31,7 @@
   inline void decode(type &v, const fc::codec::json::Value &j)
 
 namespace fc::codec::json {
+  using common::kDefaultT;
   using rapidjson::Document;
   using rapidjson::Value;
   using base64 = cppcodec::base64_rfc4648;
@@ -42,11 +44,6 @@ namespace fc::codec::json {
            std::string_view key,
            const T &v,
            rapidjson::MemoryPoolAllocator<> &allocator);
-
-  template <typename T>
-  inline T kDefaultT() {
-    return {};
-  }
 
   inline std::string AsString(const Value &j) {
     if (!j.IsString()) {

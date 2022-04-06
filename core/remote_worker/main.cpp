@@ -48,7 +48,7 @@ namespace fc::remote_worker {
   struct Config {
     boost::filesystem::path repo_path;
     std::pair<Multiaddress, std::string> miner_api{
-        codec::cbor::kDefaultT<Multiaddress>(), {}};
+        common::kDefaultT<Multiaddress>(), {}};
     int api_port{};
 
     std::set<primitives::TaskType> tasks;

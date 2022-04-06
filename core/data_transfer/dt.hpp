@@ -34,7 +34,7 @@ namespace fc::data_transfer {
 
   using DtId = uint64_t;
   struct PeerDtId {
-    PeerId peer{codec::cbor::kDefaultT<PeerId>()};
+    PeerId peer{common::kDefaultT<PeerId>()};
     DtId id{};
   };
   inline auto operator==(const PeerDtId &l, const PeerDtId &r) {

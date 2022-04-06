@@ -28,40 +28,14 @@
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 
-namespace fc::codec::json {
-  using libp2p::multi::Multiaddress;
-  using libp2p::peer::PeerId;
-  using libp2p::peer::PeerInfo;
+namespace fc::common {
   using markets::storage::StorageDealStatus;
 
   template <>
   inline StorageDealStatus kDefaultT<StorageDealStatus>() {
     return StorageDealStatus::STORAGE_DEAL_UNKNOWN;
   }
-
-  template <>
-  inline Multiaddress kDefaultT<Multiaddress>() {
-    return Multiaddress::create("/ip4/0.0.0.1/udp/1").value();
-  };
-
-  template <>
-  inline PeerId kDefaultT<PeerId>() {
-    return PeerId::fromHash(
-               libp2p::multi::Multihash::create(libp2p::multi::sha256, {})
-                   .value())
-        .value();
-  }
-
-  template <>
-  inline PeerInfo kDefaultT<PeerInfo>() {
-    return PeerInfo{.id = kDefaultT<PeerId>(), .addresses = {}};
-  }
-
-  template <>
-  inline std::tuple<PeerInfo> kDefaultT<std::tuple<PeerInfo>>() {
-    return std::make_tuple(kDefaultT<PeerInfo>());
-  }
-}  // namespace fc::codec::json
+}  // namespace fc::common
 
 namespace boost::multiprecision {
   using fc::codec::json::AsString;
@@ -78,7 +52,6 @@ namespace boost::multiprecision {
 
 namespace libp2p {
   using fc::codec::json::AsString;
-
   using fc::codec::json::Get;
   using fc::codec::json::Set;
   using fc::codec::json::Value;
@@ -124,12 +97,12 @@ namespace libp2p {
 
 namespace fc {
   using codec::json::AsString;
+  using codec::json::encode;
   using codec::json::Get;
   using codec::json::innerDecode;
   using codec::json::JsonError;
   using codec::json::Set;
   using codec::json::Value;
-  using codec::json::encode;
 
   JSON_ENCODE(CID) {
     OUTCOME_EXCEPT(str, v.toString());
@@ -882,8 +855,6 @@ namespace fc::vm::actor::builtin::types {
     using codec::json::Get;
     using codec::json::Set;
     using codec::json::Value;
-
-
 
     JSON_ENCODE(SectorPreCommitOnChainInfo) {
       Value j{rapidjson::kObjectType};
