@@ -128,7 +128,8 @@ namespace fc::codec::json {
     }
   }
 
-  JSON_ENCODE(bool) {
+  template <typename T, typename = std::enable_if_t<std::is_same_v<T, bool>>>
+  JSON_ENCODE(T) {
     return Value{v};
   }
 

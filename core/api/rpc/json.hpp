@@ -125,8 +125,11 @@ namespace libp2p {
 namespace fc {
   using codec::json::AsString;
   using codec::json::Get;
+  using codec::json::innerDecode;
+  using codec::json::JsonError;
   using codec::json::Set;
   using codec::json::Value;
+  using codec::json::encode;
 
   JSON_ENCODE(CID) {
     OUTCOME_EXCEPT(str, v.toString());
@@ -138,6 +141,44 @@ namespace fc {
   JSON_DECODE(CID) {
     OUTCOME_EXCEPT(cid, CID::fromString(AsString(Get(j, "/"))));
     v = std::move(cid);
+  }
+
+  JSON_ENCODE(CbCid) {
+    return encode(CID{v}, allocator);
+  }
+
+  JSON_DECODE(CbCid) {
+    if (auto cid{asBlake(innerDecode<CID>(j))}) {
+      v = *cid;
+    } else {
+      outcome::raise(JsonError::kWrongType);
+    }
+  }
+
+  JSON_ENCODE(BlockParentCbCids) {
+    if (v.mainnet_genesis) {
+      static const std::vector<CID> mainnet{
+          CID::fromBytes(kMainnetGenesisBlockParent).value()};
+      return encode(mainnet, allocator);
+    }
+    return encode<std::vector<CbCid>>(v, allocator);
+  }
+
+  JSON_DECODE(BlockParentCbCids) {
+    const auto cids{innerDecode<std::vector<CID>>(j)};
+    static const std::vector<CID> mainnet{
+        CID::fromBytes(kMainnetGenesisBlockParent).value()};
+    v.resize(0);
+    v.mainnet_genesis = cids == mainnet;
+    if (!v.mainnet_genesis) {
+      for (const auto &_cid : cids) {
+        if (auto cid{asBlake(_cid)}) {
+          v.push_back(*cid);
+        } else {
+          outcome::raise(JsonError::kWrongType);
+        }
+      }
+    }
   }
 }  // namespace fc
 
@@ -842,6 +883,8 @@ namespace fc::vm::actor::builtin::types {
     using codec::json::Set;
     using codec::json::Value;
 
+
+
     JSON_ENCODE(SectorPreCommitOnChainInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "Info", v.info, allocator);
@@ -1494,44 +1537,6 @@ namespace fc::api {
   JSON_DECODE(Response::Error) {
     Get(j, "code", v.code);
     v.message = AsString(Get(j, "message"));
-  }
-
-  JSON_ENCODE(CbCid) {
-    return encode(CID{v}, allocator);
-  }
-
-  JSON_DECODE(CbCid) {
-    if (auto cid{asBlake(innerDecode<CID>(j))}) {
-      v = *cid;
-    } else {
-      outcome::raise(JsonError::kWrongType);
-    }
-  }
-
-  JSON_ENCODE(BlockParentCbCids) {
-    if (v.mainnet_genesis) {
-      static const std::vector<CID> mainnet{
-          CID::fromBytes(kMainnetGenesisBlockParent).value()};
-      return encode(mainnet, allocator);
-    }
-    return encode<std::vector<CbCid>>(v, allocator);
-  }
-
-  JSON_DECODE(BlockParentCbCids) {
-    const auto cids{innerDecode<std::vector<CID>>(j)};
-    static const std::vector<CID> mainnet{
-        CID::fromBytes(kMainnetGenesisBlockParent).value()};
-    v.resize(0);
-    v.mainnet_genesis = cids == mainnet;
-    if (!v.mainnet_genesis) {
-      for (const auto &_cid : cids) {
-        if (auto cid{asBlake(_cid)}) {
-          v.push_back(*cid);
-        } else {
-          outcome::raise(JsonError::kWrongType);
-        }
-      }
-    }
   }
 
   JSON_ENCODE(KeyInfo) {
