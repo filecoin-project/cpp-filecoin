@@ -42,8 +42,8 @@ namespace fc::data_transfer {
   }
 
   struct DataTransfer {
-    static inline const std::string kProtocol{"/fil/datatransfer/1.0.0"};
-    static inline const std::string kExtension{"fil/data-transfer"};
+    static inline const std::string kProtocol{"/fil/datatransfer/1.2.0"};
+    static inline const std::string kExtension{"fil/data-transfer/1.1"};
 
     using OkCb = std::function<void(bool)>;
     using OnCid = std::function<void(const CID &)>;

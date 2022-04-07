@@ -1440,6 +1440,26 @@ namespace fc::markets::storage {
 
 }  // namespace fc::markets::storage
 
+namespace fc::data_transfer {
+  using codec::json::Get;
+  using codec::json::Set;
+  using codec::json::Value;
+
+  JSON_ENCODE(ChannelId) {
+    Value j{rapidjson::kObjectType};
+    Set(j, "Initiator", v.initiator, allocator);
+    Set(j, "Responder", v.responder, allocator);
+    Set(j, "ID", v.id, allocator);
+    return j;
+  }
+
+  JSON_DECODE(ChannelId) {
+    Get(j, "Initiator", v.initiator);
+    Get(j, "Responder", v.responder);
+    Get(j, "ID", v.id);
+  }
+}  // namespace fc::data_transfer
+
 namespace fc::api {
   using codec::cbor::CborDecodeStream;
   using codec::json::AsDocument;
@@ -1986,20 +2006,6 @@ namespace fc::api {
   JSON_DECODE(FileRef) {
     Get(j, "Path", v.path);
     Get(j, "IsCAR", v.is_car);
-  }
-
-  JSON_ENCODE(ChannelId) {
-    Value j{rapidjson::kObjectType};
-    Set(j, "Initiator", v.initiator, allocator);
-    Set(j, "Responder", v.responder, allocator);
-    Set(j, "ID", v.id, allocator);
-    return j;
-  }
-
-  JSON_DECODE(ChannelId) {
-    Get(j, "Initiator", v.initiator);
-    Get(j, "Responder", v.responder);
-    Get(j, "ID", v.id);
   }
 
   JSON_ENCODE(DatatransferChannel) {

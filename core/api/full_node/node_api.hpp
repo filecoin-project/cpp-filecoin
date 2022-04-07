@@ -34,6 +34,7 @@ namespace fc::api {
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using data_transfer::ChannelId;
   using data_transfer::TransferId;
   using drand::BeaconEntry;
   using libp2p::multi::Multiaddress;
@@ -93,13 +94,6 @@ namespace fc::api {
   struct FileRef {
     std::string path;
     bool is_car;
-  };
-
-  /** Unique identifier for a channel */
-  struct ChannelId {
-    PeerId initiator{common::kDefaultT<PeerId>()};
-    PeerId responder{common::kDefaultT<PeerId>()};
-    TransferId id;
   };
 
   struct DatatransferChannel {

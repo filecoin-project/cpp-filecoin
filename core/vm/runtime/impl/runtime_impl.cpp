@@ -8,14 +8,12 @@
 #include "codec/cbor/cbor_codec.hpp"
 #include "common/endian.hpp"
 #include "const.hpp"
-#include "primitives/block/rand.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/keystore/keystore.hpp"
-#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/interpreter/interpreter.hpp"
+#include "vm/runtime/consensus_fault.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
 #include "vm/state/resolve_key.hpp"
@@ -23,7 +21,6 @@
 #include "vm/version/version.hpp"
 
 namespace fc::vm::runtime {
-  using actor::builtin::states::MinerActorStatePtr;
   using primitives::address::Protocol;
   using toolchain::Toolchain;
 
@@ -287,115 +284,25 @@ namespace fc::vm::runtime {
     return proofs_->generateUnsealedCID(type, pieces, true);
   }
 
-  // TODO(turuslan): reuse
-  template <typename T>
-  inline bool has(const std::vector<T> &xs, const T &x) {
-    return std::find(xs.begin(), xs.end(), x) != xs.end();
-  }
-
-  // TODO(turuslan): reuse in slash filter
-  inline bool isNearOrange(ChainEpoch epoch) {
-    using actor::builtin::types::miner::kChainFinality;
-    return epoch > kUpgradeOrangeHeight - kChainFinality
-           && epoch < kUpgradeOrangeHeight + kChainFinality;
-  }
-
   outcome::result<boost::optional<ConsensusFault>>
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   RuntimeImpl::verifyConsensusFault(const Bytes &block1,
                                     const Bytes &block2,
                                     const Bytes &extra) {
-    using common::getCidOf;
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onVerifyConsensusFault()));
-    if (block1 == block2) {
-      return boost::none;
-    }
-    auto _blockA{codec::cbor::decode<BlockHeader>(block1)};
-    if (!_blockA) {
-      return boost::none;
-    }
-    auto &blockA{_blockA.value()};
-    auto _blockB{codec::cbor::decode<BlockHeader>(block2)};
-    if (!_blockB) {
-      return boost::none;
-    }
-    auto &blockB{_blockB.value()};
-    ConsensusFault fault;
-    if (!blockA.miner.isId()) {
-      return ERROR_TEXT("verifyConsensusFault block miner must be id");
-    }
-    fault.target = blockA.miner.getId();
-    fault.epoch = blockB.height;
-    boost::optional<ConsensusFaultType> type;
-    if (isNearOrange(blockA.height) || isNearOrange(blockB.height)
-        || blockA.miner != blockB.miner || blockA.height > blockB.height) {
-      return boost::none;
-    }
-    if (blockA.height == blockB.height) {
-      type = ConsensusFaultType::DoubleForkMining;
-    } else if (blockA.parents == blockB.parents) {
-      type = ConsensusFaultType::TimeOffsetMining;
-    }
-    if (!extra.empty()) {
-      if (auto _blockC{codec::cbor::decode<BlockHeader>(extra)}) {
-        auto &blockC{_blockC.value()};
-        if (blockA.parents == blockC.parents && blockA.height == blockC.height
-            && has(blockB.parents, CbCid::hash(extra))
-            && !has(blockB.parents, CbCid::hash(block1))) {
-          type = ConsensusFaultType::ParentGrinding;
-        }
-      } else {
-        return boost::none;
-      }
-    }
-    if (type) {
-      auto verify2{[&](const BlockHeader &block) -> outcome::result<bool> {
-        if (getNetworkVersion() >= NetworkVersion::kVersion7
-            && static_cast<ChainEpoch>(block.height)
-                   < getCurrentEpoch()
-                         - vm::actor::builtin::types::miner::kChainFinality) {
-          return false;
-        }
-        auto &env{execution_->env};
-
-        std::shared_lock ts_lock{*env->env_context.ts_branches_mutex};
-        OUTCOME_TRY(it, find(env->ts_branch, getCurrentEpoch()));
-        OUTCOME_TRYA(it, getLookbackTipSetForRound(it, block.height));
-        OUTCOME_TRYA(it, find(env->ts_branch, it.second->first + 1, false));
-        OUTCOME_TRY(child_ts,
-                    env->env_context.ts_load->lazyLoad(it.second->second));
-        ts_lock.unlock();
-
-        const StateTreeImpl state_tree{env->ipld,
-                                       child_ts->getParentStateRoot()};
-        auto &ipld{execution_->charging_ipld};
-
-        OUTCOME_TRY(actor, state_tree.get(block.miner));
-
-        OUTCOME_TRY(state, getCbor<MinerActorStatePtr>(ipld, actor.head));
-        OUTCOME_TRY(miner_info, state->getInfo());
-
-        OUTCOME_TRY(
-            key, resolveKey(*execution_->state_tree, ipld, miner_info->worker));
-        return checkBlockSignature(block, key);
-      }};
-      auto verify{[&](const BlockHeader &block) -> outcome::result<bool> {
-        const auto _ok{verify2(block)};
-        if (_ok or isAbortExitCode(_ok.error())) {
-          return _ok;
-        }
-        return false;
-      }};
-      OUTCOME_TRY(okA, verify(blockA));
-      if (!okA) {
-        return boost::none;
-      }
-      OUTCOME_TRY(okB, verify(blockB));
-      if (!okB) {
-        return boost::none;
-      }
-      fault.type = *type;
-      return fault;
+    GasAmount gas{};
+    const auto &env{*execution_->env};
+    auto fault{consensusFault(gas,
+                              env.env_context,
+                              env.ts_branch,
+                              env.epoch,
+                              env.base_state,
+                              block1,
+                              block2,
+                              extra)};
+    OUTCOME_TRY(chargeGas(gas));
+    if (fault) {
+      return std::move(fault.value());
     }
     return boost::none;
   }
