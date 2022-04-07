@@ -268,6 +268,29 @@ namespace fc::storage::compacter {
       }
     }
     queueLoop();
+    {  // note: copy missing states
+      ts = head;
+      epochs_lookback_state =
+          std::max(epochs_lookback_state, epochs_full_state);
+      while (true) {
+        const size_t epochs{static_cast<size_t>(head->epoch() - ts->epoch())};
+        if (ts->epoch() == 0 || epochs > epochs_lookback_state) {
+          break;
+        }
+        const auto root{*asBlake(ts->getParentStateRoot())};
+        if (!new_ipld->has(root)) {
+          spdlog::warn("CompacterIpld.finish missing state height={}",
+                       ts->epoch());
+          if (epochs <= epochs_full_state) {
+            pushState(root);
+          } else {
+            lookbackState(root);
+          }
+        }
+        ts = ts_load->load(ts->getParents()).value();
+      }
+    }
+    queueLoop();
     queue->clear();
     {
       std::unique_lock old_flush_lock{old_ipld->flush_mutex};
