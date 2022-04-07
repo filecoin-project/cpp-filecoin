@@ -133,8 +133,8 @@ namespace fc::cli::cli_node {
         auto imports = cliTry(api->ClientListImports());
         for (const auto &import : imports) {
           if (import.root == data_cid) {
-            fmt::print("Root: {}", fmt::to_string(import.root));
-            fmt::print("Local path: {}", import.path);
+            fmt::print("Root: {}\n", fmt::to_string(import.root));
+            fmt::print("Local path: {}\n", import.path);
             local_found = true;
             break;
           }
@@ -158,12 +158,12 @@ namespace fc::cli::cli_node {
           fin_offer = offers[0];
         } else {
           fin_offer = cliTry(api->ClientMinerQueryOffer(
-                                 *args.provider, data_cid, *args.piece_cid),
-                             "Cannot get retrieval offer from {}",
+                                 *args.provider, data_cid, piece_cid),
+                             "Cannot get retrieval offer from {}\n",
                              fmt::to_string(*args.provider));
         }
         if (fin_offer.min_price > args.max_price->fil) {
-          fmt::print("Cannot find suitable offer for provided proposal");
+          fmt::print("Cannot find suitable offer for provided proposal\n");
         } else {
           order.root = fin_offer.root;
           order.piece = fin_offer.piece;
@@ -175,12 +175,12 @@ namespace fc::cli::cli_node {
           order.peer = fin_offer.peer;
           auto maybe_result = api->ClientRetrieve(order, file_ref);
           if (maybe_result.has_error()) {
-            fmt::print("Failure have appeared during retrieval request");
+            fmt::print("Failure have appeared during retrieval request\n");
           } else
-            fmt::print("Success");
+            fmt::print("Success\n");
         }
       }
-      fmt::print("End of retrieve.");
+      fmt::print("End of retrieve.\n");
     }
   };
 
@@ -239,7 +239,7 @@ namespace fc::cli::cli_node {
                "indicates that data should be available for fast retrieval")
           fast_ret;
       CLI_BOOL("verified-deal",
-               "indicate that the deal counts towards verified client tota")
+               "indicate that the deal counts towards verified client total")
           verified_deal;
       CLI_DEFAULT(
           "provider-collateral",
@@ -617,7 +617,7 @@ namespace fc::cli::cli_node {
   struct Node_client_grantDatacap {
     struct Args {
       CLI_OPTIONAL("from",
-                   "specifies the adrress of notary to send message from",
+                   "specifies the address of notary to send message from",
                    Address)
           from;
       CLI_OPTS() {
@@ -631,12 +631,12 @@ namespace fc::cli::cli_node {
       auto target{cliArgv<Address>(argv, 0, "target address")};
       auto allowness{cliArgv<TokenAmount>(argv, 1, "amount")};
       Node::Api api{argm};
-      auto dcap = checkNotary(api.api, *args.from);
-      if (dcap < allowness)
-        throw CliError(
-            "cannot allow more allowance than notary data cap: {} < {}",
-            dcap,
-            allowness);
+//      auto dcap = checkNotary(api.api, *args.from);
+//      if (dcap < allowness)
+//        throw CliError(
+//            "cannot allow more allowance than notary data cap: {} < {}",
+//            dcap,
+//            allowness);
       auto encoded_params = cliTry(codec::cbor::encode(
           vm::actor::builtin::v0::verified_registry::AddVerifiedClient::Params{
               target, allowness}));
