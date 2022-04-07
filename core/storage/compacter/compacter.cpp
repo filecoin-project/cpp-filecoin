@@ -272,9 +272,9 @@ namespace fc::storage::compacter {
       ts = head;
       epochs_lookback_state =
           std::max(epochs_lookback_state, epochs_full_state);
-      while (true) {
+      while (ts->epoch() != 0) {
         const size_t epochs{static_cast<size_t>(head->epoch() - ts->epoch())};
-        if (ts->epoch() == 0 || epochs > epochs_lookback_state) {
+        if (epochs > epochs_lookback_state) {
           break;
         }
         const auto root{*asBlake(ts->getParentStateRoot())};
