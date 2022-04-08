@@ -104,7 +104,7 @@ namespace fc::api {
     bool is_sender;
     std::string voucher;
     std::string message;
-    PeerId other_peer{codec::cbor::kDefaultT<PeerId>()};
+    PeerId other_peer{common::kDefaultT<PeerId>()};
     uint64_t transferred;
   };
 

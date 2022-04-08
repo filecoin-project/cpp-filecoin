@@ -4,7 +4,6 @@
 #
 
 add_library(rpc
-    json_errors.cpp
     ws.cpp
     wsc.cpp
     web_socket_client_error.cpp

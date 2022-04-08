@@ -21,8 +21,8 @@ namespace fc::data_transfer {
   };
 
   struct ChannelId {
-    PeerId initiator{codec::cbor::kDefaultT<PeerId>()};
-    PeerId responder{codec::cbor::kDefaultT<PeerId>()};
+    PeerId initiator{common::kDefaultT<PeerId>()};
+    PeerId responder{common::kDefaultT<PeerId>()};
     TransferId id;
   };
 

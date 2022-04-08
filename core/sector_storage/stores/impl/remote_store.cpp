@@ -9,10 +9,10 @@
 #include <boost/filesystem.hpp>
 #include <utility>
 
-#include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
 #include "common/tarutil.hpp"
 #include "common/uri_parser/uri_parser.hpp"
+#include "primitives/json_types.hpp"
 #include "sector_storage/stores/impl/util.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
@@ -252,7 +252,7 @@ namespace fc::sector_storage::stores {
     }
 
     OUTCOME_TRY(j_file, codec::json::parse(body));
-    return api::decode<FsStat>(j_file);
+    return codec::json::decode<FsStat>(j_file);
   }
 
   outcome::result<std::string> RemoteStoreImpl::acquireFromRemote(

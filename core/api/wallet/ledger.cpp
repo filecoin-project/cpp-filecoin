@@ -23,7 +23,7 @@ namespace fc::api {
     if (store->contains(encode(address))) {
       OUTCOME_TRY(value, store->get(encode(address)));
       OUTCOME_TRY(j_file, codec::json::parse(value));
-      OUTCOME_TRY(ledger_key_info, decode<LedgerKeyInfo>(j_file));
+      OUTCOME_TRY(ledger_key_info, codec::json::decode<LedgerKeyInfo>(j_file));
 
       auto [app, err] = LedgerFilecoinManager::FindLedgerFilecoinApp();
       if (err != std::nullopt) {
@@ -51,7 +51,7 @@ namespace fc::api {
                                           const Bytes &data) const {
     OUTCOME_TRY(value, store->get(encode(address)));
     OUTCOME_TRY(j_file, codec::json::parse(value));
-    OUTCOME_TRY(ledger_key_info, decode<LedgerKeyInfo>(j_file));
+    OUTCOME_TRY(ledger_key_info,  codec::json::decode<LedgerKeyInfo>(j_file));
 
     const auto [app, err1] = LedgerFilecoinManager::FindLedgerFilecoinApp();
     if (err1 != std::nullopt) {
@@ -110,7 +110,7 @@ namespace fc::api {
     if (auto it{store->cursor()}) {
       for (it->seekToFirst(); it->isValid(); it->next()) {
         OUTCOME_TRY(j_file, codec::json::parse(it->value()));
-        OUTCOME_TRY(key_info, decode<LedgerKeyInfo>(j_file));
+        OUTCOME_TRY(key_info,  codec::json::decode<LedgerKeyInfo>(j_file));
 
         if (key_info.path.size() != kPathLength) {
           return ERROR_TEXT("bad hd path len in store");

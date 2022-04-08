@@ -14,10 +14,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/filesystem.hpp>
-#include <iostream>
 
-#include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
+#include "codec/json/coding.hpp"
 #include "common/file.hpp"
 #include "common/outcome.hpp"
 #include "crypto/blake2/blake2b160.hpp"
@@ -39,6 +38,18 @@ namespace fc::proofs {
     if (char *dir = std::getenv(dir_env)) return dir;
 
     return param_dir;
+  }
+
+  struct ParamFile {
+    std::string cid;
+    std::string digest;
+    uint64_t sector_size = 0;
+  };
+  JSON_DECODE(ParamFile) {
+    using codec::json::Get;
+    Get(j, "cid", v.cid);
+    Get(j, "digest", v.digest);
+    Get(j, "sector_size", v.sector_size);
   }
 
   outcome::result<void> doFetch(const std::string &out, const ParamFile &info) {
@@ -161,8 +172,9 @@ namespace fc::proofs {
                                   uint64_t storage_size) {
     OUTCOME_TRY(data, common::readFile(proof_param));
     OUTCOME_TRY(jdoc, codec::json::parse(data));
-    OUTCOME_TRY(param_files,
-                api::decode<std::map<std::string, proofs::ParamFile>>(jdoc));
+    OUTCOME_TRY(
+        param_files,
+        codec::json::decode<std::map<std::string, ParamFile>>(jdoc));
 
     boost::system::error_code ec{};
     boost::filesystem::create_directories(getParamDir(), ec);
