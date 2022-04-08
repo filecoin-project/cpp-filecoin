@@ -11,7 +11,7 @@
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <thread>
 
-#include "api/rpc/json.hpp"
+#include "primitives/json_types.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
 #include "common/outcome.hpp"
@@ -40,7 +40,7 @@ namespace fc::sector_storage::stores {
                       const LocalStorageMeta &meta) {
     boost::filesystem::path file(storage_path);
     file /= kMetaFileName;
-    OUTCOME_EXCEPT(text, codec::json::format(api::encode(meta)));
+    OUTCOME_EXCEPT(text, codec::json::format(codec::json::encode(meta)));
     OUTCOME_EXCEPT(common::writeFile(file, text));
   }
 

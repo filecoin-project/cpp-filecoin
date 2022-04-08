@@ -290,8 +290,8 @@ namespace fc::vm::actor::cgo {
     auto _fault{rt->verifyConsensusFault(block1, block2, extra)};
     // TODO(turuslan): correct error handling
     if (!charge(ret, _fault)) {
-      auto &fault{_fault.value()};
-      if (fault) {
+      if (_fault && _fault.value()) {
+        const auto &fault{_fault.value()};
         ret << kOk << true << fault->target << fault->epoch << fault->type;
       } else {
         ret << kOk << false;

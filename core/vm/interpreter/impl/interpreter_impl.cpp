@@ -14,7 +14,7 @@
 #include "primitives/tipset/load.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/runtime/env.hpp"
+#include "vm/runtime/make_vm.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
@@ -44,7 +44,6 @@ namespace fc::vm::interpreter {
   using message::UnsignedMessage;
   using primitives::address::Address;
   using primitives::tipset::MessageVisitor;
-  using runtime::Env;
   using runtime::MessageReceipt;
 
   InterpreterImpl::InterpreterImpl(
@@ -146,14 +145,17 @@ namespace fc::vm::interpreter {
       return InterpreterError::kDuplicateMiner;
     }
 
-    OUTCOME_TRY(env, Env::make(env_context_, ts_branch, tipset));
+    const auto buf_ipld{std::make_shared<IpldBuffered>(ipld)};
+    auto state{tipset->getParentStateRoot()};
+    auto epoch{tipset->epoch()};
+    std::shared_ptr<VirtualMachine> env;
 
     auto cron{[&]() -> outcome::result<void> {
       OUTCOME_TRY(receipt,
                   env->applyImplicitMessage(UnsignedMessage{
                       kCronAddress,
                       kSystemActorAddress,
-                      static_cast<uint64_t>(env->epoch),
+                      static_cast<uint64_t>(epoch),
                       0,
                       0,
                       kBlockGasLimit * 10000,
@@ -169,13 +171,26 @@ namespace fc::vm::interpreter {
 
     if (tipset->height() > 1) {
       OUTCOME_TRY(parent, env_context_.ts_load->load(tipset->getParents()));
-      for (auto epoch{parent->height() + 1}; epoch < tipset->height();
-           ++epoch) {
-        OUTCOME_TRY(env->setHeight(epoch));
+      for (epoch = parent->height() + 1; epoch < tipset->height(); ++epoch) {
+        OUTCOME_TRYA(env,
+                     makeVm(buf_ipld,
+                            env_context_,
+                            ts_branch,
+                            tipset->getParentBaseFee(),
+                            state,
+                            epoch));
         OUTCOME_TRY(cron());
+        OUTCOME_TRYA(state, env->flush());
       }
-      OUTCOME_TRY(env->setHeight(tipset->height()));
+      epoch = tipset->height();
     }
+    OUTCOME_TRYA(env,
+                 makeVm(buf_ipld,
+                        env_context_,
+                        ts_branch,
+                        tipset->getParentBaseFee(),
+                        state,
+                        epoch));
 
     nextStep(&metricMessages);
 
@@ -222,6 +237,7 @@ namespace fc::vm::interpreter {
     nextStep(&metricFlush);
 
     OUTCOME_TRY(new_state_root, env->flush());
+    OUTCOME_TRY(buf_ipld->flush(new_state_root));
 
     OUTCOME_TRY(receipts.amt.flush());
 

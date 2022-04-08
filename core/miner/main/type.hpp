@@ -31,7 +31,7 @@ namespace fc::miner::types {
     Address id;
     Address owner;
     Address worker;
-    PeerId peer_id = codec::cbor::kDefaultT<PeerId>();
+    PeerId peer_id = common::kDefaultT<PeerId>();
 
     TokenAmount market_balance;
     TokenAmount power_balance;

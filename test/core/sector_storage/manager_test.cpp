@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <gsl/span>
 #include <sector_storage/stores/store_error.hpp>
-#include "sector_storage/schedulder_utils.hpp"
+#include "sector_storage/scheduler_utils.hpp"
 
 #include "testutil/default_print.hpp"
 #include "testutil/literals.hpp"

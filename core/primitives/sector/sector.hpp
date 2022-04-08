@@ -7,6 +7,7 @@
 
 #include "common/blob.hpp"
 #include "common/cmp.hpp"
+#include "common/enum.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"

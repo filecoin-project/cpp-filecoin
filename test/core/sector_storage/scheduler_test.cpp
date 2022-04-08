@@ -8,7 +8,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <thread>
-#include "sector_storage/schedulder_utils.hpp"
+#include "sector_storage/scheduler_utils.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/mocks/sector_storage/selector_mock.hpp"
 #include "testutil/mocks/sector_storage/worker_mock.hpp"

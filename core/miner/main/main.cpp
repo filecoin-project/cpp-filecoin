@@ -90,7 +90,7 @@ namespace fc {
   struct Config {
     boost::filesystem::path repo_path;
     std::pair<Multiaddress, std::string> node_api{
-        codec::cbor::kDefaultT<Multiaddress>(), {}};
+        common::kDefaultT<Multiaddress>(), {}};
     boost::optional<Address> actor, owner, worker;
     boost::optional<RegisteredSealProof> seal_type;
     std::vector<Address> precommit_control;
@@ -114,7 +114,7 @@ namespace fc {
     OUTCOME_TRY(file, common::readFile(path));
     OUTCOME_TRY(j_file, codec::json::parse(gsl::make_span(file)));
     OUTCOME_TRY(
-        psm, api::decode<std::map<std::string, miner::types::Miner>>(j_file));
+        psm, codec::json::decode<std::map<std::string, miner::types::Miner>>(j_file));
 
     const auto it_psm = psm.find(encodeToString(maddr));
     if (it_psm == psm.end()) {

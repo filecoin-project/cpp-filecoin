@@ -18,37 +18,38 @@ namespace fc::api::rpc {
     m = [&c, name{m.getName()}](Callback cb, auto &&...params) -> void {
       Request req{};
       req.method = name;
-      req.params =
-          encode(std::make_tuple(std::forward<decltype(params)>(params)...));
+      req.params = codec::json::encode(
+          std::make_tuple(std::forward<decltype(params)>(params)...));
       if constexpr (is_chan<Result>{}) {
         auto chan{Result::make()};
-        c.call(
-            std::move(req),
-            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-            [&c, weak{weaken(chan.channel)}](auto &&_result) {
-              if (auto channel{weak.lock()}) {
-                if (_result) {
-                  if (auto _chan{api::decode<Result>(_result.value())}) {
-                    return c._chan(_chan.value().id, [weak](auto &&value) {
-                      if (auto channel{weak.lock()}) {
-                        if (value) {
-                          if (auto _result{
-                                  api::decode<typename Result::Type>(*value)}) {
-                            if (channel->write(std::move(_result.value()))) {
-                              return true;
-                            }
-                          }
-                        } else {
-                          channel->closeWrite();
-                        }
-                      }
-                      return false;
-                    });
-                  }
-                }
-                channel->closeWrite();
-              }
-            });
+        c.call(std::move(req),
+               // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+               [&c, weak{weaken(chan.channel)}](auto &&_result) {
+                 if (auto channel{weak.lock()}) {
+                   if (_result) {
+                     if (auto _chan{
+                             codec::json::decode<Result>(_result.value())}) {
+                       return c._chan(_chan.value().id, [weak](auto &&value) {
+                         if (auto channel{weak.lock()}) {
+                           if (value) {
+                             if (auto _result{
+                                     codec::json::decode<typename Result::Type>(
+                                         *value)}) {
+                               if (channel->write(std::move(_result.value()))) {
+                                 return true;
+                               }
+                             }
+                           } else {
+                             channel->closeWrite();
+                           }
+                         }
+                         return false;
+                       });
+                     }
+                   }
+                   channel->closeWrite();
+                 }
+               });
         cb(chan);
       } else {
         c.call(std::move(req), [&c, cb{std::move(cb)}](auto &&_result) {
@@ -56,7 +57,7 @@ namespace fc::api::rpc {
                             [_result{std::forward<decltype(_result)>(_result)},
                              cb{std::move(cb)}] {
                               OUTCOME_CB(auto &&result, _result);
-                              cb(api::decode<Result>(result));
+                              cb(codec::json::decode<Result>(result));
                             });
         });
       }

@@ -9,9 +9,6 @@
 
 #include <gtest/gtest.h>
 
-#include "api/rpc/json.hpp"
-#include "codec/json/json.hpp"
-#include "common/file.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/piece/piece_data.hpp"
 #include "primitives/sector/sector.hpp"

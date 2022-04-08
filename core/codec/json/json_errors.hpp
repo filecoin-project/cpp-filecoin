@@ -7,7 +7,7 @@
 
 #include "common/outcome.hpp"
 
-namespace fc::api {
+namespace fc::codec::json  {
   enum class JsonError {
     kWrongLength = 1,
     kWrongEnum,
@@ -17,4 +17,4 @@ namespace fc::api {
   };
 }  // namespace fc::api
 
-OUTCOME_HPP_DECLARE_ERROR(fc::api, JsonError);
+OUTCOME_HPP_DECLARE_ERROR(fc::codec::json , JsonError);

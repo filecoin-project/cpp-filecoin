@@ -89,9 +89,10 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<bool> IpldBuffered::contains(const CID &cid) const {
-    // must not be called
-    assert(false);
-    return false;
+    if (auto it{write.find(*asBlake(cid))}; it != write.end()) {
+      return true;
+    }
+    return ipld->contains(cid).value();
   }
 
   outcome::result<void> IpldBuffered::set(const CID &cid, BytesCow &&value) {
@@ -113,29 +114,25 @@ namespace fc::vm::runtime {
   outcome::result<std::shared_ptr<Env>> Env::make(
       const EnvironmentContext &env_context,
       TsBranchPtr ts_branch,
-      TipsetCPtr tipset) {
+      const TokenAmount &base_fee,
+      const CID &state,
+      ChainEpoch epoch) {
     auto env{std::make_shared<Env>()};
     env->ipld = std::make_shared<IpldBuffered>(env_context.ipld);
-    env->state_tree = std::make_shared<StateTreeImpl>(
-        env->ipld, tipset->getParentStateRoot());
+    env->state_tree = std::make_shared<StateTreeImpl>(env->ipld, state);
     env->env_context = env_context;
-    env->epoch = tipset->height();
+    env->epoch = epoch;
     env->ts_branch = std::move(ts_branch);
-    env->base_fee = tipset->getParentBaseFee();
-    env->tipset = std::move(tipset);
+    env->base_state = state;
+    env->base_fee = base_fee;
     env->pricelist = Pricelist{env->epoch};
-    OUTCOME_TRY(env->setHeight(env->epoch));
-    return env;
-  }
-
-  outcome::result<void> Env::setHeight(ChainEpoch height) {
-    epoch = height;
-    ipld->actor_version = actorVersion(height);
+    env->ipld->actor_version = actorVersion(epoch);
     if (env_context.circulating) {
-      OUTCOME_TRYA(base_circulating,
-                   env_context.circulating->circulating(state_tree, height));
+      OUTCOME_TRYA(
+          env->base_circulating,
+          env_context.circulating->circulating(env->state_tree, epoch));
     }
-    return outcome::success();
+    return env;
   }
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)

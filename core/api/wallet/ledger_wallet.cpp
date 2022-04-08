@@ -29,7 +29,7 @@ namespace fc::api {
         [=, prev = api->WalletImport](auto &info) -> outcome::result<Address> {
           if (info.type == SignatureType::kSecp256k1_ledger) {
             OUTCOME_TRY(j_file, codec::json::parse(info.private_key));
-            OUTCOME_TRY(ledger_key_info, decode<LedgerKeyInfo>(j_file));
+            OUTCOME_TRY(ledger_key_info,  codec::json::decode<LedgerKeyInfo>(j_file));
 
             const Ledger ledger(store);
             OUTCOME_TRY(address, ledger.ImportKey(ledger_key_info));

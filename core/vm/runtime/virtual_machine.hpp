@@ -18,8 +18,8 @@ namespace fc::vm {
     TokenAmount reward;
   };
 
-  struct IVm {
-    virtual ~IVm() = default;
+  struct VirtualMachine {
+    virtual ~VirtualMachine() = default;
     virtual outcome::result<ApplyRet> applyMessage(
         const UnsignedMessage &message, size_t size) = 0;
     virtual outcome::result<MessageReceipt> applyImplicitMessage(

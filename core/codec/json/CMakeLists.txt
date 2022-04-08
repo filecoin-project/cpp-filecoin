@@ -5,6 +5,7 @@
 
 add_library(json
     json.cpp
+    json_errors.cpp
     )
 target_link_libraries(json
     cid

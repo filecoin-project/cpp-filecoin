@@ -11,6 +11,7 @@
 #include "codec/cbor/cbor_errors.hpp"
 #include "codec/cbor/cbor_token.hpp"
 #include "codec/cbor/streams_annotation.hpp"
+#include "common/default_t.hpp"
 #include "primitives/cid/cid.hpp"
 #include "vm/actor/version.hpp"
 
@@ -65,7 +66,7 @@ namespace fc::codec::cbor {
         optional = boost::none;
         readToken();
       } else {
-        T value{kDefaultT<T>()};
+        T value{common::kDefaultT<T>()};
         *this >> value;
         optional = value;
       }
@@ -80,7 +81,7 @@ namespace fc::codec::cbor {
       values.clear();
       values.reserve(n);
       for (auto i = 0u; i < n; ++i) {
-        T value{kDefaultT<T>()};
+        T value{common::kDefaultT<T>()};
         l >> value;
         values.push_back(value);
       }

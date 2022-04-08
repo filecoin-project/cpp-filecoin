@@ -14,7 +14,7 @@ namespace fc::sector_storage {
   template <class... Types>
   outcome::result<WorkId> getWorkId(const TaskType &task_type,
                                     const std::tuple<Types...> &params) {
-    OUTCOME_TRY(param, codec::json::format(api::encode(params)));
+    OUTCOME_TRY(param, codec::json::format(codec::json::encode(params)));
     return WorkId{
         .task_type = task_type,
         .param_hash = crypto::sha::sha256(param),
