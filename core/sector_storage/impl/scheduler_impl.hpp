@@ -56,12 +56,8 @@ namespace fc::sector_storage {
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
-    return less(rhs.priority,
-                lhs.priority,
-                lhs.task_type,
-                rhs.task_type,
-                lhs.sector.id.sector,
-                rhs.sector.id.sector);
+    return std::tie(rhs.priority, lhs.task_type, lhs.sector.id.sector)
+           < std::tie(lhs.priority, rhs.task_type, rhs.sector.id.sector);
   }
 
   class SchedulerImpl : public Scheduler {

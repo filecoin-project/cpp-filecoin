@@ -134,17 +134,14 @@ namespace fc::storage::mpool {
   }
 
   bool before(const MsgChain &l, const MsgChain &r) {
-    return less(r.gas_perf, l.gas_perf, r.gas_reward, l.gas_reward);
+    return std::tie(r.gas_perf, r.gas_reward)
+           < std::tie(l.gas_perf, l.gas_reward);
   }
 
   bool beforeEffective(const MsgChain &l, const MsgChain &r) {
     return (l.merged && !r.merged) || (l.gas_perf >= 0 && r.gas_perf < 0)
-           || less(r.eff_perf,
-                   l.eff_perf,
-                   r.gas_perf,
-                   l.gas_perf,
-                   r.gas_reward,
-                   l.gas_reward);
+           || (std::tie(r.eff_perf, r.gas_perf, r.gas_reward)
+               < std::tie(l.eff_perf, l.gas_perf, l.gas_reward));
   }
 
   template <typename F>
@@ -729,7 +726,7 @@ namespace fc::storage::mpool {
     }
 
     std::sort(prices.begin(), prices.end(), [](auto &l, auto &r) {
-      return less(r.first, l.first, l.second, r.second);
+      return std::tie(r.first, l.second) < std::tie(l.first, r.second);
     });
     auto at = static_cast<int64_t>(kBlockGasTarget * blocks / 2);
     TokenAmount premium;
