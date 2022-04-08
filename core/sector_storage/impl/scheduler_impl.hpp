@@ -56,6 +56,7 @@ namespace fc::sector_storage {
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
+    // priority is intentionally reversed
     return std::tie(rhs.priority, lhs.task_type, lhs.sector.id.sector)
            < std::tie(lhs.priority, rhs.task_type, rhs.sector.id.sector);
   }
