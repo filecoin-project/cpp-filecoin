@@ -979,6 +979,10 @@ namespace fc::mining {
 
     const auto maybe_error = [&]() -> outcome::result<void> {
       switch (to) {
+        case SealingState::kWaitDeals: {
+          logger_->info("Waiting for deals {}", info->sector_number);
+          return outcome::success();
+        }
         case SealingState::kPacking:
           return handlePacking(info);
         case SealingState::kPreCommit1:

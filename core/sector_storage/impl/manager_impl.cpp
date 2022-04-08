@@ -858,7 +858,7 @@ namespace fc::sector_storage {
       const std::function<void(outcome::result<void>)> &cb,
       uint64_t priority) {
     finalizeSectorInner(sector,
-                        keep_unsealed,
+                        std::move(keep_unsealed),
                         SectorFileType::FTSealed,
                         SectorFileType::FTCache,
                         cb,
@@ -1017,7 +1017,7 @@ namespace fc::sector_storage {
       const std::function<void(outcome::result<void>)> &cb,
       uint64_t priority) {
     finalizeSectorInner(sector,
-                        keep_unsealed,
+                        std::move(keep_unsealed),
                         SectorFileType::FTUpdate,
                         static_cast<SectorFileType>(
                             SectorFileType::FTSealed | SectorFileType::FTCache
