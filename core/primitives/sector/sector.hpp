@@ -6,7 +6,6 @@
 #pragma once
 
 #include "common/blob.hpp"
-#include "common/cmp.hpp"
 #include "common/enum.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
@@ -26,7 +25,7 @@ namespace fc::primitives::sector {
     SectorNumber sector;
   };
   inline bool operator<(const SectorId &lhs, const SectorId &rhs) {
-    return less(lhs.miner, rhs.miner, lhs.sector, rhs.sector);
+    return std::tie(lhs.miner, lhs.sector) < std::tie(rhs.miner, rhs.sector);
   }
   inline bool operator==(const SectorId &lhs, const SectorId &rhs) {
     return lhs.miner == rhs.miner && lhs.sector == rhs.sector;

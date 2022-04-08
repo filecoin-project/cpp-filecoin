@@ -29,8 +29,8 @@ namespace fc {
 
   struct LessCborKey {
     bool operator()(const std::string &l, const std::string &r) const {
-      return less(
-          l.size(), r.size(), common::span::cbytes(l), common::span::cbytes(r));
+      return std::forward_as_tuple(l.size(), common::span::cbytes(l))
+             < std::forward_as_tuple(r.size(), common::span::cbytes(r));
     }
   };
 
