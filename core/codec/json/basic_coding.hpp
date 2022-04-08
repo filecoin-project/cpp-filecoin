@@ -36,6 +36,14 @@ namespace fc::codec::json {
   using rapidjson::Value;
   using base64 = cppcodec::base64_rfc4648;
 
+  /**
+   * Set is encoded as an array: "[a, b, c]", but this class allows to encode
+   * set as map: "{a:{}, b:{}, c:{}}. Used for lotus compatibility.
+   */
+  template <typename T>
+  class CodecSetAsMap : public std::set<T> {};
+
+
   template <typename T>
   T innerDecode(const Value &j);
 
@@ -277,6 +285,24 @@ namespace fc::codec::json {
     }
     for (const auto &it : j.GetArray()) {
       v.emplace(innerDecode<T>(it));
+    }
+  }
+
+  template <typename T>
+  JSON_ENCODE(CodecSetAsMap<T>) {
+    Value j{rapidjson::kObjectType};
+    j.MemberReserve(v.size(), allocator);
+    for (auto &pair : v) {
+      std::map<T, std::string> value;
+      Set(j, pair, value, allocator);
+    }
+    return j;
+  }
+
+  template <typename T>
+  JSON_DECODE(CodecSetAsMap<T>) {
+    for (auto it = j.MemberBegin(); it != j.MemberEnd(); ++it) {
+      v.emplace(T(AsString(it->name)));
     }
   }
 }  // namespace fc::codec::json

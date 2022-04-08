@@ -7,11 +7,13 @@
 
 #include "api/utils.hpp"
 #include "api/version.hpp"
+#include "codec/json/basic_coding.hpp"
 #include "common/outcome.hpp"
 #include "primitives/jwt/jwt.hpp"
 #include "sector_storage/worker.hpp"
 
 namespace fc::api {
+  using codec::json::CodecSetAsMap;
   using primitives::jwt::kAdminPermission;
   using primitives::piece::MetaPieceData;
   using primitives::piece::PieceInfo;
@@ -30,13 +32,6 @@ namespace fc::api {
   using sector_storage::SectorCids;
   using sector_storage::SectorFileType;
   using sector_storage::Update1Output;
-
-  /**
-   * Set is encoded as an array: "[a, b, c]", but this class allows to encode
-   * set as map: "{a:{}, b:{}, c:{}}. Used for lotus compatibility.
-   */
-  template <typename T>
-  class CodecSetAsMap : public std::set<T> {};
 
   struct WorkerApi {
     API_METHOD(AddPiece,
