@@ -22,7 +22,7 @@
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/local_worker.hpp"
 #include "sector_storage/impl/task_selector.hpp"
-#include "sector_storage/schedulder_utils.hpp"
+#include "sector_storage/scheduler_utils.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {

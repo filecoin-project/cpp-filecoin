@@ -19,7 +19,7 @@
 #include "vm/message/impl/message_signer_impl.hpp"
 
 using fc::api::BlockHeader;
-using fc::api::Codec;
+namespace codec = fc::codec::json;
 using fc::api::Signature;
 using fc::api::UnsignedMessage;
 using fc::common::hex_lower;
@@ -50,8 +50,8 @@ auto signMessage(const UnsignedMessage &message, const BlsPrivateKey &key) {
 TEST(SerializationVectorsTest, DISABLED_UnsignedMessage) {
   auto tests = loadJson("unsigned_messages.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
-    auto message = Codec::decode<UnsignedMessage>(Codec::Get(*it, "message"));
-    auto expected_cbor = Codec::AsString(Codec::Get(*it, "hex_cbor"));
+    auto message = codec::innerDecode<UnsignedMessage>(codec::Get(*it, "message"));
+    auto expected_cbor = codec::AsString(codec::Get(*it, "hex_cbor"));
     EXPECT_OUTCOME_TRUE(cbor, fc::codec::cbor::encode(message));
     EXPECT_EQ(hex_lower(cbor), expected_cbor);
   }
@@ -61,20 +61,20 @@ TEST(SerializationVectorsTest, DISABLED_UnsignedMessage) {
 TEST(SerializationVectorsTest, DISABLED_SignedMessage) {
   auto tests = loadJson("message_signing.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
-    auto message = Codec::decode<UnsignedMessage>(Codec::Get(*it, "Unsigned"));
+    auto message = codec::innerDecode<UnsignedMessage>(codec::Get(*it, "Unsigned"));
     auto cid{message.getCid()};
     EXPECT_OUTCOME_TRUE(cid_bytes, cid.toBytes());
 
-    auto expected_cid_hex = Codec::AsString(Codec::Get(*it, "CidHexBytes"));
+    auto expected_cid_hex = codec::AsString(codec::Get(*it, "CidHexBytes"));
     EXPECT_EQ(hex_lower(cid_bytes), expected_cid_hex);
 
-    auto expected_cid_str = Codec::AsString(Codec::Get(*it, "Cid"));
+    auto expected_cid_str = codec::AsString(codec::Get(*it, "Cid"));
     EXPECT_OUTCOME_EQ(cid.toString(), expected_cid_str);
 
-    auto expected_sig = Codec::decode<Signature>(Codec::Get(*it, "Signature"));
+    auto expected_sig = codec::innerDecode<Signature>(codec::Get(*it, "Signature"));
     EXPECT_TRUE(expected_sig.isBls());
 
-    auto key = Codec::decode<BlsPrivateKey>(Codec::Get(*it, "PrivateKey"));
+    auto key = codec::innerDecode<BlsPrivateKey>(codec::Get(*it, "PrivateKey"));
     auto sig = signMessage(message, key);
 
     EXPECT_EQ(sig, expected_sig);
@@ -85,14 +85,14 @@ TEST(SerializationVectorsTest, DISABLED_SignedMessage) {
 TEST(SerializationVectorsTest, DISABLED_BlockHeader) {
   auto tests = loadJson("block_headers.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
-    auto block = Codec::decode<BlockHeader>(Codec::Get(*it, "block"));
+    auto block = codec::innerDecode<BlockHeader>(codec::Get(*it, "block"));
 
     EXPECT_OUTCOME_TRUE(cbor, fc::codec::cbor::encode(block));
-    auto expected_cbor = Codec::AsString(Codec::Get(*it, "cbor_hex"));
+    auto expected_cbor = codec::AsString(codec::Get(*it, "cbor_hex"));
     EXPECT_EQ(hex_lower(cbor), expected_cbor);
 
     EXPECT_OUTCOME_TRUE(cid, fc::common::getCidOf(cbor));
-    auto expected_cid_str = Codec::AsString(Codec::Get(*it, "cid"));
+    auto expected_cid_str = codec::AsString(codec::Get(*it, "cid"));
     EXPECT_OUTCOME_EQ(cid.toString(), expected_cid_str);
   }
 }

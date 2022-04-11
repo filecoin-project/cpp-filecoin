@@ -41,7 +41,7 @@ namespace fc::api {
     if (!j_req) {
       return cb(Response{{}, Response::Error{kParseError, "Parse error"}});
     }
-    auto maybe_req = decode<Request>(*j_req);
+    auto maybe_req = codec::json::decode<Request>(*j_req);
     if (!maybe_req) {
       return cb(
           Response{{}, Response::Error{kInvalidRequest, "Invalid request"}});

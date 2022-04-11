@@ -36,7 +36,7 @@ namespace fc::api::full_node {
 
     IoThread io;
     int api_port = 12345;
-    Multiaddress multiaddress = codec::cbor::kDefaultT<Multiaddress>();
+    Multiaddress multiaddress = common::kDefaultT<Multiaddress>();
   };
 
   /**

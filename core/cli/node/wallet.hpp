@@ -261,7 +261,7 @@ namespace fc::cli::cli_node {
 
       const auto json =
           cliTry(codec::json::parse(input_data), "Parse json data...");
-      key_info = cliTry(api::decode<KeyInfo>(json), "Decoding json...");
+      key_info = cliTry(codec::json::decode<KeyInfo>(json), "Decoding json...");
 
       const Address address =
           cliTry(api->WalletImport(key_info), "Importing key...");

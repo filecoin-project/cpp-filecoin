@@ -9,3 +9,13 @@ add_library(fvm_stub
 target_link_libraries(fvm_stub
     blob
     )
+
+add_library(fvm
+    fvm.cpp
+    )
+target_link_libraries(fvm
+    circulating
+    filecoin_ffi
+    outcome
+    keystore
+    )

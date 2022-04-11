@@ -30,7 +30,6 @@ namespace fc::markets::storage {
   using vm::actor::builtin::types::market::ClientDealProposal;
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::market::DealState;
-  using vm::actor::builtin::types::market::StorageParticipantBalance;
 
   const libp2p::peer::Protocol kDealMkProtocolId_v1_0_1 =
       "/fil/storage/mk/1.0.1";

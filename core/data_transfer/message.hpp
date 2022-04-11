@@ -9,6 +9,8 @@
 #include "data_transfer/types.hpp"
 
 namespace fc::data_transfer {
+  using libp2p::peer::PeerId;
+
   enum class MessageType {
     kNewMessage,
     kUpdateMessage,
@@ -16,6 +18,12 @@ namespace fc::data_transfer {
     kCompleteMessage,
     kVoucherMessage,
     kVoucherResultMessage,
+  };
+
+  struct ChannelId {
+    PeerId initiator{common::kDefaultT<PeerId>()};
+    PeerId responder{common::kDefaultT<PeerId>()};
+    TransferId id;
   };
 
   /**
@@ -31,6 +39,7 @@ namespace fc::data_transfer {
     boost::optional<CborRaw> voucher;
     std::string voucher_type;
     TransferId transfer_id{};
+    boost::optional<ChannelId> restart{};
 
     inline bool operator==(const DataTransferRequest &other) const {
       return base_cid == other.base_cid && type == other.type
@@ -80,25 +89,7 @@ namespace fc::data_transfer {
     }
   };
 
-  CBOR_TUPLE(DataTransferRequest,
-             base_cid,
-             type,
-             is_pause,
-             is_part,
-             is_pull,
-             selector,
-             voucher,
-             voucher_type,
-             transfer_id)
-
-  CBOR_TUPLE(DataTransferResponse,
-             type,
-             is_accepted,
-             is_pause,
-             transfer_id,
-             voucher,
-             voucher_type)
-
-  CBOR_TUPLE(DataTransferMessage, is_request, request, response)
-
+  CBOR2_DECODE_ENCODE(DataTransferRequest)
+  CBOR2_DECODE_ENCODE(DataTransferResponse)
+  CBOR2_DECODE_ENCODE(DataTransferMessage)
 }  // namespace fc::data_transfer

@@ -140,7 +140,6 @@ namespace fc {
       return result;
     };
 
- 
     node_objects.api->ClientGetDealInfo =
         [&node_objects](auto &cid) -> outcome::result<StorageMarketDealInfo> {
       OUTCOME_TRY(deal, node_objects.storage_market_client->getLocalDeal(cid));
@@ -164,8 +163,8 @@ namespace fc {
       };
     };
 
-    node_objects.api->ClientListRetrievals = [&node_objects]()
-        -> outcome::result<std::vector<api::RetrievalDeal>> {
+    node_objects.api->ClientListRetrievals =
+        [&node_objects]() -> outcome::result<std::vector<api::RetrievalDeal>> {
       return node_objects.retrieval_market_client->getRetrievals();
     };
 
