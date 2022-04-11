@@ -36,6 +36,7 @@ namespace fc::cli::cli_node {
           CMD("grant-datacap", Node_client_grantDatacap),
           CMD("check-client-datacap", Node_client_checkClientDataCap),
           CMD("list-notaries", Node_client_listNotaries),
+          CMD("add-verifier", Node_client_addVerifier),
           CMD("list-clients", Node_client_listClients),
           CMD("check-notary-datacap", Node_client_checkNotaryDataCap),
       })},
