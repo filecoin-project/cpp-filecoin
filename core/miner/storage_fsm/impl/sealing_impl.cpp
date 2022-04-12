@@ -2893,7 +2893,7 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handleReplicaUpdateFailed(
       const std::shared_ptr<SectorInfo> &info) {
     auto cb = [self{shared_from_this()}, info]() -> outcome::result<void> {
-      auto maybe_head = self->api_->ChainHead();
+      const auto maybe_head = self->api_->ChainHead();
       if (maybe_head.has_error()) {
         self->logger_->error(
             "handleReplicaUpdateFailed: api error, not proceeding: {}",
@@ -2902,7 +2902,7 @@ namespace fc::mining {
       }
       const auto &head{maybe_head.value()};
 
-      auto maybe_error = checks::checkUpdate(self->miner_address_,
+      const auto maybe_error = checks::checkUpdate(self->miner_address_,
                                              info,
                                              head->key,
                                              self->api_,
@@ -2931,7 +2931,7 @@ namespace fc::mining {
                              maybe_error.error().message());
         return outcome::success();
       }
-      auto maybe_active = sectorActive(
+      const auto maybe_active = sectorActive(
           self->api_, self->miner_address_, head->key, info->sector_number);
       if (maybe_active.has_error()) {
         self->logger_->error(
