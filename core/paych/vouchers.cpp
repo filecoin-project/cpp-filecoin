@@ -76,13 +76,13 @@ namespace fc::paych_vouchers {
     if (lane_it == row.lanes.end() || lane_it->lane != voucher.lane) {
       lane_it = row.lanes.emplace(lane_it, LaneVouchers{voucher.lane});
     }
-    const auto voucher_it{
-        std::lower_bound(lane_it->vouchers.begin(),
-                         lane_it->vouchers.end(),
-                         voucher,
-                         [](const SignedVoucher &l, const SignedVoucher &r) {
-                           return less(l.lane, r.lane, l.nonce, r.nonce);
-                         })};
+    const auto voucher_it{std::lower_bound(
+        lane_it->vouchers.begin(),
+        lane_it->vouchers.end(),
+        voucher,
+        [](const SignedVoucher &l, const SignedVoucher &r) {
+          return std::tie(l.lane, l.nonce) < std::tie(r.lane, r.nonce);
+        })};
     const auto found{voucher_it != lane_it->vouchers.end()
                      && voucher_it->lane == voucher.lane
                      && voucher_it->nonce == voucher.nonce};

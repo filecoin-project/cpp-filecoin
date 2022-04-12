@@ -56,12 +56,9 @@ namespace fc::sector_storage {
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
-    return less(lhs.priority,
-                rhs.priority,
-                primitives::getTaskTypePiority(lhs.task_type),
-                primitives::getTaskTypePiority(rhs.task_type),
-                lhs.sector.id.sector,
-                rhs.sector.id.sector);
+    // priority is intentionally reversed
+    return std::tie(rhs.priority, lhs.task_type, lhs.sector.id.sector)
+           < std::tie(lhs.priority, rhs.task_type, rhs.sector.id.sector);
   }
 
   class SchedulerImpl : public Scheduler {

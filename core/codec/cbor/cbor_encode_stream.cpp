@@ -81,7 +81,8 @@ namespace fc::codec::cbor {
 
   struct LessCborKey {
     bool operator()(BytesIn lhs, BytesIn rhs) const {
-      return less(lhs.size(), rhs.size(), lhs, rhs);
+      return std::forward_as_tuple(lhs.size(), lhs)
+             < std::forward_as_tuple(rhs.size(), rhs);
     }
   };
 

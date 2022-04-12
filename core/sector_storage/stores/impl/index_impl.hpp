@@ -28,7 +28,8 @@ namespace fc::sector_storage::stores {
   };
 
   inline bool operator<(const Decl &lhs, const Decl &rhs) {
-    return less(lhs.sector_id, rhs.sector_id, lhs.type, rhs.type);
+    return std::tie(lhs.sector_id, lhs.type)
+           < std::tie(rhs.sector_id, rhs.type);
   }
 
   class SectorIndexImpl : public SectorIndex {
