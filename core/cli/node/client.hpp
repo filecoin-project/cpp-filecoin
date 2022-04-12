@@ -666,9 +666,9 @@ namespace fc::cli::cli_node {
                  fmt::to_string(deal_info.deal_id));
 
       auto jsoned =
-          api::encode(api::CliDealStat{.deal_info = deal_info, .deal = res});
+          codec::json::encode(CliDealStat{.deal_info = deal_info, .deal = res});
       auto bytes_json = cliTry(codec::json::format(&jsoned));
-      auto response = common::span::bytestr(bytes_json);
+      const auto response = common::span::bytestr(bytes_json);
 
       fmt::print("{}\n", response);
     }
