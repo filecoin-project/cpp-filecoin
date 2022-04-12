@@ -10,6 +10,7 @@
 #include "cli/validate/address.hpp"
 #include "cli/validate/cid.hpp"
 #include "codec/json/json.hpp"
+#include "common/cli_deal_stat.hpp"
 #include "common/enum.hpp"
 #include "common/table_writer.hpp"
 #include "markets/storage/mk_protocol.hpp"
