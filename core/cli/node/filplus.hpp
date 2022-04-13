@@ -145,9 +145,10 @@ namespace fc::cli::cli_node {
 
       const Address address{cliArgv<Address>(argv, 0, "address of client")};
 
+      const std::string_view process_desc = "Getting Verified Client info...";
       const StoragePower storage_power =
           cliTry(cliTry(api->StateVerifiedClientStatus(address, TipsetKey()),
-                        "Getting Verified Client info..."));
+                        process_desc), process_desc);
       fmt::print(
           "Client {} info: {}\n", encodeToString(address), storage_power);
     }

@@ -57,10 +57,8 @@ namespace fc::cli::cli_node {
 
   static const ChainEpoch kLookBack = 100 * kEpochsInDay;
   static const auto dealDurationBounds =
-      fc::vm::actor::builtin::types::market::dealDurationBounds(
+      vm::actor::builtin::types::market::dealDurationBounds(
           primitives::piece::PaddedPieceSize());
-  static const ChainEpoch kMinDealDuration = dealDurationBounds.min;
-  static const ChainEpoch kMaxDealDuration = dealDurationBounds.max;
   static const AttoFil kDefaultMaxRetrievePrice{.fil = 0};
 
   StoragePower checkNotary(const std::shared_ptr<FullNodeApi> &api,
@@ -77,7 +75,7 @@ namespace fc::cli::cli_node {
     ipfs->actor_version = actorVersion(version);
     const VerifiedRegistryActorStatePtr state =
         cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
-    auto res = cliTry(cliTry(state->getVerifierDataCap(vid)),
+    const auto res = cliTry(cliTry(state->getVerifierDataCap(vid)),
                       "Client {} isn't in notary tables",
                       vaddr);
     return res;
@@ -310,10 +308,10 @@ namespace fc::cli::cli_node {
       const ChainEpoch duration{cliArgv<ChainEpoch>(
           argv, 3, "is a period of storing the data for, in blocks")};
 
-      if (duration < kMinDealDuration)
-        throw CliError("Minimal deal duration is {}", kMinDealDuration);
-      if (duration > kMaxDealDuration)
-        throw CliError("Max deal duration is {}", kMaxDealDuration);
+      if (duration < dealDurationBounds.min)
+        throw CliError("Minimal deal duration is {}", dealDurationBounds.min);
+      if (duration > dealDurationBounds.max)
+        throw CliError("Max deal duration is {}", dealDurationBounds.max);
 
       DataRef data_ref;
       const Address address_from =
@@ -661,7 +659,7 @@ namespace fc::cli::cli_node {
 
       auto jsoned =
           codec::json::encode(CliDealStat{.deal_info = deal_info, .deal = res});
-      auto bytes_json = cliTry(codec::json::format(&jsoned));
+      const auto bytes_json = cliTry(codec::json::format(&jsoned));
       const auto response = common::span::bytestr(bytes_json);
 
       fmt::print("{}\n", response);
