@@ -23,6 +23,7 @@
 #include "storage/unixfs/unixfs.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
@@ -36,9 +37,7 @@ namespace fc::cli::cli_node {
   using api::RetrievalOrder;
   using api::StartDealParams;
   using api::StorageMarketDealInfo;
-  using boost::lexical_cast;
   using common::toString;
-  using ::fc::storage::car::makeCar;
   using ::fc::storage::unixfs::wrapFile;
   using markets::retrieval::client::RetrievalDeal;
   using markets::storage::DataRef;
@@ -50,21 +49,22 @@ namespace fc::cli::cli_node {
   using primitives::DealId;
   using primitives::StoragePower;
   using primitives::address::Address;
-  using primitives::address::encodeToString;
+  using primitives::address::encodeToString;  // TODO REMOVE
   using primitives::piece::UnpaddedPieceSize;
   using proofs::padPiece;
   using storage::ipfs::ApiIpfsDatastore;
   using vm::VMExitCode;
   using vm::actor::Actor;
-  using vm::actor::kSystemActorAddress;
   using vm::actor::kVerifiedRegistryAddress;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::message::SignedMessage;
-  using vm::state::StateTreeImpl;
 
-  const ChainEpoch kLookback = 100 * kEpochsInDay;
-  static const ChainEpoch kMinDealDuration = 180 * kEpochsInDay;
-  static const ChainEpoch kMaxDealDuration = 540 * kEpochsInDay;
+  static const ChainEpoch kLookBack = 100 * kEpochsInDay;
+  static const auto dealDurationBounds =
+      fc::vm::actor::builtin::types::market::dealDurationBounds(
+          primitives::piece::PaddedPieceSize());
+  static const ChainEpoch kMinDealDuration = dealDurationBounds.min;
+  static const ChainEpoch kMaxDealDuration = dealDurationBounds.max;
   static const AttoFil kDefaultMaxRetrievePrice{.fil = 0};
 
   StoragePower checkNotary(const std::shared_ptr<FullNodeApi> &api,
@@ -641,12 +641,9 @@ namespace fc::cli::cli_node {
       const MarketBalance balance =
           cliTry(api->StateMarketBalance(address, TipsetKey()));
 
-      fmt::print("  Escrowed Funds:\t\t{}\n",
-                 lexical_cast<std::string>(balance.escrow));
-      fmt::print("  Locked Funds:\t\t{}\n",
-                 lexical_cast<std::string>(balance.locked));
-      fmt::print("  Available:\t\t{}\n",
-                 lexical_cast<std::string>(balance.escrow - balance.locked));
+      fmt::print("  Escrowed Funds:\t\t{}\n", balance.escrow);
+      fmt::print("  Locked Funds:\t\t\t{}\n", balance.locked);
+      fmt::print("  Available:\t\t\t{}\n", balance.escrow - balance.locked);
     }
   };
 
@@ -775,7 +772,7 @@ namespace fc::cli::cli_node {
       fmt::print("message sent, now waiting on cid: {}\n",
                  signed_message.getCid());
       const MsgWait message_wait2 = cliTry(api->StateWaitMsg(
-          signed_message.getCid(), kMessageConfidence, kLookback, false));
+          signed_message.getCid(), kMessageConfidence, kLookBack, false));
       if (message_wait2.receipt.exit_code != VMExitCode::kOk)
         throw CliError("failed to add verified client");
       fmt::print("Client {} was added successfully!\n", target);

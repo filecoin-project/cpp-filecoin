@@ -20,6 +20,14 @@ namespace fc::cli::cli_node {
           CMD("listen", Node_net_listen),
           CMD("peers", Node_net_peers),
       })},
+      {GROUP("filplus")({
+          CMD("grant-datacap", Node_client_grantDatacap),
+          CMD("list-notaries", Node_client_listNotaries),
+          CMD("list-clients", Node_client_listClients),
+          CMD("add-verifier", Node_client_addVerifier),
+          CMD("check-client-datacap", Node_client_checkClientDataCap),
+          CMD("check-notary-datacap", Node_client_checkNotaryDataCap),
+      })},
       {GROUP("client")({
           CMD("retrieve", Node_client_retrieve),
           CMD("import", Node_client_importData),
@@ -33,12 +41,6 @@ namespace fc::cli::cli_node {
           CMD("list-deals", Node_client_listDeals),
           CMD("balances", Node_client_balances),
           CMD("get-deal", Node_client_getDeal),
-          CMD("grant-datacap", Node_client_grantDatacap),
-          CMD("check-client-datacap", Node_client_checkClientDataCap),
-          CMD("list-notaries", Node_client_listNotaries),
-          CMD("add-verifier", Node_client_addVerifier),
-          CMD("list-clients", Node_client_listClients),
-          CMD("check-notary-datacap", Node_client_checkNotaryDataCap),
       })},
       {GROUP("wallet")({
           CMD("new", Node_wallet_new),
