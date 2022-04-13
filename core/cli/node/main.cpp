@@ -4,6 +4,7 @@
  */
 
 #include "cli/node/client.hpp"
+#include "cli/node/filplus.hpp"
 #include "cli/node/net.hpp"
 #include "cli/node/wallet.hpp"
 #include "cli/run.hpp"
