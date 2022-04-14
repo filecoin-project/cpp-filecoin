@@ -4,6 +4,7 @@
  */
 
 #include "cli/node/client.hpp"
+#include "cli/node/developer.hpp"
 #include "cli/node/net.hpp"
 #include "cli/node/wallet.hpp"
 #include "cli/run.hpp"
@@ -53,6 +54,21 @@ namespace fc::cli::cli_node {
           {GROUP("market")({
               CMD("add", Node_wallet_market_add),
           })},
+      })},
+      {GROUP("developer")({
+          CMD("pending", Node_developer_pending),
+          CMD("subscribe", Node_developer_sub),
+          CMD("find", Node_developer_find),
+          CMD("create-token", Node_developer_createToken),
+          CMD("api-info", Node_developer_apiInfo),
+          CMD("head", Node_developer_head),
+          CMD("get-block", Node_developer_getBlock),
+          CMD("read-object", Node_developer_readObject),
+          CMD("get-message", Node_developer_getMessage),
+          CMD("get", Node_developer_get),
+          CMD("slash-consensus", Node_developer_slashConsensus),
+          CMD("estimate-gas", Node_developer_estimateGasPrices),
+          CMD("miner-info", Node_developer_stateMinerInfo),
       })},
       CMD("version", Node_version),
   })};
