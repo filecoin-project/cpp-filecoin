@@ -45,6 +45,7 @@
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
+#include "sector_storage/impl/worker_estimator_impl.hpp"
 #include "sector_storage/stores/impl/index_impl.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/impl/remote_store.hpp"
@@ -113,8 +114,9 @@ namespace fc {
       const std::shared_ptr<storage::PersistentBufferMap> &ds) {
     OUTCOME_TRY(file, common::readFile(path));
     OUTCOME_TRY(j_file, codec::json::parse(gsl::make_span(file)));
-    OUTCOME_TRY(
-        psm, codec::json::decode<std::map<std::string, miner::types::Miner>>(j_file));
+    OUTCOME_TRY(psm,
+                codec::json::decode<std::map<std::string, miner::types::Miner>>(
+                    j_file));
 
     const auto it_psm = psm.find(encodeToString(maddr));
     if (it_psm == psm.end()) {
@@ -425,7 +427,11 @@ namespace fc {
     IoThread io_thread2;
     OUTCOME_TRY(wscheduler,
                 sector_storage::SchedulerImpl::newScheduler(
-                    io_thread2.io, prefixed("scheduler_works/")));
+                    io_thread2.io,
+                    prefixed("scheduler_works/"),
+                    // TODO(ortyomka): make param size
+                    std::make_shared<sector_storage::EstimatorImpl>(10)));
+
     IoThread io_thread3;
 
     {
