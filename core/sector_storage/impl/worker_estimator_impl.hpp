@@ -16,7 +16,7 @@ namespace fc::sector_storage {
 
   class EstimatorImpl : public Estimator {
    public:
-    EstimatorImpl(uint64_t count_calls);
+    EstimatorImpl(uint64_t window_size);
 
     void startWork(WorkerId worker_id, TaskType type, CallId call_id) override;
 
@@ -37,18 +37,17 @@ namespace fc::sector_storage {
 
     std::map<CallId, ActiveWork> active_works_;
 
-    uint64_t count_calls_;
+    const uint64_t window_size_;
 
     class CallsData {
      public:
-      CallsData(uint64_t count_calls)
-          : count_calls_(count_calls), dirty_flag_(false), average_(0){};
+      CallsData(uint64_t window_size) : window_size_(window_size){};
 
       inline void addData(uint64_t enrty) {
-        dirty_flag_ = true;
+        average_ = boost::none;
         data_.push_back(enrty);
 
-        if (data_.size() > count_calls_) {
+        if (data_.size() > window_size_) {
           data_.pop_front();
         }
       }
@@ -58,17 +57,18 @@ namespace fc::sector_storage {
           return boost::none;
         }
 
-        if (dirty_flag_) {
+        if (not average_.has_value()) {
           auto size = data_.size();
 
           uint64_t sum = 0;
-          for (size_t i = 0; i < size; i++) {
-            sum += data_.at(i) * (size - i);
+          size_t weight{1};
+          for (auto value : data_) {
+            sum += value * weight;
+            ++weight;
           }
 
           // note: weighted moving average
-          average_ = static_cast<double>(sum) / double(size * size + 1) * 2;
-          dirty_flag_ = false;
+          average_ = static_cast<double>(sum) / double(size * (size + 1)) * 2;
         }
 
         return average_;
@@ -76,10 +76,9 @@ namespace fc::sector_storage {
 
      private:
       std::deque<uint64_t> data_;
-      uint64_t count_calls_;
+      const uint64_t window_size_;
 
-      mutable bool dirty_flag_ = false;
-      mutable double average_;
+      mutable boost::optional<double> average_;
     };
 
     std::map<WorkerId, std::map<TaskType, CallsData>> workers_data_;

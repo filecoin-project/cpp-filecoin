@@ -96,6 +96,7 @@ namespace fc {
     boost::optional<RegisteredSealProof> seal_type;
     std::vector<Address> precommit_control;
     int api_port{};
+    uint64_t estimator_window{};
 
     /** Path to presealed sectors */
     boost::optional<boost::filesystem::path> preseal_path;
@@ -157,6 +158,8 @@ namespace fc {
     option("owner", po::value(&config.owner));
     option("worker", po::value(&config.worker));
     option("sector-size", po::value(&raw.sector_size));
+    option("estimator-window",
+           po::value(&config.estimator_window)->default_value(10));
     option("precommit-control", po::value(&config.precommit_control));
     option("pre-sealed-sectors",
            po::value(&config.preseal_path),
@@ -429,8 +432,8 @@ namespace fc {
                 sector_storage::SchedulerImpl::newScheduler(
                     io_thread2.io,
                     prefixed("scheduler_works/"),
-                    // TODO(ortyomka): make param size
-                    std::make_shared<sector_storage::EstimatorImpl>(10)));
+                    std::make_shared<sector_storage::EstimatorImpl>(
+                        config.estimator_window)));
 
     IoThread io_thread3;
 

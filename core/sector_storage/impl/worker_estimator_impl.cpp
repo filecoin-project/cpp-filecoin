@@ -7,8 +7,8 @@
 
 namespace fc::sector_storage {
 
-  EstimatorImpl::EstimatorImpl(uint64_t count_calls)
-      : count_calls_(count_calls) {}
+  EstimatorImpl::EstimatorImpl(uint64_t window_size)
+      : window_size_(window_size) {}
 
   void EstimatorImpl::startWork(WorkerId worker_id,
                                 TaskType type,
@@ -30,7 +30,7 @@ namespace fc::sector_storage {
     auto it2 = task_map.find(work.type);
     if (it2 == task_map.end()) {
       std::tie(it2, std::ignore) =
-          task_map.try_emplace(work.type, CallsData(count_calls_));
+          task_map.try_emplace(work.type, CallsData(window_size_));
     }
     it2->second.addData(std::chrono::duration_cast<std::chrono::milliseconds>(
                             finish - work.start)

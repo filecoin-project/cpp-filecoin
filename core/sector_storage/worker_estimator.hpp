@@ -25,6 +25,7 @@ namespace fc::sector_storage {
 
     virtual void abortWork(CallId) = 0;
 
+    /** Returns average time for task type for worker. */
     virtual boost::optional<double> getTime(WorkerId, TaskType) const = 0;
   };
 
