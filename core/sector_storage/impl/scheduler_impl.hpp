@@ -13,23 +13,23 @@
 #include <unordered_map>
 #include <utility>
 #include "primitives/resources/resources.hpp"
+#include "sector_storage/worker_estimator.hpp"
 #include "storage/buffer_map.hpp"
 
 namespace fc::sector_storage {
-  using storage::BufferMap;
-  using WorkerID = uint64_t;
   using primitives::Resources;
+  using storage::BufferMap;
 
   struct TaskRequest {
     inline TaskRequest(const SectorRef &sector,
-                       TaskType task_type,
+                       const TaskType &task_type,
                        uint64_t priority,
                        std::shared_ptr<WorkerSelector> sel,
                        WorkerAction prepare,
                        WorkerAction work,
                        ReturnCb cb)
         : sector(sector),
-          task_type(std::move(task_type)),
+          task_type(task_type),
           priority(priority),
           sel(std::move(sel)),
           prepare(std::move(prepare)),
@@ -65,7 +65,8 @@ namespace fc::sector_storage {
    public:
     static outcome::result<std::shared_ptr<SchedulerImpl>> newScheduler(
         std::shared_ptr<boost::asio::io_context> io_context,
-        std::shared_ptr<BufferMap> datastore);
+        std::shared_ptr<BufferMap> datastore,
+        std::shared_ptr<Estimator> estimator);
 
     outcome::result<void> schedule(
         const SectorRef &sector,
@@ -84,22 +85,25 @@ namespace fc::sector_storage {
 
    private:
     explicit SchedulerImpl(std::shared_ptr<boost::asio::io_context> io_context,
-                           std::shared_ptr<BufferMap> datastore);
+                           std::shared_ptr<BufferMap> datastore,
+                           std::shared_ptr<Estimator> estimator);
 
     outcome::result<void> resetWorks();
 
     outcome::result<bool> maybeScheduleRequest(
         const std::shared_ptr<TaskRequest> &request);
 
-    void assignWorker(WorkerID wid,
+    void assignWorker(WorkerId wid,
                       const std::shared_ptr<WorkerHandle> &worker,
                       const std::shared_ptr<TaskRequest> &request);
 
-    void freeWorker(WorkerID wid);
+    void freeWorker(WorkerId wid);
 
     std::mutex workers_lock_;
-    WorkerID current_worker_id_;
-    std::unordered_map<WorkerID, std::shared_ptr<WorkerHandle>> workers_;
+    WorkerId current_worker_id_;
+    std::unordered_map<WorkerId, std::shared_ptr<WorkerHandle>> workers_;
+
+    std::shared_ptr<Estimator> estimator_;
 
     std::mutex cbs_lock_;
     std::map<CallId, ReturnCb> callbacks_;
