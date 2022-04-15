@@ -42,6 +42,14 @@ target_link_libraries(remote_worker
         rpc
         )
 
+add_library(estimator
+        impl/worker_estimator_impl.cpp
+        )
+
+target_link_libraries(estimator
+        Boost::boost
+        )
+
 add_library(scheduler
         impl/scheduler_impl.cpp
         )
@@ -51,6 +59,7 @@ target_link_libraries(scheduler
         resources
         logger
         worker
+        estimator
         Boost::thread
         )
 
