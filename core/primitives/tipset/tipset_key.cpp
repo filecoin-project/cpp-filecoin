@@ -96,11 +96,11 @@ namespace fc::primitives::tipset {
     std::string s;
     auto it{cids_.begin()};
     if (it != cids_.end()) {
-      s += it->toHex();
+      s += common::hex_lower(*it);
       ++it;
       while (it != cids_.end()) {
         s += sep;
-        s += it->toHex();
+        s += common::hex_lower(*it);
         ++it;
       }
     }

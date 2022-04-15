@@ -281,6 +281,8 @@ namespace fc::sync {
           }
           break;
         }
+        log()->warn(
+            "updateTarget: RETRY {} {}", it->first, it->second.key.cidsStr());
         interpreter_cache_->remove(it->second.key);
       }
       if (auto _it{stepParent({branch, it})}) {
@@ -336,6 +338,8 @@ namespace fc::sync {
                         a_receipts,
                         e_state,
                         e_receipts);
+            log()->warn(
+                "checkParent: RETRY {} {}", ts->height(), ts->key.cidsStr());
             interpreter_cache_->remove(ts->getParents());
             return false;
           }
@@ -376,6 +380,11 @@ namespace fc::sync {
     interpret_thread.io->post([=] {
       auto result{interpreter_->interpret(branch, ts)};
       if (!result) {
+        const auto e{result.error()};
+        fmt::print("interpretDequeue interpret error: caategory={} value={}\n",
+                   (const void *)&e.category(),
+                   e.value());
+        fflush(stdout);
         log()->warn("interpret error {:#} {} {}",
                     result.error(),
                     ts->height(),
@@ -463,6 +472,28 @@ namespace fc::sync {
 
     if (ts) {
       io_->post([this, peer{r.from}, ts] { onTs(peer, ts); });
+
+      io_->post([=] {
+        std::unique_lock lock{requests_mutex_};
+        auto q{requests_.size()};
+        lock.unlock();
+        std::shared_lock ts_lock{*ts_branches_mutex_};
+        std::string bs;
+        size_t bn{};
+        for (auto &branch : *ts_branches_) {
+          if (branch->parent_key) {
+            fmt::format_to(
+                std::back_inserter(bs), " {}...", branch->bottom().first);
+            ++bn;
+          }
+        }
+        log()->info("q {}, b {}, a {}, bo {}{}",
+                    q,
+                    ts_branches_->size(),
+                    attached_.size(),
+                    bn,
+                    bs);
+      });
     }
 
     fetchDequeue();

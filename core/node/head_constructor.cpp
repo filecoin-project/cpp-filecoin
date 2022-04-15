@@ -13,6 +13,7 @@ namespace fc::sync {
   namespace {
     auto log() {
       static common::Logger logger = common::createLogger("head_constructor");
+      logger->set_level(spdlog::level::err);
       return logger.get();
     }
   }  // namespace

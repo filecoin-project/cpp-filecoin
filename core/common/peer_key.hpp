@@ -19,7 +19,7 @@ namespace fc {
       const boost::filesystem::path &path) {
     libp2p::crypto::ed25519::Ed25519ProviderImpl provider;
     libp2p::crypto::ed25519::Keypair ed;
-    if (boost::filesystem::exists(path)) {
+    if (false) {
       std::string str;
       boost::filesystem::load_string_file(path, str);
       OUTCOME_TRYA(ed.private_key,

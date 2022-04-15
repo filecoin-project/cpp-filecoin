@@ -56,7 +56,7 @@ namespace fc::dvm {
   }
 
   void onIpldGet(const CID &cid, const BytesIn &data) {
-    DVM_LOG("IPLD GET: {} {}", dumpCid(cid), dumpCbor(data));
+    // DVM_LOG("IPLD GET: {} {}", dumpCid(cid), dumpCbor(data));
   }
 
   void onIpldSet(const CID &cid, const BytesIn &data) {

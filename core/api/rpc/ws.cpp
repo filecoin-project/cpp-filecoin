@@ -90,6 +90,7 @@ namespace fc::api {
     void onRead() {
       std::string_view s_req{static_cast<const char *>(buffer.cdata().data()),
                              buffer.cdata().size()};
+      std::string rs{s_req};
       auto j_req{codec::json::parse(s_req)};
       buffer.clear();
 
@@ -110,7 +111,10 @@ namespace fc::api {
             self->_write(req, std::move(cb));
           },
           perms,
-          [self{shared_from_this()}](const Response &resp) {
+          [self{shared_from_this()}, rs](const Response &resp) {
+            if (auto err{boost::get<Response::Error>(&resp.result)}) {
+              spdlog::warn("rpc error [{}] req {}", err->message, rs);
+            }
             self->_write(resp, {});
           });
     }

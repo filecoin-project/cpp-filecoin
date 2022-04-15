@@ -125,7 +125,21 @@ namespace fc::blockchain::block_validator {
     if (!parent_has_claim) {
       return ERROR_TEXT("validate: no claim in parent");
     }
-    OUTCOME_TRY(lookback_interpreted, interpreter_cache->get(lookback_tsk));
+    const auto _lookback_interpreted{interpreter_cache->tryGet(lookback_tsk)};
+    if (!_lookback_interpreted) {
+      spdlog::warn("BlockValidator lookback not cached {} {} {}",
+                   block.height,
+                   lookback_height,
+                   common::hex_lower(block_cid));
+      return ERROR_TEXT("BlockValidator lookback not cached");
+    } else if (!*_lookback_interpreted) {
+      spdlog::warn("BlockValidator lookback marked bad {} {} {}",
+                   block.height,
+                   lookback_height,
+                   common::hex_lower(block_cid));
+      return ERROR_TEXT("BlockValidator lookback marked bad");
+    }
+    OUTCOME_TRY(lookback_interpreted, *_lookback_interpreted);
     StateTreeImpl lookback_tree{withVersion(ipld, lookback_height),
                                 lookback_interpreted.state_root};
     OUTCOME_TRY(lookback_miner_actor, lookback_tree.get(block.miner));

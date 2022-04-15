@@ -164,6 +164,17 @@ namespace fc::storage::compacter {
           state_bottom = ts_load->load(state_bottom->getParents()).value();
           auto root{*asBlake(state_bottom->getParentStateRoot())};
           if (state_bottom->height() == 0 || !old_ipld->has(root)) {
+            if (state_bottom->height() == 0) {
+              spdlog::info("CompacterIpld.flow genesis head_height={}",
+                           head2->height());
+            } else {
+              spdlog::info(
+                  "CompacterIpld.flow old_ipld.has=false parent_state={} "
+                  "bottom_height={} head_height={}",
+                  common::hex_lower(root),
+                  state_bottom->height(),
+                  head2->height());
+            }
             done_state = true;
             state_bottom.reset();
           } else {
@@ -174,6 +185,9 @@ namespace fc::storage::compacter {
             }
           }
         } else {
+          spdlog::info("CompacterIpld.flow bottom_height={} head_height={}",
+                       state_bottom->height(),
+                       head2->height());
           done_state = true;
         }
       }
@@ -291,6 +305,38 @@ namespace fc::storage::compacter {
       }
     }
     queueLoop();
+    {  // self check
+      size_t count{0};
+      const auto max{
+          std::max<ChainEpoch>(epochs_lookback_state, epochs_full_state)};
+      auto ts{head};
+      while (true) {
+        if (ts->height() == 0) {
+          spdlog::info(
+              "CompacterIpld.finish genesis head_height={} count={} max={}",
+              head->height(),
+              count,
+              max);
+          break;
+        }
+        const auto root{*asBlake(ts->getParentStateRoot())};
+        if (!new_ipld->has(root)) {
+          spdlog::info(
+              "CompacterIpld.finish new_ipld.has=false parent_state={} "
+              "bottom_height={} head_height={} count={} max={}",
+              common::hex_lower(root),
+              ts->height(),
+              head->height(),
+              count,
+              max);
+        }
+        ++count;
+        if (head->epoch() - ts->epoch() > max + 10) {
+          break;
+        }
+        ts = ts_load->load(ts->getParents()).value();
+      }
+    }
     queue->clear();
     {
       std::unique_lock old_flush_lock{old_ipld->flush_mutex};

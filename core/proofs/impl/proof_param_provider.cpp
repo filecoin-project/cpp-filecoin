@@ -170,6 +170,7 @@ namespace fc::proofs {
 
   outcome::result<void> getParams(const std::string &proof_param,
                                   uint64_t storage_size) {
+    if (true) return outcome::success();
     OUTCOME_TRY(data, common::readFile(proof_param));
     OUTCOME_TRY(jdoc, codec::json::parse(data));
     OUTCOME_TRY(

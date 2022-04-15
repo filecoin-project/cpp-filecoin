@@ -3,7 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include "cbor_blake/ipld_any.hpp"
+#include "cbor_blake/memory.hpp"
 #include "drand/impl/beaconizer.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/car/car.hpp"
@@ -17,6 +20,30 @@
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 
+namespace fc {
+  using storage::cids_index::CidsIpld;
+
+  struct Magic : CbIpld {
+    std::vector<std::shared_ptr<CidsIpld>> cars;
+    MemoryCbIpld cache;
+
+    bool get(const CbCid &key, Bytes *value) const override {
+      if (cache.get(key, value)) {
+        return true;
+      }
+      for (auto &car : cars) {
+        if (car->get(key, value)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    void put(const CbCid &key, BytesCow &&value) override {
+      cache.put(key, std::move(value));
+    }
+  };
+}  // namespace fc
+
 int main(int argc, char **argv) {
   using namespace fc;
   using primitives::ChainEpoch;
@@ -28,14 +55,25 @@ int main(int argc, char **argv) {
           "bafy2bzacecnamqgqmifpluoeldx7zzglxcljo6oja4vrmtj7432rphldpdmm2")
           .value()};
 
-  if (argc > 1) {
-    std::string car_path{argv[1]};
-    auto ipld_mem{std::make_shared<storage::ipfs::InMemoryDatastore>()};
-    // TODO(turuslan): max memory
-    if (auto _ipld{storage::cids_index::loadOrCreateWithProgress(
-            car_path, false, boost::none, ipld_mem, nullptr)}) {
+  auto ipld{std::make_shared<Magic>()};
+  std::optional<CbCid> child_cid;
+  for (auto i{1}; i < argc; ++i) {
+    std::string_view arg{argv[i]};
+    if (boost::ends_with(arg, ".car")) {
+      ipld->cars.push_back(*storage::cids_index::loadOrCreateWithProgress(
+          std::string{arg}, false, {}, {}, {}));
+    } else {
+      if (child_cid) throw "many children";
+      child_cid.emplace(CbCid{CbCid::fromHex(arg).value()});
+    }
+  }
+  if (!ipld) throw "no cars";
+  if (!child_cid) throw "no child";
+
+  {
+    {
       vm::runtime::EnvironmentContext envx;
-      envx.ipld = _ipld.value();
+      envx.ipld = std::make_shared<CbAsAnyIpld>(ipld);
       envx.ts_branches_mutex = std::make_shared<std::shared_mutex>();
       envx.invoker = std::make_shared<vm::actor::InvokerImpl>();
       auto ts_load_ipld{
@@ -64,28 +102,14 @@ int main(int argc, char **argv) {
       envx.circulating = vm::Circulating::make(envx.ipld, genesis_cid).value();
       vm::interpreter::InterpreterImpl vmi{envx, nullptr, nullptr};
 
-      const auto head_tsk{
-          *TipsetKey::make(storage::car::readHeader(car_path).value())};
+      const TipsetKey head_tsk{{*child_cid}};
       auto head{envx.ts_load->loadWithCacheInfo(head_tsk).value()};
       primitives::tipset::chain::TsChain _chain;
-      ChainEpoch state_min_height{head.tipset->height()}, state_max_height{0};
       auto ts_lookback{4000};
-      auto had_states{true};
       auto ts{head};
-      while (true) {
+      for (auto i{0}; i < ts_lookback; ++i) {
         _chain.emplace(ts.tipset->height(),
                        primitives::tipset::TsLazy{ts.tipset->key, ts.index});
-        if (envx.ipld->contains(ts.tipset->getParentStateRoot()).value()) {
-          if (had_states) {
-            state_min_height = std::min(state_min_height, ts.tipset->height());
-            state_max_height = std::max(state_max_height, ts.tipset->height());
-          }
-        } else {
-          had_states = false;
-        }
-        if (ts.tipset->height() + ts_lookback < state_min_height) {
-          break;
-        }
         if (auto _ts{
                 envx.ts_load->loadWithCacheInfo(ts.tipset->getParents())}) {
           ts = _ts.value();
@@ -95,33 +119,13 @@ int main(int argc, char **argv) {
       }
       auto branch{TsBranch::make(std::move(_chain))};
 
-      if (state_min_height > state_max_height) {
-        spdlog::error("no ts with states");
-        exit(EXIT_FAILURE);
-      } else {
-        spdlog::info(
-            "ts with states: {}..{}", state_min_height, state_max_height);
-      }
-      if (argc > 2) {
-        auto min_height{
-            std::max<ChainEpoch>(state_min_height, std::stoull(argv[2]))};
-        auto max_height{min_height};
-        if (argc > 3) {
-          max_height =
-              std::min(state_max_height,
-                       std::max<ChainEpoch>(min_height, std::stoull(argv[3])));
-        }
+      {
         if (dvm::logger) {
           dvm::logging = true;
         }
-        for (auto it{branch->chain.lower_bound(min_height)};
-             it != branch->chain.end() && it->first <= max_height;
-             ++it) {
-          auto parent{envx.ts_load->lazyLoad(it->second).value()};
-          primitives::tipset::TipsetCPtr child;
-          if (auto _child{std::next(it)}; _child != branch->chain.end()) {
-            child = envx.ts_load->lazyLoad(_child->second).value();
-          }
+        {
+          auto child{head.tipset};
+          auto parent{envx.ts_load->load(child->getParents()).value()};
           spdlog::info("height {}", parent->height());
           if (auto _res{vmi.interpret(branch, parent)}) {
             auto &res{_res.value()};
@@ -146,7 +150,5 @@ int main(int argc, char **argv) {
         spdlog::info("done");
       }
     }
-  } else {
-    fmt::print("usage: {} CAR [MIN_HEIGHT [MAX_HEIGHT]]\n", argv[0]);
   }
 }

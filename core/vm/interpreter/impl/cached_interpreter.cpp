@@ -4,6 +4,7 @@
  */
 
 #include "cached_interpreter.hpp"
+#include "common/logger.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::vm::interpreter {
@@ -24,6 +25,21 @@ namespace fc::vm::interpreter {
         // compaction)
         if (ipld_->has(*asBlake(cached->state_root))) {
           result.emplace(std::move(*cached));
+        } else {
+          Bytes _block;
+          if (ipld_->get(key.cids()[0], _block)) {
+            auto block{
+                codec::cbor::decode<primitives::block::BlockHeader>(_block)
+                    .value()};
+            spdlog::warn("InterpreterCache IPLD {} {} {}",
+                         block.height,
+                         key.cidsStr(),
+                         cached->state_root);
+          } else {
+            spdlog::error("InterpreterCache IPLD ??? {} {}",
+                          key.cidsStr(),
+                          cached->state_root);
+          }
         }
       } else {
         result.emplace(InterpreterError::kTipsetMarkedBad);
@@ -62,6 +78,9 @@ namespace fc::vm::interpreter {
       return *cached;
     }
     auto result = interpreter->interpret(ts_branch, tipset);
+    if (!result && result.error() == InterpreterError::kNotCached) {
+      return result;
+    }
     if (!result) {
       cache->markBad(key);
     } else {

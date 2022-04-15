@@ -19,6 +19,7 @@ namespace fc::sync::blocksync {
 
     auto log() {
       static common::Logger logger = common::createLogger("blocksync-server");
+      logger->set_level(spdlog::level::err);
       return logger.get();
     }
 

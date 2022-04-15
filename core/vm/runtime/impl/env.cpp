@@ -106,8 +106,11 @@ namespace fc::vm::runtime {
       if (auto it{write.find(*asBlake(cid))}; it != write.end()) {
         return it->second;
       }
-      return ipld->get(cid);
+      if (auto r{ipld->get(cid)}) {
+        return r;
+      }
     }
+    spdlog::error("IpldBuffered.get: {}", common::hex_lower(*asBlake(cid)));
     return storage::ipfs::IpfsDatastoreError::kNotFound;
   }
 

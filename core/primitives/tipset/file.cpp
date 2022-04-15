@@ -11,6 +11,7 @@
 
 #include "codec/cbor/light_reader/block.hpp"
 #include "common/file.hpp"
+#include "common/logger.hpp"
 
 #define BOOL_TRY(...)              \
   do {                             \
@@ -191,7 +192,11 @@ namespace fc::primitives::tipset::chain::file {
       BOOL_TRY(tsk.size() < kRevert);
       auto first_block{true};
       for (auto &cid : tsk) {
-        BOOL_TRY(ipld->get(cid, _block));
+        if (!ipld->get(cid, _block)) {
+          spdlog::error("tipset file: block not found {}",
+                        common::hex_lower(cid));
+          return {};
+        }
         BytesIn block{_block};
         BytesIn ticket;
         ChainEpoch height{};

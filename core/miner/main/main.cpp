@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <spdlog/sinks/basic_file_sink.h>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -588,6 +589,13 @@ int main(int argc, char **argv) {
   fc::libp2pSoralog();
 
   OUTCOME_EXCEPT(config, fc::readConfig(argc, argv));
+
+  using fc::common::file_sink;
+  file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+      config.join("fuhon.log"));
+  spdlog::default_logger()->sinks().push_back(file_sink);
+  spdlog::flush_on(spdlog::level::info);
+
   if (const auto res{fc::main(config)}; !res) {
     spdlog::error("main: {:#}", res.error());
   }
