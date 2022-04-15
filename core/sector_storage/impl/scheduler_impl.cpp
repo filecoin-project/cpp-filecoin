@@ -16,16 +16,20 @@ namespace fc::sector_storage {
 
   outcome::result<std::shared_ptr<SchedulerImpl>> SchedulerImpl::newScheduler(
       std::shared_ptr<boost::asio::io_context> io_context,
-      std::shared_ptr<BufferMap> datastore) {
+      std::shared_ptr<BufferMap> datastore,
+      std::shared_ptr<Estimator> estimator) {
     struct make_unique_enabler : public SchedulerImpl {
       make_unique_enabler(std::shared_ptr<boost::asio::io_context> io_context,
-                          std::shared_ptr<BufferMap> datastore)
-          : SchedulerImpl{std::move(io_context), std::move(datastore)} {};
+                          std::shared_ptr<BufferMap> datastore,
+                          std::shared_ptr<Estimator> estimator)
+          : SchedulerImpl{std::move(io_context),
+                          std::move(datastore),
+                          std::move(estimator)} {};
     };
 
     std::shared_ptr<SchedulerImpl> scheduler =
-        std::make_shared<make_unique_enabler>(std::move(io_context),
-                                              std::move(datastore));
+        std::make_shared<make_unique_enabler>(
+            std::move(io_context), std::move(datastore), std::move(estimator));
 
     OUTCOME_TRY(scheduler->resetWorks());
 
@@ -34,8 +38,10 @@ namespace fc::sector_storage {
 
   SchedulerImpl::SchedulerImpl(
       std::shared_ptr<boost::asio::io_context> io_context,
-      std::shared_ptr<BufferMap> datastore)
+      std::shared_ptr<BufferMap> datastore,
+      std::shared_ptr<Estimator> estimator)
       : current_worker_id_(0),
+        estimator_(std::move(estimator)),
         call_kv_(std::move(datastore)),
         io_(std::move(io_context)),
         logger_(common::createLogger("scheduler")) {}
@@ -143,7 +149,7 @@ namespace fc::sector_storage {
     if (current_worker_id_ == std::numeric_limits<uint64_t>::max()) {
       current_worker_id_ = 0;  // TODO(ortyomka): maybe better mechanism
     }
-    WorkerID wid = current_worker_id_++;
+    WorkerId wid = current_worker_id_++;
     workers_.insert({wid, std::move(worker)});
     lock.unlock();
 
@@ -154,7 +160,7 @@ namespace fc::sector_storage {
       const std::shared_ptr<TaskRequest> &request) {
     std::lock_guard<std::mutex> lock(workers_lock_);
 
-    std::vector<WorkerID> acceptable;
+    std::vector<WorkerId> acceptable;
     uint64_t tried = 0;
 
     for (const auto &[wid, worker] : workers_) {
@@ -179,27 +185,47 @@ namespace fc::sector_storage {
 
     if (!acceptable.empty()) {
       bool does_error_occurs = false;
-      std::stable_sort(acceptable.begin(),
-                       acceptable.end(),
-                       [&](WorkerID lhs, WorkerID rhs) {
-                         auto maybe_res = request->sel->is_preferred(
-                             request->task_type, workers_[lhs], workers_[rhs]);
+      std::stable_sort(
+          acceptable.begin(),
+          acceptable.end(),
+          [&](WorkerId lhs, WorkerId rhs) {
+            const auto l_time = estimator_->getTime(lhs, request->task_type);
+            const auto r_time = estimator_->getTime(rhs, request->task_type);
 
-                         if (maybe_res.has_error()) {
-                           logger_->error("selecting best worker: "
-                                          + maybe_res.error().message());
-                           does_error_occurs = true;
-                           return false;
-                         }
+            // if time is available, then compare them
+            if (l_time and r_time) {
+              return l_time < r_time;
+            }
 
-                         return maybe_res.value();
-                       });
+            // if some workers don't have data about time, then we prefer worker
+            // without time, to give a chance to prove yourself
+            if (l_time) {
+              return false;
+            }
+
+            if (r_time) {
+              return true;
+            }
+
+            // if both workers without time, then compare with selector
+            auto maybe_res = request->sel->is_preferred(
+                request->task_type, workers_[lhs], workers_[rhs]);
+
+            if (maybe_res.has_error()) {
+              logger_->error("selecting best worker: "
+                             + maybe_res.error().message());
+              does_error_occurs = true;
+              return false;
+            }
+
+            return maybe_res.value();
+          });
 
       if (does_error_occurs) {
         return SchedulerErrors::kCannotSelectWorker;
       }
 
-      WorkerID wid = acceptable[0];
+      WorkerId wid = acceptable[0];
 
       assignWorker(wid, workers_[wid], request);
 
@@ -214,7 +240,7 @@ namespace fc::sector_storage {
   }
 
   void SchedulerImpl::assignWorker(
-      WorkerID wid,
+      WorkerId wid,
       const std::shared_ptr<WorkerHandle> &worker,
       const std::shared_ptr<TaskRequest> &request) {
     worker->preparing.add(worker->info.resources, request->need_resources);
@@ -242,8 +268,18 @@ namespace fc::sector_storage {
                          + maybe_call_id.error().message());
           return clear();
         }
-        ReturnCb new_cb = [request, clear = std::move(clear)](
+        estimator_->startWork(wid, request->task_type, maybe_call_id.value());
+        ReturnCb new_cb = [call_id{maybe_call_id.value()},
+                           estimator{estimator_},
+                           request,
+                           clear = std::move(clear)](
                               outcome::result<CallResult> result) -> void {
+          if (result.has_value()) {
+            estimator->finishWork(call_id);
+          } else {
+            estimator->abortWork(call_id);
+          }
+
           request->cb(std::move(result));
 
           return clear();
@@ -287,7 +323,7 @@ namespace fc::sector_storage {
     });
   }
 
-  void SchedulerImpl::freeWorker(WorkerID wid) {
+  void SchedulerImpl::freeWorker(WorkerId wid) {
     std::shared_ptr<WorkerHandle> worker;
     {
       std::lock_guard<std::mutex> lock(workers_lock_);
