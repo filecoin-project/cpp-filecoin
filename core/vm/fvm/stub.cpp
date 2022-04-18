@@ -5,6 +5,8 @@
 
 #include "vm/fvm/stub.hpp"
 
+#include "vm/fvm/metrics.hpp"
+
 namespace fc::vm::fvm::stub {
   decltype(callbacks) callbacks;
 
@@ -13,6 +15,7 @@ namespace fc::vm::fvm::stub {
                                          int32_t key_size,
                                          uint8_t **out_value,
                                          int32_t *out_value_size) {
+    FVM_METRIC(cgo_blockstore_get);
     if (!callbacks.ipldGet) {
       return FvmError::kInvalidHandle;
     }
@@ -37,6 +40,7 @@ namespace fc::vm::fvm::stub {
                                          int32_t key_size,
                                          const uint8_t *value,
                                          int32_t value_size) {
+    FVM_METRIC(cgo_blockstore_put);
     if (!callbacks.ipldPut) {
       return FvmError::kInvalidHandle;
     }
@@ -47,6 +51,7 @@ namespace fc::vm::fvm::stub {
                                               const int32_t *sizes,
                                               int32_t count,
                                               const uint8_t *keys_values) {
+    FVM_METRIC(cgo_blockstore_put_many);
     if (!callbacks.ipldPutMany) {
       return FvmError::kInvalidHandle;
     }
@@ -68,6 +73,7 @@ namespace fc::vm::fvm::stub {
   extern "C" FvmError cgo_blockstore_has(FvmMachineId machine_id,
                                          const uint8_t *key,
                                          int32_t key_size) {
+    FVM_METRIC(cgo_blockstore_has);
     if (!callbacks.ipldGet) {
       return FvmError::kInvalidHandle;
     }
@@ -81,6 +87,7 @@ namespace fc::vm::fvm::stub {
       const uint8_t *seed,
       int32_t seed_size,
       Randomness *out_randomness) {
+    FVM_METRIC(cgo_extern_get_chain_randomness);
     if (!callbacks.rand) {
       return FvmError::kInvalidHandle;
     }
@@ -98,6 +105,7 @@ namespace fc::vm::fvm::stub {
       const uint8_t *seed,
       int32_t seed_size,
       Randomness *out_randomness) {
+    FVM_METRIC(cgo_extern_get_beacon_randomness);
     if (!callbacks.rand) {
       return FvmError::kInvalidHandle;
     }
@@ -120,6 +128,7 @@ namespace fc::vm::fvm::stub {
       ChainEpoch *out_epoch,
       ConsensusFaultType *out_fault,
       GasAmount *out_gas_used) {
+    FVM_METRIC(cgo_extern_verify_consensus_fault);
     if (!callbacks.fault) {
       return FvmError::kInvalidHandle;
     }

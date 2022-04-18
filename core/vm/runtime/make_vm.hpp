@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "common/logger.hpp"
 #include "vm/fvm/fvm.hpp"
 #include "vm/runtime/env.hpp"
 
@@ -28,6 +29,7 @@ namespace fc::vm {
     }()};
     const auto fvm{network > NetworkVersion::kVersion15 || fvm_flag};
     if (fvm) {
+      spdlog::warn("make_vm: FVM\n");
       OUTCOME_TRYA(
           vm, fvm::FvmMachine::make(envx, ts_branch, base_fee, state, epoch));
     } else {

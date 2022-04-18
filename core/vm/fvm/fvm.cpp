@@ -13,6 +13,7 @@
 #include "codec/cbor/light_reader/cid.hpp"
 #include "common/ffi.hpp"
 #include "common/logger.hpp"
+#include "vm/fvm/metrics.hpp"
 #include "vm/fvm/ubig128.hpp"
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/consensus_fault.hpp"
@@ -82,6 +83,7 @@ namespace fc::vm::fvm {
     OUTCOME_TRY(base_fee_128, Ubig128::fromBig(base_fee));
     OUTCOME_TRY(circ_128, Ubig128::fromBig(circ));
     const auto state_bytes{state.toBytes().value()};
+    FVM_METRIC(fil_create_fvm_machine);
     const auto res{
         common::ffi::wrap(fil_create_fvm_machine(fil_FvmRegisteredVersion_V1,
                                                  epoch,
@@ -109,6 +111,7 @@ namespace fc::vm::fvm {
   outcome::result<ApplyRet> FvmMachine::applyMessage(
       const UnsignedMessage &message, size_t size) {
     OUTCOME_TRY(message_bytes, codec::cbor::encode(message));
+    FVM_METRIC(fil_fvm_machine_execute_message);
     const auto res{
         common::ffi::wrap(fil_fvm_machine_execute_message(executor.get(),
                                                           message_bytes.data(),
@@ -135,6 +138,7 @@ namespace fc::vm::fvm {
   }
 
   outcome::result<CID> FvmMachine::flush() {
+    FVM_METRIC(fil_fvm_machine_flush);
     const auto res{common::ffi::wrap(fil_fvm_machine_flush(executor.get()),
                                      fil_destroy_fvm_machine_flush_response)};
     FFI_TRY(fil_fvm_machine_flush);
