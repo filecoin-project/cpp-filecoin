@@ -4,6 +4,7 @@
  */
 
 #pragma once
+
 #include <cinttypes>
 #include "api/full_node/node_api.hpp"
 #include "cli/node/node.hpp"
@@ -75,10 +76,10 @@ namespace fc::cli::cli_node {
     ipfs->actor_version = actorVersion(version);
     const VerifiedRegistryActorStatePtr state =
         cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
-    const auto res = cliTry(cliTry(state->getVerifierDataCap(vid)),
-                      "Client {} isn't in notary tables",
-                      vaddr);
-    return res;
+
+    return cliTry(cliTry(state->getVerifierDataCap(vid)),
+                  "Client {} isn't in notary tables",
+                  vaddr);
   }
 
   struct Node_client_retrieve {
@@ -136,12 +137,6 @@ namespace fc::cli::cli_node {
       const std::string path{cliArgv<std::string>(argv, 1, "path")};
 
       const boost::optional<CID> piece_cid = args.piece_cid.v;
-      RetrievalOrder order{
-          .client =
-              (args.from ? *args.from
-                         : cliTry(api->WalletDefaultAddress(),
-                                  "Getting address of default wallet...")),
-          .miner = (args.provider ? *args.provider : Address{})};
 
       fmt::print("max price is {} fil ({} attofil)\n",
                  args.max_price->fil,
@@ -170,22 +165,30 @@ namespace fc::cli::cli_node {
 
       QueryOffer fin_offer;
       if (not local_found) {  // no local -> make retrieval
-        if (!args.provider) {
+        if (not args.provider) {
           std::vector<QueryOffer> offers =
               cliTry(api->ClientFindData(data_cid, piece_cid));
-          offers.erase(std::remove_if(offers.begin(),
-                                      offers.end(),
-                                      [](const QueryOffer &offer) {
-                                        return not offer.error.empty();
-                                      }),
-                       offers.end());
+
+          if (offers.empty()) {
+            throw CliError("ClientFindData: data not found.");
+          }
 
           fin_offer = *std::min_element(
               offers.begin(),
               offers.end(),
               [](const QueryOffer &first, const QueryOffer &second) {
+                if (not first.error.empty()) {
+                  return false;
+                }
+                if (not second.error.empty()) {
+                  return true;
+                }
                 return first.min_price < second.min_price;
               });
+
+          if (not fin_offer.error.empty()) {
+            throw CliError("Error has appeared during offer evaluation");
+          }
         } else {
           fin_offer = cliTry(
               api->ClientMinerQueryOffer(*args.provider, data_cid, piece_cid),
@@ -194,19 +197,27 @@ namespace fc::cli::cli_node {
         }
 
         if (fin_offer.min_price > args.max_price->fil) {
-          fmt::print("Cannot find suitable offer for provided proposal\n");
-        } else {
-          order.root = fin_offer.root;
-          order.piece = fin_offer.piece;
-          order.size = fin_offer.size;
-          order.total = fin_offer.min_price;
-          order.unseal_price = fin_offer.unseal_price;
-          order.payment_interval = fin_offer.payment_interval;
-          order.payment_interval_increase = fin_offer.payment_interval_increase;
-          order.peer = fin_offer.peer;
-
-          cliTry(api->ClientRetrieve(order, file_ref), "Retrieving...");
+          throw CliError("Cannot find suitable offer for provided proposal\n");
         }
+
+        const RetrievalOrder order{
+            .root = fin_offer.root,
+            .piece = fin_offer.piece,
+            .size = fin_offer.size,
+            .total = fin_offer.min_price,
+            .unseal_price = fin_offer.unseal_price,
+            .payment_interval = fin_offer.payment_interval,
+            .payment_interval_increase = fin_offer.payment_interval_increase,
+            .client =
+                (args.from ? *args.from
+                           : cliTry(api->WalletDefaultAddress(),
+                                    "Getting address of default wallet...")),
+            .miner = (args.provider ? *args.provider : fin_offer.miner),
+
+            .peer = fin_offer.peer,
+        };
+
+        cliTry(api->ClientRetrieve(order, file_ref), "Retrieving...");
       }
       fmt::print("Success.\n");
     }
@@ -497,6 +508,7 @@ namespace fc::cli::cli_node {
         for (const auto &deal : deals) {
           if (deal.deal_id == *args.deal_id) {
             result = deal;
+            break;
           }
         }
       } else {

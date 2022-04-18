@@ -53,9 +53,9 @@ namespace fc::cli::cli_node {
 
       fmt::print("message sent, now waiting on cid: {}\n",
                  signed_message.getCid());
-      const MsgWait message_wait2 = cliTry(api->StateWaitMsg(
+      const MsgWait message_wait = cliTry(api->StateWaitMsg(
           signed_message.getCid(), kMessageConfidence, kLookBack, false));
-      if (message_wait2.receipt.exit_code != VMExitCode::kOk)
+      if (message_wait.receipt.exit_code != VMExitCode::kOk)
         throw CliError("failed to add verified client");
       fmt::print("Client {} was added successfully!\n", target);
     }
@@ -101,7 +101,6 @@ namespace fc::cli::cli_node {
     CLI_RUN() {
       const Node::Api api{argm};
 
-      const TokenAmount allowness = TokenAmount("257");
       const Actor actor =
           cliTry(api->StateGetActor(kVerifiedRegistryAddress, TipsetKey{}));
       auto ipfs = std::make_shared<ApiIpfsDatastore>(api.api);
@@ -122,7 +121,7 @@ namespace fc::cli::cli_node {
 
       auto encoded_params1 = cliTry(codec::cbor::encode(
           vm::actor::builtin::v0::verified_registry::AddVerifier::Params{
-              *args.from, allowness}));
+              *args.from, TokenAmount("257")}));
       SignedMessage signed_message1 = cliTry(api->MpoolPushMessage(
           {kVerifiedRegistryAddress,
            state->root_key,
@@ -148,7 +147,8 @@ namespace fc::cli::cli_node {
       const std::string_view process_desc = "Getting Verified Client info...";
       const StoragePower storage_power =
           cliTry(cliTry(api->StateVerifiedClientStatus(address, TipsetKey()),
-                        process_desc), process_desc);
+                        process_desc),
+                 process_desc);
       fmt::print(
           "Client {} info: {}\n", encodeToString(address), storage_power);
     }
