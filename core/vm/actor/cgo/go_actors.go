@@ -290,7 +290,7 @@ func (rt *rt) ChargeGas(_ string, gas int64, _ int64) {
 	rt.gocRet(C.gocRtCharge(rt.gocArg().int(gas).arg()))
 }
 
-var log_level rtt.LogLevel = rtt.WARN
+var log_level rtt.LogLevel = rtt.DEBUG
 var log_levels = []string{"DEBUG", "INFO", "WARN", "ERROR"}
 
 func (rt *rt) Log(level rtt.LogLevel, format string, args ...interface{}) {

@@ -427,6 +427,8 @@ int main(int argc, char *argv[]) {
   auto config{fc::node::Config::read(argc, argv)};
   fc::libp2pSoralog(config.join("libp2p.log"));
 
+  spdlog::flush_on(spdlog::level::info);
+
   using fc::common::file_sink;
   file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
       config.join("fuhon.log"));
