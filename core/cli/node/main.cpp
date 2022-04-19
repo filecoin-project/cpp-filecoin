@@ -22,12 +22,12 @@ namespace fc::cli::cli_node {
           CMD("peers", Node_net_peers),
       })},
       {GROUP("filplus")({
-          CMD("grant-datacap", Node_client_grantDatacap),
-          CMD("list-notaries", Node_client_listNotaries),
-          CMD("list-clients", Node_client_listClients),
-          CMD("add-verifier", Node_client_addVerifier),
-          CMD("check-client-datacap", Node_client_checkClientDataCap),
-          CMD("check-notary-datacap", Node_client_checkNotaryDataCap),
+          CMD("grant-datacap", Node_filplus_grantDatacap),
+          CMD("list-notaries", Node_filplus_listNotaries),
+          CMD("list-clients", Node_filplus_listClients),
+          CMD("add-verifier", Node_filplus_addVerifier),
+          CMD("check-client-datacap", Node_filplus_checkClientDataCap),
+          CMD("check-notary-datacap", Node_filplus_checkNotaryDataCap),
       })},
       {GROUP("client")({
           CMD("retrieve", Node_client_retrieve),

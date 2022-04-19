@@ -10,8 +10,32 @@ namespace fc::cli::cli_node {
   using api::MsgWait;
   using vm::VMExitCode;
   using vm::message::SignedMessage;
+  using storage::ipfs::ApiIpfsDatastore;
+  using vm::actor::Actor;
+  using vm::actor::kVerifiedRegistryAddress;
+  using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
 
-  struct Node_client_grantDatacap {
+  StoragePower checkNotary(const std::shared_ptr<FullNodeApi> &api,
+                           const Address &vaddr) {
+    const Address vid =
+        cliTry(api->StateLookupID(vaddr, TipsetKey()),
+               "Getting IPLD id of data associated with provided address...");
+    const Actor actor =
+        cliTry(api->StateGetActor(kVerifiedRegistryAddress, TipsetKey()),
+               "Getting VerifierActor");
+    const auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
+    const NetworkVersion version = cliTry(api->StateNetworkVersion(TipsetKey()),
+                                          "Getting Chain Version...");
+    ipfs->actor_version = actorVersion(version);
+    const VerifiedRegistryActorStatePtr state =
+        cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
+
+    return cliTry(cliTry(state->getVerifierDataCap(vid)),
+                  "Client {} isn't in notary tables",
+                  vaddr);
+  }
+
+  struct Node_filplus_grantDatacap {
     struct Args {
       CLI_OPTIONAL("from",
                    "specifies the address of notary to send message from",
@@ -28,18 +52,18 @@ namespace fc::cli::cli_node {
       const Node::Api api{argm};
 
       const Address target{cliArgv<Address>(argv, 0, "target address")};
-      const TokenAmount allowness{cliArgv<TokenAmount>(argv, 1, "amount")};
+      const TokenAmount allowance{cliArgv<TokenAmount>(argv, 1, "amount")};
 
       const StoragePower data_cap = checkNotary(api.api, *args.from);
-      if (data_cap < allowness)
+      if (data_cap < allowance)
         throw CliError(
             "cannot allow more allowance than notary data cap: {} < {}",
             data_cap,
-            allowness);
+            allowance);
 
       auto encoded_params = cliTry(codec::cbor::encode(
           vm::actor::builtin::v0::verified_registry::AddVerifiedClient::Params{
-              target, allowness}));
+              target, allowance}));
       SignedMessage signed_message = cliTry(api->MpoolPushMessage(
           {kVerifiedRegistryAddress,
            *args.from,
@@ -61,7 +85,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_client_listNotaries : Empty {
+  struct Node_filplus_listNotaries : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
 
@@ -85,7 +109,7 @@ namespace fc::cli::cli_node {
   };
 
   // Only for local networks, wont work in main-net
-  struct Node_client_addVerifier {
+  struct Node_filplus_addVerifier {
     struct Args {
       CLI_OPTIONAL("from",
                    "specifies the address of notary to send message from",
@@ -138,7 +162,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_client_checkClientDataCap : Empty {
+  struct Node_filplus_checkClientDataCap : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
 
@@ -154,7 +178,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_client_listClients : Empty {
+  struct Node_filplus_listClients : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
 
@@ -176,7 +200,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_client_checkNotaryDataCap : Empty {
+  struct Node_filplus_checkNotaryDataCap : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
 

@@ -51,36 +51,12 @@ namespace fc::cli::cli_node {
   using primitives::address::Address;
   using primitives::piece::UnpaddedPieceSize;
   using proofs::padPiece;
-  using storage::ipfs::ApiIpfsDatastore;
-  using vm::actor::Actor;
-  using vm::actor::kVerifiedRegistryAddress;
-  using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
 
   static const ChainEpoch kLookBack = 100 * kEpochsInDay;
   static const auto dealDurationBounds =
       vm::actor::builtin::types::market::dealDurationBounds(
           primitives::piece::PaddedPieceSize());
   static const AttoFil kDefaultMaxRetrievePrice{.fil = 0};
-
-  StoragePower checkNotary(const std::shared_ptr<FullNodeApi> &api,
-                           const Address &vaddr) {
-    const Address vid =
-        cliTry(api->StateLookupID(vaddr, TipsetKey()),
-               "Getting IPLD id of data associated with provided address...");
-    const Actor actor =
-        cliTry(api->StateGetActor(kVerifiedRegistryAddress, TipsetKey()),
-               "Getting VerifierActor");
-    const auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
-    const NetworkVersion version = cliTry(api->StateNetworkVersion(TipsetKey()),
-                                          "Getting Chain Version...");
-    ipfs->actor_version = actorVersion(version);
-    const VerifiedRegistryActorStatePtr state =
-        cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
-
-    return cliTry(cliTry(state->getVerifierDataCap(vid)),
-                  "Client {} isn't in notary tables",
-                  vaddr);
-  }
 
   struct Node_client_retrieve {
     struct Args {
@@ -366,22 +342,22 @@ namespace fc::cli::cli_node {
   struct Node_client_generateCar : Empty {
     using Path = boost::filesystem::path;
     CLI_RUN() {
-      const Path path_to{cliArgv<Path>(argv, 0, "input-path")};
+      const Path path_in{cliArgv<Path>(argv, 0, "input-path")};
       const Path path_out{cliArgv<Path>(argv, 1, "output-path")};
 
-      if (not boost::filesystem::exists(path_to)) {
+      if (not boost::filesystem::exists(path_in)) {
         throw CliError("Input file does not exist.\n");
       }
-      if (not boost::filesystem::is_regular_file(path_to)){
+      if (not boost::filesystem::is_regular_file(path_in)){
         throw CliError("Provided path does not leads to regular file.\n");
       }
 
-      const std::string tmp_path = path_to.string() + ".unixfs-tmp.car";
+      const std::string tmp_path = path_in.string() + ".unixfs-tmp.car";
       auto ipld = cliTry(MemoryIndexedCar::make(tmp_path, true),
                          "Creting IPLD instance of {}",
                          tmp_path);
 
-      std::ifstream file{path_to.string()};
+      std::ifstream file{path_in.string()};
       const CID root = cliTry(wrapFile(*ipld, file));
       cliTry(::fc::storage::car::makeSelectiveCar(
           *ipld, {{root, {}}}, path_out.string()));
