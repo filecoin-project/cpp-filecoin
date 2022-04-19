@@ -6,10 +6,10 @@
 #include <boost/beast/http.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include "primitives/jwt/jwt.hpp"
 
 #include "common/uri_parser/uri_parser.hpp"
 #include "drand/impl/http.cpp"
+#include "primitives/jwt/jwt.hpp"
 #include "primitives/piece/piece_data.hpp"
 #include "sector_storage/impl/remote_worker.hpp"
 
@@ -60,7 +60,8 @@ namespace fc::sector_storage {
 
   outcome::result<std::set<primitives::TaskType>>
   RemoteWorker::getSupportedTask() {
-    return api_.TaskTypes();
+    OUTCOME_TRY(supported_types, api_.TaskTypes());
+    return std::move(supported_types);
   }
 
   outcome::result<std::vector<primitives::StoragePath>>
@@ -219,6 +220,11 @@ namespace fc::sector_storage {
       const Update1Output &update_1_output) {
     return api_.ProveReplicaUpdate2(
         sector, sector_key, new_sealed, new_unsealed, update_1_output);
+  }
+
+  outcome::result<CallId> RemoteWorker::finalizeReplicaUpdate(
+      const SectorRef &sector, std::vector<Range> keep_unsealed) {
+    return api_.FinalizeReplicaUpdate(sector, keep_unsealed);
   }
 
   outcome::result<CallId> RemoteWorker::moveStorage(const SectorRef &sector,

@@ -74,6 +74,8 @@ namespace fc::mining::checks {
     kInvalidProof,
     kCommitWaitFail,
     kMinerVersion,
+    kBadUpdateReplica,
+    kBadUpdateProof,
   };
 
 }  // namespace fc::mining::checks

@@ -7,11 +7,13 @@
 
 #include "api/utils.hpp"
 #include "api/version.hpp"
+#include "codec/json/basic_coding.hpp"
 #include "common/outcome.hpp"
 #include "primitives/jwt/jwt.hpp"
 #include "sector_storage/worker.hpp"
 
 namespace fc::api {
+  using codec::json::CodecSetAsMap;
   using primitives::jwt::kAdminPermission;
   using primitives::piece::MetaPieceData;
   using primitives::piece::PieceInfo;
@@ -74,6 +76,11 @@ namespace fc::api {
                const CID &,
                const CID &,
                const Update1Output &)
+    API_METHOD(FinalizeReplicaUpdate,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               const std::vector<Range> &)
 
     API_METHOD(Info, kAdminPermission, primitives::WorkerInfo)
 
@@ -115,7 +122,7 @@ namespace fc::api {
 
     API_METHOD(StorageAddLocal, kAdminPermission, void, const std::string &)
 
-    API_METHOD(TaskTypes, kAdminPermission, std::set<primitives::TaskType>)
+    API_METHOD(TaskTypes, kAdminPermission, CodecSetAsMap<primitives::TaskType>)
 
     API_METHOD(UnsealPiece,
                kAdminPermission,
@@ -137,6 +144,7 @@ namespace fc::api {
     f(a.ReplicaUpdate);
     f(a.ProveReplicaUpdate1);
     f(a.ProveReplicaUpdate2);
+    f(a.FinalizeReplicaUpdate);
     f(a.Info);
     f(a.MoveStorage);
     f(a.Paths);
