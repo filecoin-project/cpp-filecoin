@@ -39,6 +39,33 @@ namespace fc::cli::cli_node {
                    "array of cids)",
                    std::string);
 
+  TipsetCPtr loadTipset(const Node::Api &api,
+                        const boost::optional<std::string> &tipset_key_str) {
+    if (not tipset_key_str) {
+      return cliTry(api->ChainHead());
+    }
+    if (tipset_key_str.value()[0] == '@') {
+      if (tipset_key_str.value() == "@head") {
+        return cliTry(api->ChainHead());
+      }
+
+      return cliTry(api->ChainGetTipSetByHeight(
+          std::stoi(tipset_key_str.value().substr(1, std::string::npos)), {}));
+    }
+    std::vector<std::string> string_cids;
+    boost::split(string_cids, tipset_key_str.value(), boost::is_any_of(","));
+
+    std::vector<CID> cids(string_cids.size());
+    std::transform(string_cids.begin(),
+                   string_cids.end(),
+                   cids.begin(),
+                   [](const std::string &string_cid) {
+                     return CID::fromString(string_cid).value();
+                   });
+
+    return cliTry(api->ChainGetTipSet(TipsetKey::make(cids).value()));
+  }
+
   std::string epochTime(ChainEpoch current, ChainEpoch start) {
     if (current > start)
       return fmt::format("{} ({} ago)",
@@ -73,11 +100,13 @@ namespace fc::cli::cli_node {
       fmt::print("Message was replaced: {}\n", message_wait.message);
     }
 
-    //    fmt::print("Executed in tipset: {}\n",
-    //    fmt::join(message_wait.tipset.cids(), ", ")); // TODO error
+    fmt::print("Executed in tipset: ");
+    for (const auto &cbCid : message_wait.tipset.cids()) {
+      fmt::print("{},", CID(cbCid).toString().value());
+    }
     fmt::print("Exit Code: {}\n", message_wait.receipt.exit_code);
     fmt::print("Gas Used: {}\n", message_wait.receipt.gas_used);
-    //    fmt::print("Return: {}\n\n", message_wait.receipt.return_value); //
+    //    fmt::print("Return: {}\n\n", message_wait.receipt.return_value); // TODO
     //    TODO ERROR becase encode value? or just print bytes
     printReceiptReturn(api, message, message_wait.receipt);
   }
@@ -339,33 +368,6 @@ namespace fc::cli::cli_node {
     }
   };
 
-  TipsetCPtr loadTipset(const Node::Api &api,
-                        const boost::optional<std::string> &tipset_key_str) {
-    if (not tipset_key_str) {
-      return cliTry(api->ChainHead());
-    }
-    if (tipset_key_str.value()[0] == '@') {
-      if (tipset_key_str.value() == "@head") {
-        return cliTry(api->ChainHead());
-      }
-
-      return cliTry(api->ChainGetTipSetByHeight(
-          std::stoi(tipset_key_str.value().substr(1, std::string::npos)), {}));
-    }
-    std::vector<std::string> string_cids;
-    boost::split(string_cids, tipset_key_str.value(), boost::is_any_of(","));
-
-    std::vector<CID> cids(string_cids.size());
-    std::transform(string_cids.begin(),
-                   string_cids.end(),
-                   cids.begin(),
-                   [](const std::string &string_cid) {
-                     return CID::fromString(string_cid).value();
-                   });
-
-    return cliTry(api->ChainGetTipSet(TipsetKey::make(cids).value()));
-  }
-
   struct Node_developer_networkVersion : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
@@ -445,7 +447,11 @@ namespace fc::cli::cli_node {
   struct Node_developer_call {
     struct Args {
       tipset_template tipset;
-      CLI_DEFAULT("from", "Address from", Address, {/*TODO ???*/}) from;
+      CLI_DEFAULT("from",
+                  "Address from",
+                  Address,
+                  {vm::actor::kSystemActorAddress})
+      from;
       CLI_DEFAULT("value",
                   "specify value field for invocation",
                   int,
@@ -699,13 +705,30 @@ namespace fc::cli::cli_node {
 
   struct Node_developer_listMiners {
     struct Args {
+      tipset_template tipset;
+      CLI_DEFAULT("sort-by", "criteria to sort miners by (none{default}, num-deals)", std::string, {"none"}) sort_by;
       CLI_OPTS() {
         Opts opts;
+        tipset(opts);
+        sort_by(opts);
         return opts;
       }
     };
 
-    CLI_RUN() {}
+    CLI_RUN() {
+      const Node::Api api{argm};
+      const TipsetCPtr tipset = loadTipset(api, args.tipset.v);
+
+      const std::vector<Address> miners = cliTry(api->StateListMiners(tipset->key));
+
+      if (*args.sort_by == "num-deals") {
+        // TODO make sort
+      } else if (*args.sort_by != "none"){
+        throw CliError("unrecognized sorting order: {}\n", *args.sort_by);
+      }
+
+      fmt::print("{}\n", fmt::join(miners, "\n"));
+    }
   };
 
   struct Node_developer_getDeal : Empty {
