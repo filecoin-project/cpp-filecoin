@@ -5,11 +5,11 @@
 
 #pragma once
 
+#include <boost/algorithm/string.hpp>
 #include "api/full_node/node_api.hpp"
 #include "cli/node/node.hpp"
 #include "cli/validate/address.hpp"
 #include "cli/validate/cid.hpp"
-#include <boost/algorithm/string.hpp>
 
 namespace fc::cli::cli_node {
   using api::BlockMessages;
@@ -32,6 +32,12 @@ namespace fc::cli::cli_node {
   using base64 = cppcodec::base64_rfc4648;
   using common::unhex;
   using primitives::DealId;
+
+  using tipset_template =
+      CLI_OPTIONAL("tipset,t",
+                   "specify tipset to call method on (pass comma separated "
+                   "array of cids)",
+                   std::string);
 
   std::string epochTime(ChainEpoch current, ChainEpoch start) {
     if (current > start)
@@ -125,8 +131,9 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_sub {
+  struct Node_developer_sub : Empty {
     // TODO: Implement it
+    CLI_RUN() {}
   };
 
   struct Node_developer_find {
@@ -171,7 +178,7 @@ namespace fc::cli::cli_node {
       CLI_OPTIONAL(
           "perm",
           "permission to assign to the token, one of: read, write, sign, admin",
-          std::string_view)
+          std::string)
       perm;
       // TODO: Permission decode;
       CLI_OPTS() {
@@ -186,8 +193,9 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_apiInfo {
+  struct Node_developer_apiInfo : Empty {
     // TODO: develop
+    CLI_RUN() {}
   };
 
   struct Node_developer_head : Empty {
@@ -238,7 +246,7 @@ namespace fc::cli::cli_node {
       auto object_cid{cliArgv<CID>(argv, 0, "object CID")};
       Node::Api api{argm};
       Bytes object = cliTry(api->ChainReadObj(object_cid));
-      fmt::print("{}", object);
+      fmt::print("{}\n", common::hex_lower(object));
     }
   };
 
@@ -257,12 +265,14 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_get {
+  struct Node_developer_get : Empty {
     // TODO: develop
+    CLI_RUN() {}
   };
 
-  struct Node_developer_slashConsensus {
+  struct Node_developer_slashConsensus : Empty {
     // TODO: develop
+    CLI_RUN() {}
   };
 
   struct Node_developer_estimateGasPrices : Empty {
@@ -297,7 +307,7 @@ namespace fc::cli::cli_node {
       for (const auto &controlAddress : miner_info.control) {
         fmt::print("Control: \t{}\n", fmt::to_string(controlAddress));
       }
-      fmt::print("PeerID: \t{}\n", miner_info.peer_id);
+      fmt::print("PeerID: \t{}\n", common::hex_lower(miner_info.peer_id));
       fmt::print("MultiAddresses:\t");
       for (const auto &multiaddr : miner_info.multiaddrs) {
         fmt::print("{} ", fmt::to_string(multiaddr));
@@ -355,12 +365,6 @@ namespace fc::cli::cli_node {
 
     return cliTry(api->ChainGetTipSet(TipsetKey::make(cids).value()));
   }
-
-  using tipset_template =
-      CLI_OPTIONAL("tipset,t",
-                   "specify tipset to call method on (pass comma separated "
-                   "array of cids)",
-                   std::string);
 
   struct Node_developer_networkVersion : Empty {
     CLI_RUN() {
