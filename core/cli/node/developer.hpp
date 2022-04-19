@@ -9,7 +9,7 @@
 #include "cli/node/node.hpp"
 #include "cli/validate/address.hpp"
 #include "cli/validate/cid.hpp"
-#include "cli/validate/tipset.hpp"
+#include <boost/algorithm/string.hpp>
 
 namespace fc::cli::cli_node {
   using api::BlockMessages;
@@ -195,8 +195,9 @@ namespace fc::cli::cli_node {
       Node::Api api{argm};
       auto head = cliTry(api->ChainHead());
       for (const auto &cid : head->key.cids()) {
-        fmt::print(fmt::to_string(cid));
+        fmt::print("{},", CID(cid).toString().value());
       }
+      fmt::print("\n");
     }
   };
 
@@ -329,18 +330,37 @@ namespace fc::cli::cli_node {
   };
 
   TipsetCPtr loadTipset(const Node::Api &api,
-                        const boost::optional<Tipset> &tipset) {
-    if (not tipset) {
+                        const boost::optional<std::string> &tipset_key_str) {
+    if (not tipset_key_str) {
       return cliTry(api->ChainHead());
     }
-    // parse
+    if (tipset_key_str.value()[0] == '@') {
+      if (tipset_key_str.value() == "@head") {
+        return cliTry(api->ChainHead());
+      }
+
+      return cliTry(api->ChainGetTipSetByHeight(
+          std::stoi(tipset_key_str.value().substr(1, std::string::npos)), {}));
+    }
+    std::vector<std::string> string_cids;
+    boost::split(string_cids, tipset_key_str.value(), boost::is_any_of(","));
+
+    std::vector<CID> cids(string_cids.size());
+    std::transform(string_cids.begin(),
+                   string_cids.end(),
+                   cids.begin(),
+                   [](const std::string &string_cid) {
+                     return CID::fromString(string_cid).value();
+                   });
+
+    return cliTry(api->ChainGetTipSet(TipsetKey::make(cids).value()));
   }
 
   using tipset_template =
       CLI_OPTIONAL("tipset,t",
                    "specify tipset to call method on (pass comma separated "
                    "array of cids)",
-                   Tipset);
+                   std::string);
 
   struct Node_developer_networkVersion : Empty {
     CLI_RUN() {
@@ -590,11 +610,7 @@ namespace fc::cli::cli_node {
 
   struct Node_developer_lookup {
     struct Args {
-      CLI_OPTIONAL("tipset,t",
-                   "specify tipset to call method on (pass comma separated "
-                   "array of cids)",
-                   Tipset)
-      tipset;
+      tipset_template tipset;
       CLI_BOOL("reverse,r", "Perform reverse lookup") reverse;
 
       CLI_OPTS() {
