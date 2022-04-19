@@ -372,6 +372,9 @@ namespace fc::cli::cli_node {
       if (not boost::filesystem::exists(path_to)) {
         throw CliError("Input file does not exist.\n");
       }
+      if (not boost::filesystem::is_regular_file(path_to)){
+        throw CliError("Provided path does not leads to regular file.\n");
+      }
 
       const std::string tmp_path = path_to.string() + ".unixfs-tmp.car";
       auto ipld = cliTry(MemoryIndexedCar::make(tmp_path, true),
