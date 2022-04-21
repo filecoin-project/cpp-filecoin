@@ -428,12 +428,10 @@ namespace fc {
         local_store, std::move(auth_headers))};
 
     IoThread io_thread2;
+    // TODO(ortoymka): Use scheduler with estimator, when it will done
     OUTCOME_TRY(wscheduler,
                 sector_storage::SchedulerImpl::newScheduler(
-                    io_thread2.io,
-                    prefixed("scheduler_works/"),
-                    std::make_shared<sector_storage::EstimatorImpl>(
-                        config.estimator_window)));
+                    io_thread2.io, prefixed("scheduler_works/")));
 
     IoThread io_thread3;
 
