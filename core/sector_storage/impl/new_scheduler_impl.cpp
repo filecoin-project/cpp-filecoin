@@ -14,20 +14,21 @@ namespace fc::sector_storage {
   using primitives::Resources;
   using primitives::WorkerResources;
 
-  outcome::result<std::shared_ptr<NewSchedulerImpl>> NewSchedulerImpl::newScheduler(
+  outcome::result<std::shared_ptr<EstimateSchedulerImpl>>
+  EstimateSchedulerImpl::newScheduler(
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<BufferMap> datastore,
       std::shared_ptr<Estimator> estimator) {
-    struct make_unique_enabler : public NewSchedulerImpl {
+    struct make_unique_enabler : public EstimateSchedulerImpl {
       make_unique_enabler(std::shared_ptr<boost::asio::io_context> io_context,
                           std::shared_ptr<BufferMap> datastore,
                           std::shared_ptr<Estimator> estimator)
-          : NewSchedulerImpl{std::move(io_context),
+          : EstimateSchedulerImpl{std::move(io_context),
                           std::move(datastore),
                           std::move(estimator)} {};
     };
 
-    std::shared_ptr<NewSchedulerImpl> scheduler =
+    std::shared_ptr<EstimateSchedulerImpl> scheduler =
         std::make_shared<make_unique_enabler>(
             std::move(io_context), std::move(datastore), std::move(estimator));
 
@@ -36,7 +37,7 @@ namespace fc::sector_storage {
     return scheduler;
   }
 
-  NewSchedulerImpl::NewSchedulerImpl(
+  EstimateSchedulerImpl::EstimateSchedulerImpl(
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<BufferMap> datastore,
       std::shared_ptr<Estimator> estimator)
@@ -47,7 +48,7 @@ namespace fc::sector_storage {
         logger_(common::createLogger("scheduler")) {}
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-  outcome::result<void> NewSchedulerImpl::schedule(
+  outcome::result<void> EstimateSchedulerImpl::schedule(
       const primitives::sector::SectorRef &sector,
       const primitives::TaskType &task_type,
       const std::shared_ptr<WorkerSelector> &selector,
@@ -144,7 +145,7 @@ namespace fc::sector_storage {
     return outcome::success();
   }
 
-  void NewSchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
+  void EstimateSchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
     std::unique_lock<std::mutex> lock(workers_lock_);
     if (current_worker_id_ == std::numeric_limits<uint64_t>::max()) {
       current_worker_id_ = 0;  // TODO(ortyomka): maybe better mechanism
@@ -156,7 +157,7 @@ namespace fc::sector_storage {
     freeWorker(wid);
   }
 
-  outcome::result<bool> NewSchedulerImpl::maybeScheduleRequest(
+  outcome::result<bool> EstimateSchedulerImpl::maybeScheduleRequest(
       const std::shared_ptr<NewTaskRequest> &request) {
     std::lock_guard<std::mutex> lock(workers_lock_);
 
@@ -239,7 +240,7 @@ namespace fc::sector_storage {
     return false;
   }
 
-  void NewSchedulerImpl::assignWorker(
+  void EstimateSchedulerImpl::assignWorker(
       WorkerId wid,
       const std::shared_ptr<WorkerHandle> &worker,
       const std::shared_ptr<NewTaskRequest> &request) {
@@ -323,7 +324,7 @@ namespace fc::sector_storage {
     });
   }
 
-  void NewSchedulerImpl::freeWorker(WorkerId wid) {
+  void EstimateSchedulerImpl::freeWorker(WorkerId wid) {
     std::shared_ptr<WorkerHandle> worker;
     {
       std::lock_guard<std::mutex> lock(workers_lock_);
@@ -359,7 +360,7 @@ namespace fc::sector_storage {
     }
   }
 
-  outcome::result<void> NewSchedulerImpl::returnResult(const CallId &call_id,
+  outcome::result<void> EstimateSchedulerImpl::returnResult(const CallId &call_id,
                                                     CallResult result) {
     std::unique_lock lock(cbs_lock_);
 
@@ -379,7 +380,7 @@ namespace fc::sector_storage {
     return outcome::success();
   }
 
-  outcome::result<void> NewSchedulerImpl::resetWorks() {
+  outcome::result<void> EstimateSchedulerImpl::resetWorks() {
     if (auto it{call_kv_->cursor()}) {
       boost::optional<WorkId> remove_id = boost::none;  // to not broke iterator
       for (it->seekToFirst(); it->isValid(); it->next()) {

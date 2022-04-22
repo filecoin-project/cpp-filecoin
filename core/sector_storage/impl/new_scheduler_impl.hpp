@@ -22,12 +22,12 @@ namespace fc::sector_storage {
 
   struct NewTaskRequest {
     inline NewTaskRequest(const SectorRef &sector,
-                       const TaskType &task_type,
-                       uint64_t priority,
-                       std::shared_ptr<WorkerSelector> sel,
-                       WorkerAction prepare,
-                       WorkerAction work,
-                       ReturnCb cb)
+                          const TaskType &task_type,
+                          uint64_t priority,
+                          std::shared_ptr<WorkerSelector> sel,
+                          WorkerAction prepare,
+                          WorkerAction work,
+                          ReturnCb cb)
         : sector(sector),
           task_type(task_type),
           priority(priority),
@@ -61,9 +61,12 @@ namespace fc::sector_storage {
            < std::tie(lhs.priority, rhs.task_type, rhs.sector.id.sector);
   }
 
-  class NewSchedulerImpl : public Scheduler {
+  /**
+   * It is an improved scheduler with estimator
+   */
+  class EstimateSchedulerImpl : public Scheduler {
    public:
-    static outcome::result<std::shared_ptr<NewSchedulerImpl>> newScheduler(
+    static outcome::result<std::shared_ptr<EstimateSchedulerImpl>> newScheduler(
         std::shared_ptr<boost::asio::io_context> io_context,
         std::shared_ptr<BufferMap> datastore,
         std::shared_ptr<Estimator> estimator);
@@ -84,9 +87,10 @@ namespace fc::sector_storage {
                                        CallResult result) override;
 
    private:
-    explicit NewSchedulerImpl(std::shared_ptr<boost::asio::io_context> io_context,
-                           std::shared_ptr<BufferMap> datastore,
-                           std::shared_ptr<Estimator> estimator);
+    explicit EstimateSchedulerImpl(
+        std::shared_ptr<boost::asio::io_context> io_context,
+        std::shared_ptr<BufferMap> datastore,
+        std::shared_ptr<Estimator> estimator);
 
     outcome::result<void> resetWorks();
 

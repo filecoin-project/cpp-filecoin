@@ -501,8 +501,7 @@ namespace fc::sector_storage {
 
       estimator_ = std::make_shared<EstimatorMock>();
 
-      EXPECT_OUTCOME_TRUE(scheduler,
-                          NewSchedulerImpl::newScheduler(io_, kv_, estimator_));
+      EXPECT_OUTCOME_TRUE(scheduler, EstimateSchedulerImpl::newScheduler(io_, kv_, estimator_));
 
       scheduler_ = scheduler;
 
