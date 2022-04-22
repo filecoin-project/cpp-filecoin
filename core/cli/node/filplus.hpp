@@ -8,12 +8,12 @@
 
 namespace fc::cli::cli_node {
   using api::MsgWait;
-  using vm::VMExitCode;
-  using vm::message::SignedMessage;
   using storage::ipfs::ApiIpfsDatastore;
+  using vm::VMExitCode;
   using vm::actor::Actor;
   using vm::actor::kVerifiedRegistryAddress;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
+  using vm::message::SignedMessage;
 
   StoragePower checkNotary(const std::shared_ptr<FullNodeApi> &api,
                            const Address &vaddr) {
@@ -111,8 +111,8 @@ namespace fc::cli::cli_node {
   // Only for local networks, wont work in main-net
   struct Node_filplus_addVerifier {
     struct Args {
-      CLI_OPTIONAL("from",
-                   "specifies the address of notary to send message from",
+      CLI_OPTIONAL("verifier",
+                   "address for verifier",
                    Address)
       from;
       CLI_OPTS() {
@@ -134,14 +134,6 @@ namespace fc::cli::cli_node {
 
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
-
-      SignedMessage signed_message0 = cliTry(api->MpoolPushMessage(
-          vm::message::UnsignedMessage(
-              kVerifiedRegistryAddress, state->root_key, 0, 0, 0, 0, 0, {}),
-          boost::none));
-      const MsgWait message_wait0 =
-          cliTry(api->StateWaitMsg(signed_message0.getCid(), 1, 10, false),
-                 "Wait message");
 
       auto encoded_params1 = cliTry(codec::cbor::encode(
           vm::actor::builtin::v0::verified_registry::AddVerifier::Params{

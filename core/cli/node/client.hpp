@@ -52,7 +52,7 @@ namespace fc::cli::cli_node {
   using primitives::piece::UnpaddedPieceSize;
   using proofs::padPiece;
 
-  static const ChainEpoch kLookBack = 100 * kEpochsInDay;
+  static const ChainEpoch kLookBack = 100;
   static const auto dealDurationBounds =
       vm::actor::builtin::types::market::dealDurationBounds(
           primitives::piece::PaddedPieceSize());
@@ -188,7 +188,7 @@ namespace fc::cli::cli_node {
                 (args.from ? *args.from
                            : cliTry(api->WalletDefaultAddress(),
                                     "Getting address of default wallet...")),
-            .miner = (args.provider ? *args.provider : fin_offer.miner),
+            .miner = fin_offer.miner,
 
             .peer = fin_offer.peer,
         };
