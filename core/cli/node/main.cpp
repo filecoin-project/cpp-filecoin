@@ -55,22 +55,30 @@ namespace fc::cli::cli_node {
               CMD("add", Node_wallet_market_add),
           })},
       })},
-      {GROUP("developer")({
+      {GROUP("mpool")({
           CMD("pending", Node_developer_pending),
           CMD("subscribe", Node_developer_sub),
           CMD("find", Node_developer_find),
+      })},
+      {GROUP("auth")({
           CMD("create-token", Node_developer_createToken),
           CMD("api-info", Node_developer_apiInfo),
+      })},
+      {GROUP("chain")({
           CMD("head", Node_developer_head),
           CMD("get-block", Node_developer_getBlock),
           CMD("read-object", Node_developer_readObject),
           CMD("get-message", Node_developer_getMessage),
           CMD("get", Node_developer_get),
           CMD("slash-consensus", Node_developer_slashConsensus),
-          CMD("estimate-gas", Node_developer_estimateGasPrices),
+          CMD("gas-price", Node_developer_estimateGasPrices),
+      })},
+      {GROUP("state")({
           CMD("miner-info", Node_developer_stateMinerInfo),
           CMD("network-version", Node_developer_networkVersion),
-          CMD("balance", Node_developer_balance),
+          {GROUP("market")({
+              CMD("balance", Node_developer_balance),
+          })},
           CMD("sector", Node_developer_sector),
           CMD("call", Node_developer_call),
           CMD("search-msg", Node_developer_searchMsg),
@@ -80,6 +88,7 @@ namespace fc::cli::cli_node {
           CMD("get-actor", Node_developer_getActor),
           CMD("list-actors", Node_developer_listActors),
           CMD("list-miners", Node_developer_listMiners),
+          CMD("get-deal", Node_developer_getDeal),
           CMD("active-sectors", Node_developer_activeSectors),
           CMD("sectors", Node_developer_sectors),
           CMD("power", Node_developer_power),
