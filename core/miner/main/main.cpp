@@ -45,7 +45,6 @@
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
-#include "sector_storage/impl/worker_estimator_impl.hpp"
 #include "sector_storage/stores/impl/index_impl.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/impl/remote_store.hpp"
@@ -96,7 +95,6 @@ namespace fc {
     boost::optional<RegisteredSealProof> seal_type;
     std::vector<Address> precommit_control;
     int api_port{};
-    uint64_t estimator_window{};
 
     /** Path to presealed sectors */
     boost::optional<boost::filesystem::path> preseal_path;
@@ -158,8 +156,6 @@ namespace fc {
     option("owner", po::value(&config.owner));
     option("worker", po::value(&config.worker));
     option("sector-size", po::value(&raw.sector_size));
-    option("estimator-window",
-           po::value(&config.estimator_window)->default_value(10));
     option("precommit-control", po::value(&config.precommit_control));
     option("pre-sealed-sectors",
            po::value(&config.preseal_path),
@@ -428,12 +424,10 @@ namespace fc {
         local_store, std::move(auth_headers))};
 
     IoThread io_thread2;
+    // TODO(ortoymka): Use scheduler with estimator, when it will done
     OUTCOME_TRY(wscheduler,
                 sector_storage::SchedulerImpl::newScheduler(
-                    io_thread2.io,
-                    prefixed("scheduler_works/"),
-                    std::make_shared<sector_storage::EstimatorImpl>(
-                        config.estimator_window)));
+                    io_thread2.io, prefixed("scheduler_works/")));
 
     IoThread io_thread3;
 
