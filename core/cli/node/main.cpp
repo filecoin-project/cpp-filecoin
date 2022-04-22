@@ -7,34 +7,34 @@
 #include "cli/node/wallet.hpp"
 #include "cli/run.hpp"
 
-#define CMD(NAME, TYPE) \
-  { NAME, tree<TYPE>() }
-#define CMDS(NAME, TYPE) NAME, tree<TYPE>
-#define GROUP(NAME) CMDS(NAME, Group)
+#define CMD(NAME, TYPE, DESCRIPTION) \
+  { NAME, tree<TYPE>(UnionCli(DESCRIPTION)) }
+#define CMDS(NAME, TYPE, DESCRIPTION) NAME, tree<TYPE>(UnionCli(DESCRIPTION,
+#define GROUP(NAME, DESCRIPTION) CMDS(NAME, Group, DESCRIPTION)
 
 namespace fc::cli::cli_node {
   const auto _tree{tree<Node>({
-      {GROUP("net")({
-          CMD("connect", Node_net_connect),
-          CMD("listen", Node_net_listen),
-          CMD("peers", Node_net_peers),
-      })},
-      {GROUP("wallet")({
-          CMD("new", Node_wallet_new),
-          CMD("list", Node_wallet_list),
-          CMD("add-balance", Node_wallet_addBalance),
-          CMD("balance", Node_wallet_balance),
-          CMD("default", Node_wallet_default),
-          CMD("set-default", Node_wallet_setDefault),
-          CMD("import", Node_wallet_import),
-          CMD("sign", Node_wallet_sign),
-          CMD("verify", Node_wallet_verify),
-          CMD("delete", Node_wallet_delete),
-          {GROUP("market")({
-              CMD("add", Node_wallet_market_add),
-          })},
-      })},
-      CMD("version", Node_version),
+      {GROUP("net", "Description net"){
+          CMD("connect", Node_net_connect, "Description connect"),
+          CMD("listen", Node_net_listen, ""),
+          CMD("peers", Node_net_peers, ""),
+      }))},
+      {GROUP("wallet", "Description wallet"){
+          CMD("new", Node_wallet_new, ""),
+          CMD("list", Node_wallet_list, ""),
+          CMD("add-balance", Node_wallet_addBalance, ""),
+          CMD("balance", Node_wallet_balance, ""),
+          CMD("default", Node_wallet_default, ""),
+          CMD("set-default", Node_wallet_setDefault, ""),
+          CMD("import", Node_wallet_import, ""),
+          CMD("sign", Node_wallet_sign, ""),
+          CMD("verify", Node_wallet_verify, ""),
+          CMD("delete", Node_wallet_delete, ""),
+          {GROUP("market", "Description market"){
+              CMD("add", Node_wallet_market_add, ""),
+          }))},
+      }))},
+      CMD("version", Node_version, ""),
   })};
 
 }  // namespace fc::cli::cli_node

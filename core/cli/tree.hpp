@@ -6,6 +6,7 @@
 #pragma once
 
 #include "cli/cli.hpp"
+#include <string>
 
 namespace fc::cli {
   struct Tree {
@@ -17,10 +18,36 @@ namespace fc::cli {
     std::function<Args()> args;
     std::function<RunResult(ArgsMap &argm, Argv &&argv)> run;
     Sub sub;
+    std::string description;
   };
+
+  struct UnionCli {
+    std::string description;
+    Tree::Sub sub = {};
+
+    UnionCli(std::string description) : description(std::move(description)) {}
+
+    UnionCli(std::map<std::string, Tree> sub) : sub(std::move(sub)) {}
+
+    UnionCli(std::string description, const std::initializer_list<std::pair<std::string, Tree>>& sub) : description(std::move(description)) {
+      for(const auto& order : sub) {
+        this->sub[order.first] = order.second;
+      }
+    }
+
+    UnionCli() = default;
+
+    UnionCli(const std::initializer_list<std::pair<std::string, Tree>>& sub) {
+      for(const auto& order : sub) {
+        this->sub[order.first] = order.second;
+      }
+    }
+  };
+
   template <typename Cmd>
-  Tree tree(Tree::Sub sub = {}) {
+  Tree tree(UnionCli dos) {
     Tree t;
+    t.description = std::move(dos.description);
     t.args = [] {
       const auto ptr{std::make_shared<typename Cmd::Args>()};
       return Tree::Args{{typeid(typename Cmd::Args), ptr}, ptr->opts()};
@@ -34,7 +61,8 @@ namespace fc::cli {
         }
       };
     }
-    t.sub = std::move(sub);
+    t.sub = std::move(dos.sub);
     return t;
   }
+
 }  // namespace fc::cli
