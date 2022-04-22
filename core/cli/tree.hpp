@@ -19,35 +19,12 @@ namespace fc::cli {
     std::function<RunResult(ArgsMap &argm, Argv &&argv)> run;
     Sub sub;
     std::string description;
-  };
-
-  struct UnionCli {
-    std::string description;
-    Tree::Sub sub = {};
-
-    UnionCli(std::string description) : description(std::move(description)) {}
-
-    UnionCli(std::map<std::string, Tree> sub) : sub(std::move(sub)) {}
-
-    UnionCli(std::string description, const std::initializer_list<std::pair<std::string, Tree>>& sub) : description(std::move(description)) {
-      for(const auto& order : sub) {
-        this->sub[order.first] = order.second;
-      }
-    }
-
-    UnionCli() = default;
-
-    UnionCli(const std::initializer_list<std::pair<std::string, Tree>>& sub) {
-      for(const auto& order : sub) {
-        this->sub[order.first] = order.second;
-      }
-    }
+    std::vector<std::string> argusage;
   };
 
   template <typename Cmd>
-  Tree tree(UnionCli dos) {
+  Tree tree(Tree::Sub dos = {}) {
     Tree t;
-    t.description = std::move(dos.description);
     t.args = [] {
       const auto ptr{std::make_shared<typename Cmd::Args>()};
       return Tree::Args{{typeid(typename Cmd::Args), ptr}, ptr->opts()};
@@ -61,8 +38,16 @@ namespace fc::cli {
         }
       };
     }
-    t.sub = std::move(dos.sub);
+    t.sub = std::move(dos);
     return t;
   }
+  template<class Cmd>
+  auto treeDesc(std::string desc, std::vector<std::string> argusage = {}) {
+    return [=](Tree::Sub sub = {}) {
+      auto t = tree<Cmd>(sub);
+      t.description = desc;
+      t.argusage = argusage;
+      return t;
+    }; }
 
 }  // namespace fc::cli
