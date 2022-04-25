@@ -125,8 +125,8 @@ namespace fc::cli::cli_node {
                   "Add funds to the Storage Market Actor",
                   "amount"),
           })},
-          CMD("version", Node_version, "Api version"),
       })},
+      CMD("version", Node_version, "Api version"),
   })};
 
 }  // namespace fc::cli::cli_node
