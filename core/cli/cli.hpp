@@ -131,7 +131,6 @@ namespace fc::cli {
         return {};
       }
     };
-    std::string description2;
     CLI_NO_RUN();
   };
   using Group = Empty;
