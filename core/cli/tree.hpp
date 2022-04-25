@@ -21,9 +21,8 @@ namespace fc::cli {
     std::string description;
     std::vector<std::string> argusage;
   };
-
   template <typename Cmd>
-  Tree tree(Tree::Sub dos = {}) {
+  Tree tree(Tree::Sub sub = {}) {
     Tree t;
     t.args = [] {
       const auto ptr{std::make_shared<typename Cmd::Args>()};
@@ -38,14 +37,14 @@ namespace fc::cli {
         }
       };
     }
-    t.sub = std::move(dos);
+    t.sub = std::move(sub);
     return t;
   }
   template<class Cmd>
-  auto treeDesc(std::string desc, std::vector<std::string> argusage = {}) {
+  auto treeDesc(std::string description, std::vector<std::string> argusage = {}) {
     return [=](Tree::Sub sub = {}) {
       auto t = tree<Cmd>(sub);
-      t.description = desc;
+      t.description = description;
       t.argusage = argusage;
       return t;
     }; }
