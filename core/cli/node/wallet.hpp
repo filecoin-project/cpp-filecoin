@@ -48,7 +48,7 @@ namespace fc::cli::cli_node {
       const Address address =
           cliTry(api->WalletNew(type), "Creating new wallet...");
 
-      fmt::print("{}", address);
+      fmt::print("{}\n", address);
     }
   };
 
@@ -194,7 +194,7 @@ namespace fc::cli::cli_node {
       const Node::Api api{argm};
       const Address default_address =
           cliTry(api->WalletDefaultAddress(), "Getting default address...");
-      fmt::print("{}", default_address);
+      fmt::print("{}\n", default_address);
     }
   };
 
