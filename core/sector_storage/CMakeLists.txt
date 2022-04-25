@@ -52,6 +52,7 @@ target_link_libraries(estimator
 
 add_library(scheduler
         impl/scheduler_impl.cpp
+        impl/new_scheduler_impl.cpp
         )
 
 target_link_libraries(scheduler

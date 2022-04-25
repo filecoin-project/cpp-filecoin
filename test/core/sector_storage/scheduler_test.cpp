@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "sector_storage/impl/new_scheduler_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
 
 #include <gmock/gmock.h>
@@ -72,13 +73,7 @@ namespace fc::sector_storage {
           kv_->put(static_cast<Bytes>(wid3), std::move(raw3)));
       states_.push_back(ws);
 
-      estimator_ = std::make_shared<EstimatorMock>();
-      EXPECT_CALL(*estimator_, startWork(_, _, _))
-          .WillRepeatedly(testing::Return());
-      EXPECT_CALL(*estimator_, finishWork(_)).WillRepeatedly(testing::Return());
-
-      EXPECT_OUTCOME_TRUE(scheduler,
-                          SchedulerImpl::newScheduler(io_, kv_, estimator_));
+      EXPECT_OUTCOME_TRUE(scheduler, SchedulerImpl::newScheduler(io_, kv_));
 
       scheduler_ = scheduler;
 
@@ -106,7 +101,6 @@ namespace fc::sector_storage {
     RegisteredSealProof seal_proof_type_;
     std::shared_ptr<InMemoryStorage> kv_;
     std::shared_ptr<SelectorMock> selector_;
-    std::shared_ptr<EstimatorMock> estimator_;
     std::shared_ptr<Scheduler> scheduler_;
   };
 
@@ -240,9 +234,6 @@ namespace fc::sector_storage {
             testing::Return(outcome::success(false)));  // Just reverse
 
     scheduler_->newWorker(std::move(worker1));
-
-    EXPECT_CALL(*estimator_, getTime(_, _))
-        .WillRepeatedly(testing::Return(boost::none));
 
     uint64_t counter = 0;
 
@@ -510,8 +501,7 @@ namespace fc::sector_storage {
 
       estimator_ = std::make_shared<EstimatorMock>();
 
-      EXPECT_OUTCOME_TRUE(scheduler,
-                          SchedulerImpl::newScheduler(io_, kv_, estimator_));
+      EXPECT_OUTCOME_TRUE(scheduler, EstimateSchedulerImpl::newScheduler(io_, kv_, estimator_));
 
       scheduler_ = scheduler;
 
