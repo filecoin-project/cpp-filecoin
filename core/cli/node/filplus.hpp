@@ -111,10 +111,13 @@ namespace fc::cli::cli_node {
   // Only for local networks, wont work in main-net
   struct Node_filplus_addVerifier {
     struct Args {
-      CLI_OPTIONAL("verifier",
-                   "address for verifier",
-                   Address)
+      CLI_OPTIONAL("verifier", "address for verifier", Address)
       from;
+      CLI_DEFAULT("amount",
+                  "token amount for verifier (default: 257)",
+                  TokenAmount,
+                  {"257"})
+      amount;
       CLI_OPTS() {
         Opts opts;
         from(opts);
@@ -137,7 +140,8 @@ namespace fc::cli::cli_node {
 
       auto encoded_params1 = cliTry(codec::cbor::encode(
           vm::actor::builtin::v0::verified_registry::AddVerifier::Params{
-              *args.from, TokenAmount("257")}));
+              *args.from, *args.amount
+          }));
       SignedMessage signed_message1 = cliTry(api->MpoolPushMessage(
           {kVerifiedRegistryAddress,
            state->root_key,
