@@ -58,7 +58,7 @@ namespace fc::cli::cli_node {
               "dataCid",
               "miner",
               "price",
-              "duration"),  // TODO (@Markuu-s, @Elestrias) query-ask
+              "duration"),
           CMD("generate-car",
               Node_client_generateCar,
               "Generate a car file from input",
