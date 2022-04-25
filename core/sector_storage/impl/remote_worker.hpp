@@ -66,6 +66,9 @@ namespace fc::sector_storage {
         const CID &new_unsealed,
         const Update1Output &update_1_output) override;
 
+    outcome::result<CallId> finalizeReplicaUpdate(
+        const SectorRef &sector, std::vector<Range> keep_unsealed) override;
+
     outcome::result<fc::sector_storage::CallId> moveStorage(
         const SectorRef &sector, SectorFileType types) override;
 

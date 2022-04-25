@@ -700,102 +700,6 @@ namespace fc::sector_storage {
         work_id));
   }
 
-  void ManagerImpl::finalizeSector(
-      const SectorRef &sector,
-      std::vector<Range> keep_unsealed,
-      const std::function<void(outcome::result<void>)> &cb,
-      uint64_t priority) {
-    OUTCOME_CB(auto lock,
-               index_->storageLock(
-                   sector.id,
-                   SectorFileType::FTNone,
-                   static_cast<SectorFileType>(SectorFileType::FTSealed
-                                               | SectorFileType::FTUnsealed
-                                               | SectorFileType::FTCache)));
-
-    auto unsealed = SectorFileType::FTUnsealed;
-    {
-      OUTCOME_CB(auto unsealed_stores,
-                 index_->storageFindSector(
-                     sector.id, SectorFileType::FTUnsealed, boost::none));
-
-      if (unsealed_stores.empty()) {
-        unsealed = SectorFileType::FTNone;
-      }
-    }
-
-    auto next_cb =
-        [cb,
-         index{index_},
-         unsealed,
-         need_unsealed{not keep_unsealed.empty()},
-         scheduler{scheduler_},
-         sector,
-         lock{std::move(lock)},
-         self{shared_from_this()},
-         priority](const outcome::result<void> &maybe_error) mutable {
-          OUTCOME_CB1(maybe_error);
-
-          auto fetch_selector = std::make_shared<AllocateSelector>(
-              index,
-              static_cast<SectorFileType>(SectorFileType::FTSealed
-                                          | SectorFileType::FTCache),
-              PathType::kStorage);
-
-          const auto moveUnsealed =
-              need_unsealed ? unsealed : SectorFileType::FTNone;
-
-          OUTCOME_CB1(scheduler->schedule(
-              sector,
-              primitives::kTTFetch,
-              fetch_selector,
-              schedFetch(sector,
-                         static_cast<SectorFileType>(SectorFileType::FTSealed
-                                                     | SectorFileType::FTCache),
-                         PathType::kStorage,
-                         AcquireMode::kMove),
-              [sector, moveUnsealed, lock{std::move(lock)}](
-                  const std::shared_ptr<Worker> &worker)
-                  -> outcome::result<CallId> {
-                return worker->moveStorage(
-                    sector,
-                    static_cast<SectorFileType>(SectorFileType::FTSealed
-                                                | SectorFileType::FTCache
-                                                | moveUnsealed));
-              },
-              self->callbackWrapper(cb),
-              priority,
-              boost::none));
-        };
-
-    std::shared_ptr<WorkerSelector> selector;
-
-    selector = std::make_shared<ExistingSelector>(
-        index_,
-        sector.id,
-        static_cast<SectorFileType>(SectorFileType::FTSealed
-                                    | SectorFileType::FTCache),
-        false);
-
-    OUTCOME_CB1(scheduler_->schedule(
-        sector,
-        primitives::kTTFinalize,
-        selector,
-        schedFetch(
-            sector,
-            static_cast<SectorFileType>(SectorFileType::FTSealed
-                                        | SectorFileType::FTCache | unsealed),
-            PathType::kSealing,
-            AcquireMode::kMove),
-        [sector, keep_unsealed{std::move(keep_unsealed)}](
-            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
-          return worker->finalizeSector(sector, std::move(keep_unsealed));
-        },
-        callbackWrapper(std::move(next_cb)),
-        priority,
-        boost::none));
-  }
-
   void ManagerImpl::replicaUpdate(
       const SectorRef &sector,
       const std::vector<PieceInfo> &pieces,
@@ -834,6 +738,131 @@ namespace fc::sector_storage {
         callbackWrapper(cb),
         priority,
         work_id));
+  }
+
+  void ManagerImpl::finalizeSectorInner(
+      const SectorRef &sector,
+      std::vector<Range> keep_unsealed,
+      SectorFileType main_type,
+      SectorFileType additional_types,
+      const std::function<void(outcome::result<void>)> &cb,
+      uint64_t priority) {
+    OUTCOME_CB(auto lock,
+               index_->storageLock(
+                   sector.id,
+                   SectorFileType::FTNone,
+                   static_cast<SectorFileType>(main_type | additional_types
+                                               | SectorFileType::FTUnsealed)));
+
+    auto unsealed = SectorFileType::FTUnsealed;
+    {
+      OUTCOME_CB(auto unsealed_stores,
+                 index_->storageFindSector(
+                     sector.id, SectorFileType::FTUnsealed, boost::none));
+
+      if (unsealed_stores.empty()) {
+        unsealed = SectorFileType::FTNone;
+      }
+    }
+
+    auto path_type = PathType::kStorage;
+    {
+      OUTCOME_CB(auto sealed_stores,
+                 index_->storageFindSector(
+                     sector.id, SectorFileType::FTSealed, boost::none));
+
+      for (const auto &store : sealed_stores) {
+        if (store.can_seal) {
+          path_type = PathType::kSealing;
+          break;
+        }
+      }
+    }
+
+    auto next_cb = [cb,
+                    index{index_},
+                    unsealed,
+                    need_unsealed{not keep_unsealed.empty()},
+                    scheduler{scheduler_},
+                    sector,
+                    lock{std::move(lock)},
+                    self{shared_from_this()},
+                    priority,
+                    main_type,
+                    additional_types](
+                       const outcome::result<void> &maybe_error) mutable {
+      OUTCOME_CB1(maybe_error);
+
+      auto fetch_selector = std::make_shared<AllocateSelector>(
+          index,
+          static_cast<SectorFileType>(main_type | additional_types),
+          PathType::kStorage);
+
+      const auto moveUnsealed =
+          need_unsealed ? unsealed : SectorFileType::FTNone;
+
+      OUTCOME_CB1(scheduler->schedule(
+          sector,
+          primitives::kTTFetch,
+          fetch_selector,
+          schedFetch(sector,
+                     static_cast<SectorFileType>(main_type | additional_types
+                                                 | moveUnsealed),
+                     PathType::kStorage,
+                     AcquireMode::kMove),
+          [sector,
+           moveUnsealed,
+           main_type,
+           additional_types,
+           lock{std::move(lock)}](const std::shared_ptr<Worker> &worker)
+              -> outcome::result<CallId> {
+            return worker->moveStorage(
+                sector,
+                static_cast<SectorFileType>(main_type | additional_types
+                                            | moveUnsealed));
+          },
+          self->callbackWrapper(cb),
+          priority,
+          boost::none));
+    };
+
+    std::shared_ptr<WorkerSelector> selector;
+
+    selector = std::make_shared<ExistingSelector>(
+        index_,
+        sector.id,
+        static_cast<SectorFileType>(main_type | additional_types),
+        false);
+
+    OUTCOME_CB1(scheduler_->schedule(
+        sector,
+        primitives::kTTFinalize,
+        selector,
+        schedFetch(sector,
+                   static_cast<SectorFileType>(main_type | additional_types
+                                               | unsealed),
+                   path_type,
+                   AcquireMode::kMove),
+        [sector, keep_unsealed{std::move(keep_unsealed)}](
+            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
+          return worker->finalizeSector(sector, std::move(keep_unsealed));
+        },
+        callbackWrapper(std::move(next_cb)),
+        priority,
+        boost::none));
+  }
+
+  void ManagerImpl::finalizeSector(
+      const SectorRef &sector,
+      std::vector<Range> keep_unsealed,
+      const std::function<void(outcome::result<void>)> &cb,
+      uint64_t priority) {
+    finalizeSectorInner(sector,
+                        std::move(keep_unsealed),
+                        SectorFileType::FTSealed,
+                        SectorFileType::FTCache,
+                        cb,
+                        priority);
   }
 
   void ManagerImpl::proveReplicaUpdate1(
@@ -980,6 +1009,44 @@ namespace fc::sector_storage {
         priority);
 
     return wait_result.get_future().get();
+  }
+
+  void ManagerImpl::finalizeReplicaUpdate(
+      const SectorRef &sector,
+      std::vector<Range> keep_unsealed,
+      const std::function<void(outcome::result<void>)> &cb,
+      uint64_t priority) {
+    finalizeSectorInner(sector,
+                        std::move(keep_unsealed),
+                        SectorFileType::FTUpdate,
+                        static_cast<SectorFileType>(
+                            SectorFileType::FTSealed | SectorFileType::FTCache
+                            | SectorFileType::FTUpdateCache),
+                        cb,
+                        priority);
+  }
+
+  outcome::result<void> ManagerImpl::releaseReplicaUpgrade(
+      const SectorRef &sector) {
+    OUTCOME_TRY(lock,
+                index_->storageLock(
+                    sector.id,
+                    SectorFileType::FTNone,
+                    SectorFileType::FTUpdateCache | SectorFileType::FTUpdate));
+
+    OUTCOME_TRY(
+        remote_store_->remove(sector.id, SectorFileType::FTUpdateCache));
+
+    return remote_store_->remove(sector.id, SectorFileType::FTUpdate);
+  }
+
+  outcome::result<void> ManagerImpl::releaseSectorKey(const SectorRef &sector) {
+    OUTCOME_TRY(
+        lock,
+        index_->storageLock(
+            sector.id, SectorFileType::FTNone, SectorFileType::FTSealed));
+
+    return remote_store_->remove(sector.id, SectorFileType::FTSealed);
   }
 
 }  // namespace fc::sector_storage

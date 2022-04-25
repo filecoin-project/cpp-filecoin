@@ -94,6 +94,7 @@ namespace fc::miner {
     fee_config->max_precommit_batch_gas_fee.per_sector =
         TokenAmount{"2000000000000000"};
     fee_config->max_precommit_gas_fee = TokenAmount{"25000000000000000"};
+    fee_config->max_commit_gas_fee = TokenAmount{"50000000000000000"};
 
     std::shared_ptr<PreCommitBatcher> precommit_batcher =
         std::make_shared<PreCommitBatcherImpl>(std::chrono::seconds(60),

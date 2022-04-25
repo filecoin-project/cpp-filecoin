@@ -2114,20 +2114,4 @@ namespace fc::api {
     Get(j, "MinerPeer", v.peer);
   }
 
-  JSON_ENCODE(std::set<TaskType>) {
-    Value j{rapidjson::kObjectType};
-    j.MemberReserve(v.size(), allocator);
-    for (auto &pair : v) {
-      std::map<std::string, std::string> value;
-      Set(j, pair, value, allocator);
-    }
-    return j;
-  }
-
-  JSON_DECODE(std::set<TaskType>) {
-    for (auto it = j.MemberBegin(); it != j.MemberEnd(); ++it) {
-      v.emplace(TaskType(AsString(it->name)));
-    }
-  }
-
 }  // namespace fc::api

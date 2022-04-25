@@ -13,22 +13,21 @@
 #include <unordered_map>
 #include <utility>
 #include "primitives/resources/resources.hpp"
+#include "sector_storage/worker_estimator.hpp"
 #include "storage/buffer_map.hpp"
 
 namespace fc::sector_storage {
   using primitives::Resources;
   using storage::BufferMap;
 
-  using WorkerId = uint64_t;
-
-  struct TaskRequest {
-    inline TaskRequest(const SectorRef &sector,
-                       const TaskType &task_type,
-                       uint64_t priority,
-                       std::shared_ptr<WorkerSelector> sel,
-                       WorkerAction prepare,
-                       WorkerAction work,
-                       ReturnCb cb)
+  struct NewTaskRequest {
+    inline NewTaskRequest(const SectorRef &sector,
+                          const TaskType &task_type,
+                          uint64_t priority,
+                          std::shared_ptr<WorkerSelector> sel,
+                          WorkerAction prepare,
+                          WorkerAction work,
+                          ReturnCb cb)
         : sector(sector),
           task_type(task_type),
           priority(priority),
@@ -56,17 +55,21 @@ namespace fc::sector_storage {
     ReturnCb cb;
   };
 
-  inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
+  inline bool operator<(const NewTaskRequest &lhs, const NewTaskRequest &rhs) {
     // priority is intentionally reversed
     return std::tie(rhs.priority, lhs.task_type, lhs.sector.id.sector)
            < std::tie(lhs.priority, rhs.task_type, rhs.sector.id.sector);
   }
 
-  class SchedulerImpl : public Scheduler {
+  /**
+   * It is an improved scheduler with estimator
+   */
+  class EstimateSchedulerImpl : public Scheduler {
    public:
-    static outcome::result<std::shared_ptr<SchedulerImpl>> newScheduler(
+    static outcome::result<std::shared_ptr<EstimateSchedulerImpl>> newScheduler(
         std::shared_ptr<boost::asio::io_context> io_context,
-        std::shared_ptr<BufferMap> datastore);
+        std::shared_ptr<BufferMap> datastore,
+        std::shared_ptr<Estimator> estimator);
 
     outcome::result<void> schedule(
         const SectorRef &sector,
@@ -84,23 +87,27 @@ namespace fc::sector_storage {
                                        CallResult result) override;
 
    private:
-    explicit SchedulerImpl(std::shared_ptr<boost::asio::io_context> io_context,
-                           std::shared_ptr<BufferMap> datastore);
+    explicit EstimateSchedulerImpl(
+        std::shared_ptr<boost::asio::io_context> io_context,
+        std::shared_ptr<BufferMap> datastore,
+        std::shared_ptr<Estimator> estimator);
 
     outcome::result<void> resetWorks();
 
     outcome::result<bool> maybeScheduleRequest(
-        const std::shared_ptr<TaskRequest> &request);
+        const std::shared_ptr<NewTaskRequest> &request);
 
     void assignWorker(WorkerId wid,
                       const std::shared_ptr<WorkerHandle> &worker,
-                      const std::shared_ptr<TaskRequest> &request);
+                      const std::shared_ptr<NewTaskRequest> &request);
 
     void freeWorker(WorkerId wid);
 
     std::mutex workers_lock_;
     WorkerId current_worker_id_;
     std::unordered_map<WorkerId, std::shared_ptr<WorkerHandle>> workers_;
+
+    std::shared_ptr<Estimator> estimator_;
 
     std::mutex cbs_lock_;
     std::map<CallId, ReturnCb> callbacks_;
@@ -110,8 +117,8 @@ namespace fc::sector_storage {
 
     std::mutex request_lock_;
     // TODO(turuslan): FIL-420 check cache memory usage
-    std::multiset<std::shared_ptr<TaskRequest>,
-                  std::owner_less<std::shared_ptr<TaskRequest>>>
+    std::multiset<std::shared_ptr<NewTaskRequest>,
+                  std::owner_less<std::shared_ptr<NewTaskRequest>>>
         request_queue_;
 
     std::shared_ptr<boost::asio::io_context> io_;

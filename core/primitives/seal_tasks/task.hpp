@@ -8,13 +8,10 @@
 #include <string>
 #include <unordered_map>
 
-namespace fc::primitives {
+#include "common/map_utils.hpp"
 
-  class TaskType : public std::string {
-   public:
-    TaskType() = default;
-    explicit TaskType(const std::string &str) : std::string(str){};
-  };
+namespace fc::primitives {
+  using TaskType = std::string;
 
   const TaskType kTTAddPiece("seal/v0/addpiece");
   const TaskType kTTPreCommit1("seal/v0/precommit/1");
@@ -37,11 +34,14 @@ namespace fc::primitives {
   const TaskType kTTProveReplicaUpdate1("seal/v0/provereplicaupdate/1");
   const TaskType kTTProveReplicaUpdate2("seal/v0/provereplicaupdate/2");
   const TaskType kTTRegenSectorKey("seal/v0/regensectorkey");
+  const TaskType kTTFinalizeReplicaUpdate("seal/v0/finalize/replicaupdate");
 
-  inline bool operator<(const TaskType &lhs, const TaskType &rhs) {
-    static std::unordered_map<std::string, int> order = {
+  /**
+   * Returns task type order. If task type not on the list, 0 returned.
+   */
+  inline int getTaskTypePiority(std::string_view task) {
+    static std::unordered_map<std::string_view, int> order = {
         {kTTFinalize, -2},
-        {kTTReadUnsealed, 0},
         {kTTFetch, -1},
         {kTTUnseal, 1},
         {kTTCommit1, 2},
@@ -54,6 +54,6 @@ namespace fc::primitives {
         {kTTAddPiece, 9},
         {kTTRegenSectorKey, 10}};
 
-    return order[lhs] < order[rhs];
+    return common::getOrDefault(order, task, 0);
   }
 }  // namespace fc::primitives

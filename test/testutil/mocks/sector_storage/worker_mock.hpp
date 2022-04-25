@@ -86,6 +86,9 @@ namespace fc::sector_storage {
     MOCK_METHOD2(finalizeSector,
                  outcome::result<CallId>(const SectorRef &,
                                          std::vector<Range>));
+    MOCK_METHOD2(finalizeReplicaUpdate,
+                 outcome::result<CallId>(const SectorRef &,
+                                         std::vector<Range>));
 
     outcome::result<CallId> addPiece(const SectorRef &sector,
                                      VectorCoW<UnpaddedPieceSize> piece_sizes,

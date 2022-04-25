@@ -39,6 +39,16 @@ namespace fc::mining {
    public:
     virtual ~Sealing() = default;
 
+    /**
+     * Adds piece to an open sector. If no sectors with enough space are open,
+     * either a new one sector is created, or this call is blocked until more
+     * sectors can be created.
+     *
+     * @param size
+     * @param piece_data
+     * @param deal
+     * @return location of added piece
+     */
     virtual outcome::result<PieceLocation> addPieceToAnySector(
         const UnpaddedPieceSize &size,
         PieceData piece_data,
@@ -57,9 +67,7 @@ namespace fc::mining {
     virtual outcome::result<void> forceSectorState(SectorNumber id,
                                                    SealingState state) = 0;
 
-    virtual outcome::result<void> markForUpgrade(SectorNumber id) = 0;
-
-    virtual bool isMarkedForUpgrade(SectorNumber id) = 0;
+    virtual outcome::result<void> markForSnapUpgrade(SectorNumber id) = 0;
 
     virtual outcome::result<void> startPacking(SectorNumber id) = 0;
 
@@ -79,6 +87,8 @@ namespace fc::mining {
     kFailSubmit,
     kSectorAllocatedError,
     kNotPublishedDeal,
+    kCannotMarkInactiveSector,
+    kSectorExpirationError,
   };
 }  // namespace fc::mining
 

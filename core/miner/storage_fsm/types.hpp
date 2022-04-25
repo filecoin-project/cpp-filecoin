@@ -105,10 +105,11 @@ namespace fc::mining::types {
 
     boost::optional<CID> fault_report_message;
 
+    // Snap deals and CCUpdate
     bool update{false};
     std::vector<Piece> update_pieces;
-    boost::optional<CID> update_comm_d;
-    boost::optional<CID> update_comm_r;
+    boost::optional<CID> update_unsealed;
+    boost::optional<CID> update_sealed;
     boost::optional<Bytes> update_proof;
     boost::optional<CID> update_message;
 
@@ -226,6 +227,7 @@ namespace fc::mining::types {
 
   struct FeeConfig {
     TokenAmount max_precommit_gas_fee;
+    TokenAmount max_commit_gas_fee;
 
     // maxBatchFee = maxBase + maxPerSector * nSectors
     BatchConfing max_precommit_batch_gas_fee;

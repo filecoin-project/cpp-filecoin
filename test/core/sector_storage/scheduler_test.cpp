@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "sector_storage/impl/new_scheduler_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
 
 #include <gmock/gmock.h>
@@ -72,13 +73,7 @@ namespace fc::sector_storage {
           kv_->put(static_cast<Bytes>(wid3), std::move(raw3)));
       states_.push_back(ws);
 
-      estimator_ = std::make_shared<EstimatorMock>();
-      EXPECT_CALL(*estimator_, startWork(_, _, _))
-          .WillRepeatedly(testing::Return());
-      EXPECT_CALL(*estimator_, finishWork(_)).WillRepeatedly(testing::Return());
-
-      EXPECT_OUTCOME_TRUE(scheduler,
-                          SchedulerImpl::newScheduler(io_, kv_, estimator_));
+      EXPECT_OUTCOME_TRUE(scheduler, SchedulerImpl::newScheduler(io_, kv_));
 
       scheduler_ = scheduler;
 
@@ -87,13 +82,13 @@ namespace fc::sector_storage {
 
       worker_name_ = "worker";
       worker->worker = mock_worker_;
-      worker->info = WorkerInfo{
-          .hostname = worker_name_,
-          .resources = WorkerResources{.physical_memory = uint64_t(1) << 20,
-                                       .swap_memory = 0,
-                                       .reserved_memory = 0,
-                                       .cpus = 0,
-                                       .gpus = {}}};
+      worker->info =
+          WorkerInfo{.hostname = worker_name_,
+                     .resources = WorkerResources{.physical_memory = 1ul << 20,
+                                                  .swap_memory = 0,
+                                                  .reserved_memory = 0,
+                                                  .cpus = 0,
+                                                  .gpus = {}}};
       scheduler_->newWorker(std::move(worker));
 
       selector_ = std::make_shared<SelectorMock>();
@@ -106,7 +101,6 @@ namespace fc::sector_storage {
     RegisteredSealProof seal_proof_type_;
     std::shared_ptr<InMemoryStorage> kv_;
     std::shared_ptr<SelectorMock> selector_;
-    std::shared_ptr<EstimatorMock> estimator_;
     std::shared_ptr<Scheduler> scheduler_;
   };
 
@@ -240,9 +234,6 @@ namespace fc::sector_storage {
             testing::Return(outcome::success(false)));  // Just reverse
 
     scheduler_->newWorker(std::move(worker1));
-
-    EXPECT_CALL(*estimator_, getTime(_, _))
-        .WillRepeatedly(testing::Return(boost::none));
 
     uint64_t counter = 0;
 
@@ -483,17 +474,21 @@ namespace fc::sector_storage {
     ASSERT_TRUE(cb1_call and cb2_call);
   }
 
-  auto newWorker(std::string name, std::shared_ptr<Worker> worker) {
+  auto newWorker(std::string name, std::shared_ptr<WorkerMock> worker) {
+    EXPECT_CALL(*worker, getInfo)
+        .WillRepeatedly(
+            testing::Return(primitives::WorkerInfo{.hostname = name}));
+
     std::unique_ptr<WorkerHandle> worker_handle =
         std::make_unique<WorkerHandle>();
     worker_handle->worker = std::move(worker);
-    worker_handle->info = WorkerInfo{
-        .hostname = std::move(name),
-        .resources = WorkerResources{.physical_memory = uint64_t(1) << 20,
-                                     .swap_memory = 0,
-                                     .reserved_memory = 0,
-                                     .cpus = 0,
-                                     .gpus = {}}};
+    worker_handle->info =
+        WorkerInfo{.hostname = std::move(name),
+                   .resources = WorkerResources{.physical_memory = 1ul << 20,
+                                                .swap_memory = 0,
+                                                .reserved_memory = 0,
+                                                .cpus = 0,
+                                                .gpus = {}}};
     return worker_handle;
   }
 
@@ -506,8 +501,7 @@ namespace fc::sector_storage {
 
       estimator_ = std::make_shared<EstimatorMock>();
 
-      EXPECT_OUTCOME_TRUE(scheduler,
-                          SchedulerImpl::newScheduler(io_, kv_, estimator_));
+      EXPECT_OUTCOME_TRUE(scheduler, EstimateSchedulerImpl::newScheduler(io_, kv_, estimator_));
 
       scheduler_ = scheduler;
 
@@ -525,6 +519,10 @@ namespace fc::sector_storage {
       EXPECT_CALL(*selector_, is_preferred(_, _, _))
           .WillRepeatedly(testing::Invoke(
               [](auto, auto &lhs, auto &rhs) { return lhs < rhs; }));
+    }
+
+    void TearDown() override {
+      io_->stop();
     }
 
     std::vector<std::shared_ptr<WorkerMock>> workers_;
@@ -553,21 +551,26 @@ namespace fc::sector_storage {
         .WillRepeatedly(testing::Return(boost::none));
 
     auto prepare = [&](auto &worker) -> outcome::result<CallId> {
-      if (workers_[0] != worker) {
-        return ERROR_TEXT("ERROR");
+      EXPECT_OUTCOME_TRUE(info, worker->getInfo());
+      if (info.hostname != "0") {
+        return ERROR_TEXT("wrong worker was assigned");
       }
 
       return CallId{};
     };
+
+    std::promise<outcome::result<CallResult>> promise_result;
 
     EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(
         sector,
         primitives::kTTFinalize,
         selector_,
         prepare,
-        [](auto &worker) -> outcome::result<CallId> { return CallId{}; },
-        [](const outcome::result<CallResult> &res) {
-          EXPECT_OUTCOME_TRUE_1(res);
+        [&](auto &worker) -> outcome::result<CallId> {
+          return ERROR_TEXT("must not be called");
+        },
+        [&](const outcome::result<CallResult> &res) {
+          FAIL() << "must not be called";
         },
         kDefaultTaskPriority,
         boost::none));
@@ -596,8 +599,9 @@ namespace fc::sector_storage {
     }
 
     auto prepare = [&](auto &worker) -> outcome::result<CallId> {
-      if (workers_[2] != worker) {
-        return ERROR_TEXT("ERROR");
+      EXPECT_OUTCOME_TRUE(info, worker->getInfo());
+      if (info.hostname != "2") {
+        return ERROR_TEXT("wrong worker was assigned");
       }
 
       return CallId{};
@@ -608,9 +612,11 @@ namespace fc::sector_storage {
         task_type,
         selector_,
         prepare,
-        [](auto &worker) -> outcome::result<CallId> { return CallId{}; },
+        [](auto &worker) -> outcome::result<CallId> {
+          return ERROR_TEXT("must not be called");
+        },
         [](const outcome::result<CallResult> &res) {
-          EXPECT_OUTCOME_TRUE_1(res);
+          FAIL() << "must not be called";
         },
         kDefaultTaskPriority,
         boost::none));
@@ -640,8 +646,9 @@ namespace fc::sector_storage {
         .WillRepeatedly(testing::Return(boost::make_optional(10.0)));
 
     auto prepare = [&](auto &worker) -> outcome::result<CallId> {
-      if (workers_[1] != worker) {
-        return ERROR_TEXT("ERROR");
+      EXPECT_OUTCOME_TRUE(info, worker->getInfo());
+      if (info.hostname != "1") {
+        return ERROR_TEXT("wrong worker was assigned");
       }
 
       return CallId{};
@@ -652,9 +659,11 @@ namespace fc::sector_storage {
         task_type,
         selector_,
         prepare,
-        [](auto &worker) -> outcome::result<CallId> { return CallId{}; },
+        [](auto &worker) -> outcome::result<CallId> {
+          return ERROR_TEXT("must not be called");
+        },
         [](const outcome::result<CallResult> &res) {
-          EXPECT_OUTCOME_TRUE_1(res);
+          FAIL() << "must not be called";
         },
         kDefaultTaskPriority,
         boost::none));
