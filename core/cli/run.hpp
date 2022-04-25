@@ -93,17 +93,16 @@ namespace fc::cli {
           }
         }
       }
-      fmt::print("name:\n  {}\n", fmt::join(cmds, " "));
+      fmt::print("name:\n  {}", fmt::join(cmds, " "));
+      for(const auto &arg : tree->argusage) {
+        fmt::print("  <{}>", arg);
+      }
+      fmt::print("\n");
+
       if (not tree->description.empty()) {
-        fmt::print("description:\n  {}\n", tree->description);
+        fmt::print("usage:\n  {}\n", tree->description);
       }
       fmt::print("options:\n{}", args.opts);
-      if(not tree->argusage.empty()) {
-        fmt::print("argusage:\n");
-        for(const auto &arg : tree->argusage) {
-          fmt::print("  <{}>  ", arg);
-        }
-      }
       if (!tree->sub.empty()) {
         fmt::print("subcommands:\n");
         for (const auto &sub : tree->sub) {
