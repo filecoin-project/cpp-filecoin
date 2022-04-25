@@ -220,6 +220,11 @@ namespace fc::api {
                void,
                const CallId &,
                const boost::optional<CallError> &)
+    API_METHOD(ReturnFinalizeReplicaUpdate,
+               jwt::kAdminPermission,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
     API_METHOD(ReturnMoveStorage,
                jwt::kAdminPermission,
                void,
@@ -259,6 +264,11 @@ namespace fc::api {
                const CallId &,
                Proof,
                const boost::optional<CallError> &)
+    API_METHOD(SectorMarkForUpgrade,
+               jwt::kAdminPermission,
+               void,
+               SectorNumber,
+               bool /* snap_deal */)
 
     API_METHOD(WorkerConnect, jwt::kAdminPermission, void, const std::string &);
   };
@@ -307,6 +317,7 @@ namespace fc::api {
     f(a.ReturnSealCommit1);
     f(a.ReturnSealCommit2);
     f(a.ReturnFinalizeSector);
+    f(a.ReturnFinalizeReplicaUpdate);
     f(a.ReturnMoveStorage);
     f(a.ReturnUnsealPiece);
     f(a.ReturnReadPiece);
@@ -314,6 +325,7 @@ namespace fc::api {
     f(a.ReturnReplicaUpdate);
     f(a.ReturnProveReplicaUpdate1);
     f(a.ReturnProveReplicaUpdate2);
+    f(a.SectorMarkForUpgrade);
     f(a.WorkerConnect);
   }
 }  // namespace fc::api

@@ -3,14 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "sector_storage/impl/new_scheduler_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <boost/optional/optional_io.hpp>
 #include <thread>
+#include <utility>
+
 #include "sector_storage/scheduler_utils.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/mocks/sector_storage/selector_mock.hpp"
+#include "testutil/mocks/sector_storage/worker_estimator_mock.hpp"
 #include "testutil/mocks/sector_storage/worker_mock.hpp"
 #include "testutil/outcome.hpp"
 
@@ -77,13 +82,13 @@ namespace fc::sector_storage {
 
       worker_name_ = "worker";
       worker->worker = mock_worker_;
-      worker->info = WorkerInfo{
-          .hostname = worker_name_,
-          .resources = WorkerResources{.physical_memory = uint64_t(1) << 20,
-                                       .swap_memory = 0,
-                                       .reserved_memory = 0,
-                                       .cpus = 0,
-                                       .gpus = {}}};
+      worker->info =
+          WorkerInfo{.hostname = worker_name_,
+                     .resources = WorkerResources{.physical_memory = 1ul << 20,
+                                                  .swap_memory = 0,
+                                                  .reserved_memory = 0,
+                                                  .cpus = 0,
+                                                  .gpus = {}}};
       scheduler_->newWorker(std::move(worker));
 
       selector_ = std::make_shared<SelectorMock>();
@@ -467,5 +472,202 @@ namespace fc::sector_storage {
     io_->run_one();
     io_->run_one();
     ASSERT_TRUE(cb1_call and cb2_call);
+  }
+
+  auto newWorker(std::string name, std::shared_ptr<WorkerMock> worker) {
+    EXPECT_CALL(*worker, getInfo)
+        .WillRepeatedly(
+            testing::Return(primitives::WorkerInfo{.hostname = name}));
+
+    std::unique_ptr<WorkerHandle> worker_handle =
+        std::make_unique<WorkerHandle>();
+    worker_handle->worker = std::move(worker);
+    worker_handle->info =
+        WorkerInfo{.hostname = std::move(name),
+                   .resources = WorkerResources{.physical_memory = 1ul << 20,
+                                                .swap_memory = 0,
+                                                .reserved_memory = 0,
+                                                .cpus = 0,
+                                                .gpus = {}}};
+    return worker_handle;
+  }
+
+  class WorkersTest : public ::testing::Test {
+   protected:
+    void SetUp() override {
+      io_ = std::make_shared<boost::asio::io_context>();
+
+      kv_ = std::make_shared<InMemoryStorage>();
+
+      estimator_ = std::make_shared<EstimatorMock>();
+
+      EXPECT_OUTCOME_TRUE(scheduler, EstimateSchedulerImpl::newScheduler(io_, kv_, estimator_));
+
+      scheduler_ = scheduler;
+
+      for (size_t i = 0; i < 3; i++) {
+        auto worker = std::make_shared<WorkerMock>();
+        workers_.push_back(worker);
+        scheduler_->newWorker(newWorker(std::to_string(i), worker));
+      }
+
+      selector_ = std::make_shared<SelectorMock>();
+
+      EXPECT_CALL(*selector_, is_satisfying(_, _, _))
+          .WillRepeatedly(testing::Return(outcome::success(true)));
+
+      EXPECT_CALL(*selector_, is_preferred(_, _, _))
+          .WillRepeatedly(testing::Invoke(
+              [](auto, auto &lhs, auto &rhs) { return lhs < rhs; }));
+    }
+
+    void TearDown() override {
+      io_->stop();
+    }
+
+    std::vector<std::shared_ptr<WorkerMock>> workers_;
+
+    std::shared_ptr<InMemoryStorage> kv_;
+    std::shared_ptr<boost::asio::io_context> io_;
+    std::shared_ptr<SelectorMock> selector_;
+    std::shared_ptr<EstimatorMock> estimator_;
+    std::shared_ptr<Scheduler> scheduler_;
+  };
+
+  /**
+   * 3 workers with wid: 0, 1, 2
+   * Selector sorts by ids
+   * All workers, don't have any time data
+   *
+   * Worker 0 should be chosen
+   */
+  TEST_F(WorkersTest, WithoutTime) {
+    SectorRef sector{.id = SectorId{
+                         .miner = 42,
+                         .sector = 1,
+                     }};
+
+    EXPECT_CALL(*estimator_, getTime(_, _))
+        .WillRepeatedly(testing::Return(boost::none));
+
+    auto prepare = [&](auto &worker) -> outcome::result<CallId> {
+      EXPECT_OUTCOME_TRUE(info, worker->getInfo());
+      if (info.hostname != "0") {
+        return ERROR_TEXT("wrong worker was assigned");
+      }
+
+      return CallId{};
+    };
+
+    std::promise<outcome::result<CallResult>> promise_result;
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(
+        sector,
+        primitives::kTTFinalize,
+        selector_,
+        prepare,
+        [&](auto &worker) -> outcome::result<CallId> {
+          return ERROR_TEXT("must not be called");
+        },
+        [&](const outcome::result<CallResult> &res) {
+          FAIL() << "must not be called";
+        },
+        kDefaultTaskPriority,
+        boost::none));
+
+    io_->run_one();
+  }
+
+  /**
+   * 3 workers with wid: 0, 1, 2
+   * Selector sorts by ids
+   * All workers has time data: 3, 2, 1 milliseconds respectively
+   *
+   * Worker 2 should be chosen
+   */
+  TEST_F(WorkersTest, WithTime) {
+    auto task_type = primitives::kTTFinalize;
+
+    SectorRef sector{.id = SectorId{
+                         .miner = 42,
+                         .sector = 1,
+                     }};
+
+    for (size_t i = 0; i < 3; i++) {
+      EXPECT_CALL(*estimator_, getTime(i, task_type))
+          .WillRepeatedly(testing::Return(boost::make_optional(double(3 - i))));
+    }
+
+    auto prepare = [&](auto &worker) -> outcome::result<CallId> {
+      EXPECT_OUTCOME_TRUE(info, worker->getInfo());
+      if (info.hostname != "2") {
+        return ERROR_TEXT("wrong worker was assigned");
+      }
+
+      return CallId{};
+    };
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(
+        sector,
+        task_type,
+        selector_,
+        prepare,
+        [](auto &worker) -> outcome::result<CallId> {
+          return ERROR_TEXT("must not be called");
+        },
+        [](const outcome::result<CallResult> &res) {
+          FAIL() << "must not be called";
+        },
+        kDefaultTaskPriority,
+        boost::none));
+
+    io_->run_one();
+  }
+
+  /**
+   * 3 workers with wid: 0, 1, 2
+   * Selector sorts by ids
+   * Worker 0 has time data - 10 milliseconds
+   *
+   * Worker 1 should be chosen
+   */
+  TEST_F(WorkersTest, Mixed) {
+    auto task_type = primitives::kTTFinalize;
+
+    SectorRef sector{.id = SectorId{
+                         .miner = 42,
+                         .sector = 1,
+                     }};
+
+    EXPECT_CALL(*estimator_, getTime(_, _))
+        .WillRepeatedly(testing::Return(boost::none));
+
+    EXPECT_CALL(*estimator_, getTime(0, task_type))
+        .WillRepeatedly(testing::Return(boost::make_optional(10.0)));
+
+    auto prepare = [&](auto &worker) -> outcome::result<CallId> {
+      EXPECT_OUTCOME_TRUE(info, worker->getInfo());
+      if (info.hostname != "1") {
+        return ERROR_TEXT("wrong worker was assigned");
+      }
+
+      return CallId{};
+    };
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(
+        sector,
+        task_type,
+        selector_,
+        prepare,
+        [](auto &worker) -> outcome::result<CallId> {
+          return ERROR_TEXT("must not be called");
+        },
+        [](const outcome::result<CallResult> &res) {
+          FAIL() << "must not be called";
+        },
+        kDefaultTaskPriority,
+        boost::none));
+
+    io_->run_one();
   }
 }  // namespace fc::sector_storage

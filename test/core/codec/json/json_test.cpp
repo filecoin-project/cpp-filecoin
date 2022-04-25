@@ -117,4 +117,31 @@ namespace fc::codec::json {
                "\"Multiaddrs\":[],\"WindowPoStProofType\":5,"
                "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1}");
   }
+
+  /**
+   * @given std::set of strings
+   * @when JSON serialization
+   * @then encoded as an array of strings
+   */
+  TEST(ApiJsonTest, SetOfStringEncoding) {
+    std::set<std::string> s;
+    s.emplace("a");
+    s.emplace("b");
+    s.emplace("c");
+    expectJson(s, R"(["a","b","c"])");
+  }
+
+  /**
+   * @given std::set of strings as CodecSetAsMap
+   * @when JSON serialization
+   * @then encoded as a map of string
+   */
+  TEST(ApiJsonTest, SetOfStringEncodingAsMap) {
+    std::set<std::string> s;
+    s.emplace("a");
+    s.emplace("b");
+    s.emplace("c");
+    expectJson(api::CodecSetAsMap<std::string>{s},
+               R"({"a":{},"b":{},"c":{}})");
+  }
 }  // namespace fc::api
