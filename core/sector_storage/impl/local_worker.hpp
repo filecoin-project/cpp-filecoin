@@ -71,6 +71,9 @@ namespace fc::sector_storage {
         const CID &new_unsealed,
         const Update1Output &update_1_output) override;
 
+    outcome::result<CallId> finalizeReplicaUpdate(
+        const SectorRef &sector, std::vector<Range> keep_unsealed) override;
+
     outcome::result<CallId> moveStorage(const SectorRef &sector,
                                         SectorFileType types) override;
 
@@ -100,6 +103,9 @@ namespace fc::sector_storage {
     bool isLocalWorker() const override;
 
    private:
+    outcome::result<void> freeUnsealed(const SectorRef &sector,
+                                       const std::vector<Range> &keep_unsealed);
+
     template <typename W, typename R>
     outcome::result<CallId> asyncCall(const SectorRef &sector,
                                       R _return,

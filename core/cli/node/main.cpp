@@ -5,6 +5,7 @@
 
 #include "cli/node/client.hpp"
 #include "cli/node/developer.hpp"
+#include "cli/node/filplus.hpp"
 #include "cli/node/net.hpp"
 #include "cli/node/wallet.hpp"
 #include "cli/run.hpp"
@@ -20,6 +21,14 @@ namespace fc::cli::cli_node {
           CMD("connect", Node_net_connect),
           CMD("listen", Node_net_listen),
           CMD("peers", Node_net_peers),
+      })},
+      {GROUP("filplus")({
+          CMD("grant-datacap", Node_filplus_grantDatacap),
+          CMD("list-notaries", Node_filplus_listNotaries),
+          CMD("list-clients", Node_filplus_listClients),
+          CMD("add-verifier", Node_filplus_addVerifier),
+          CMD("check-client-datacap", Node_filplus_checkClientDataCap),
+          CMD("check-notary-datacap", Node_filplus_checkNotaryDataCap),
       })},
       {GROUP("client")({
           CMD("retrieve", Node_client_retrieve),

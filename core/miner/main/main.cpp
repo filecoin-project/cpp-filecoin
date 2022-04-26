@@ -90,7 +90,7 @@ namespace fc {
   struct Config {
     boost::filesystem::path repo_path;
     std::pair<Multiaddress, std::string> node_api{
-        codec::cbor::kDefaultT<Multiaddress>(), {}};
+        common::kDefaultT<Multiaddress>(), {}};
     boost::optional<Address> actor, owner, worker;
     boost::optional<RegisteredSealProof> seal_type;
     std::vector<Address> precommit_control;
@@ -113,8 +113,9 @@ namespace fc {
       const std::shared_ptr<storage::PersistentBufferMap> &ds) {
     OUTCOME_TRY(file, common::readFile(path));
     OUTCOME_TRY(j_file, codec::json::parse(gsl::make_span(file)));
-    OUTCOME_TRY(
-        psm, api::decode<std::map<std::string, miner::types::Miner>>(j_file));
+    OUTCOME_TRY(psm,
+                codec::json::decode<std::map<std::string, miner::types::Miner>>(
+                    j_file));
 
     const auto it_psm = psm.find(encodeToString(maddr));
     if (it_psm == psm.end()) {
@@ -423,9 +424,11 @@ namespace fc {
         local_store, std::move(auth_headers))};
 
     IoThread io_thread2;
+    // TODO(ortoymka): Use scheduler with estimator, when it will done
     OUTCOME_TRY(wscheduler,
                 sector_storage::SchedulerImpl::newScheduler(
                     io_thread2.io, prefixed("scheduler_works/")));
+
     IoThread io_thread3;
 
     {

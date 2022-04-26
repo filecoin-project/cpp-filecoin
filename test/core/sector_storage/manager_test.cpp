@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <gsl/span>
 #include <sector_storage/stores/store_error.hpp>
-#include "sector_storage/schedulder_utils.hpp"
+#include "sector_storage/scheduler_utils.hpp"
 
 #include "testutil/default_print.hpp"
 #include "testutil/literals.hpp"
@@ -397,6 +397,10 @@ namespace fc::sector_storage {
 
     EXPECT_CALL(*sector_index_,
                 storageFindSector(sector_.id, SectorFileType::FTUnsealed, _))
+        .WillOnce(testing::Return(
+            outcome::success(std::vector<stores::SectorStorageInfo>())));
+    EXPECT_CALL(*sector_index_,
+                storageFindSector(sector_.id, SectorFileType::FTSealed, _))
         .WillOnce(testing::Return(
             outcome::success(std::vector<stores::SectorStorageInfo>())));
 

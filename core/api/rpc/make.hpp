@@ -55,7 +55,7 @@ namespace fc::api {
                                            "Missing permission to invoke"});
           }
 
-          auto maybe_params = decode<typename M::Params>(jparams);
+          auto maybe_params = codec::json::decode<typename M::Params>(jparams);
           if (!maybe_params) {
             return respond(Response::Error{
                 kInvalidParams, errorToPrettyString(maybe_params.error())});
@@ -75,24 +75,24 @@ namespace fc::api {
                   if constexpr (is_chan<Result>{}) {
                     Result result = std::move(maybe_result.value());
                     result.id = make_chan();
-                    respond(api::encode(result));
+                    respond(codec::json::encode(result));
                     result.channel->read([send{std::move(send)},
                                           chan{result}](auto opt) {
                       if (opt) {
                         send(kRpcChVal,
-                             encode(std::make_tuple(chan.id, std::move(*opt))),
+                             codec::json::encode(std::make_tuple(chan.id, std::move(*opt))),
                              [chan](auto ok) {
                                if (!ok) {
                                  chan.channel->closeRead();
                                }
                              });
                       } else {
-                        send(kRpcChClose, encode(std::make_tuple(chan.id)), {});
+                        send(kRpcChClose, codec::json::encode(std::make_tuple(chan.id)), {});
                       }
                       return true;
                     });
                   } else {
-                    respond(api::encode(maybe_result.value()));
+                    respond(codec::json::encode(maybe_result.value()));
                   }
                 } else {
                   respond(Document{});

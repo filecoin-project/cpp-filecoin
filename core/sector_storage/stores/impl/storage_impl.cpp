@@ -22,10 +22,8 @@
 
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
+#include "sector_storage/stores/json_storage.hpp"
 #include "sector_storage/stores/storage_error.hpp"
-
-// maybe manual
-#include "api/rpc/json.hpp"
 
 namespace fc::sector_storage::stores {
   LocalStorageImpl::LocalStorageImpl(const boost::filesystem::path &path)
@@ -49,7 +47,7 @@ namespace fc::sector_storage::stores {
     }
     OUTCOME_TRY(text, common::readFile(config_path_));
     OUTCOME_TRY(j_file, codec::json::parse(text));
-    OUTCOME_TRY(decoded, api::decode<StorageConfig>(j_file));
+    OUTCOME_TRY(decoded, codec::json::decode<StorageConfig>(j_file));
     return std::move(decoded);
   }
 
@@ -60,7 +58,7 @@ namespace fc::sector_storage::stores {
       config = StorageConfig{};
     }
     action(config.value());
-    OUTCOME_TRY(text, codec::json::format(api::encode(config)));
+    OUTCOME_TRY(text, codec::json::format(codec::json::encode(config)));
     OUTCOME_TRY(common::writeFile(config_path_, text));
     return outcome::success();
   }

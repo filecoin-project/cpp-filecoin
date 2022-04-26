@@ -11,6 +11,9 @@
 namespace fc::mining {
   using primitives::sector::SectorId;
 
+  /**
+   * Aggregates sectors state statistics.
+   */
   class SectorStat {
    public:
     virtual ~SectorStat() = default;

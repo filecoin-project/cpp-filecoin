@@ -30,7 +30,6 @@ namespace fc::markets::storage {
   using vm::actor::builtin::types::market::ClientDealProposal;
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::market::DealState;
-  using vm::actor::builtin::types::market::StorageParticipantBalance;
 
   const libp2p::peer::Protocol kDealMkProtocolId_v1_0_1 =
       "/fil/storage/mk/1.0.1";
@@ -149,16 +148,16 @@ namespace fc::markets::storage {
         {E::STORAGE_DEAL_EXPIRED, "Expired"},
         {E::STORAGE_DEAL_SLASHED, "Slashed"},
         {E::STORAGE_DEAL_REJECTING, "Rejecting"},
-        {E::STORAGE_DEAL_FAILING, "Falling"},
+        {E::STORAGE_DEAL_FAILING, "Failing"},
         {E::STORAGE_DEAL_FUNDS_ENSURED, "FundsEnsured"},
         {E::STORAGE_DEAL_CHECK_FOR_ACCEPTANCE, "CheckForAcceptance"},
         {E::STORAGE_DEAL_VALIDATING, "DealValidating"},
         {E::STORAGE_DEAL_ACCEPT_WAIT, "AcceptWait"},
         {E::STORAGE_DEAL_START_DATA_TRANSFER, "StartDataTransfer"},
-        {E::STORAGE_DEAL_TRANSFERRING, "DealTransfering"},
+        {E::STORAGE_DEAL_TRANSFERRING, "DealTransferring"},
         {E::STORAGE_DEAL_WAITING_FOR_DATA, "WaitingForData"},
         {E::STORAGE_DEAL_VERIFY_DATA, "VerifyData"},
-        {E::STORAGE_DEAL_ENSURE_PROVIDER_FUNDS, "EnsureProvidedFunds"},
+        {E::STORAGE_DEAL_ENSURE_PROVIDER_FUNDS, "EnsureProviderFunds"},
         {E::STORAGE_DEAL_PROVIDER_FUNDING, "ProviderFunding"},
         {E::STORAGE_DEAL_CLIENT_FUNDING, "ClientFunding"},
         {E::STORAGE_DEAL_PUBLISH, "DealPublish"},

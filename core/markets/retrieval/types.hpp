@@ -43,7 +43,7 @@ namespace fc::markets::retrieval {
    */
   struct RetrievalPeer {
     Address address;
-    PeerId peer_id{codec::cbor::kDefaultT<PeerId>()};
+    PeerId peer_id{common::kDefaultT<PeerId>()};
     boost::optional<CID> piece;
 
     inline bool operator==(const RetrievalPeer &other) const {

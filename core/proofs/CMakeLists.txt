@@ -14,7 +14,7 @@ target_link_libraries(proof_param_provider
         blake2
         logger
         file
-        rpc
+        json
         )
 
 add_custom_command(

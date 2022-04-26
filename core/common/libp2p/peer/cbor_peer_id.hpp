@@ -8,9 +8,10 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
+#include "common/default_t.hpp"
 #include "common/outcome.hpp"
 
-namespace fc::codec::cbor {
+namespace fc::common {
   using libp2p::peer::PeerId;
 
   /// Default value of PeerId for CBOR stream decoder

@@ -19,6 +19,7 @@ namespace fc::mining {
     kSectorStart = 1,
     kSectorStartWithPieces,
     kSectorAddPieces,
+    kSectorRetryWaitDeals,
     kSectorStartPacking,
     kSectorPacked,
     kSectorPreCommit1,
@@ -32,7 +33,9 @@ namespace fc::mining {
     kSectorCommitted,
     kSectorProving,
     kSectorFinalized,
+    kSectorUpdateDealIDs,
 
+    kSectorAddPieceFailed,
     kSectorSealPreCommit1Failed,
     kSectorSealPreCommit2Failed,
     kSectorChainPreCommitFailed,
@@ -63,6 +66,27 @@ namespace fc::mining {
 
     kSectorForce,
     kUpdateDealIds,
+
+    // Snap Deals
+    kSectorStartCCUpdate,
+    kSectorReplicaUpdate,
+    kSectorProveReplicaUpdate,
+    kSectorReplicaUpdateSubmitted,
+    kSectorReplicaUpdateLanded,
+    kSectorRetryReplicaUpdate,
+    kSectorRetryProveReplicaUpdate,
+    kSectorKeyReleased,
+
+    // Snap Deals failure and recovery
+    kSectorUpdateReplicaFailed,
+    kSectorProveReplicaUpdateFailed,
+    kSectorAbortUpgrade,
+    kSectorUpdateActive,
+    kSectorReleaseKeyFailed,
+    kSectorRevertUpgradeToProving,
+    kSectorRetrySubmitReplicaUpdateWait,
+    kSectorRetrySubmitReplicaUpdate,
+    kSectorSubmitReplicaUpdateFailed,
   };
 
   class SealingEventContext {
@@ -222,6 +246,61 @@ namespace fc::mining {
     }
 
     SealingState return_state{SealingState::kStateUnknown};
+  };
+
+  // SNAP DEAL
+
+  struct SectorStartCCUpdateContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->update = true;
+      // Clear filler piece but remember in case of abort
+      info->update_pieces = info->pieces;
+      info->pieces.clear();
+    }
+  };
+
+  struct SectorReplicaUpdateContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->update_sealed = update_sealed;
+      info->update_unsealed = update_unsealed;
+    }
+
+    CID update_sealed;
+    CID update_unsealed;
+  };
+
+  struct SectorProveReplicaUpdateContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->update_proof = proof;
+    }
+
+    sector_storage::ReplicaUpdateProof proof;
+  };
+
+  struct SectorReplicaUpdateSubmittedContext final
+      : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->update_message = message;
+    }
+
+    CID message;
+  };
+
+  struct SectorRevertUpgradeToProvingContext final
+      : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->update = false;
+      info->update_sealed = boost::none;
+      info->update_unsealed = boost::none;
+      info->update_proof = boost::none;
+      info->update_message = boost::none;
+      info->pieces = std::move(info->update_pieces);
+    }
   };
 
   // EXTERNAL EVENTS

@@ -5,7 +5,6 @@
 
 #include "primitives/address/address.hpp"
 
-#include "common/cmp.hpp"
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
@@ -117,7 +116,8 @@ namespace fc::primitives::address {
   }
 
   bool operator<(const Address &lhs, const Address &rhs) {
-    return less(lhs.getProtocol(), rhs.getProtocol(), lhs.data, rhs.data);
+    return std::forward_as_tuple(lhs.getProtocol(), lhs.data)
+           < std::forward_as_tuple(rhs.getProtocol(), rhs.data);
   }
 
 }  // namespace fc::primitives::address

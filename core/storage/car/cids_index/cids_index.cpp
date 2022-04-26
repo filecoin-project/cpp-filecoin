@@ -205,10 +205,12 @@ namespace fc::storage::cids_index {
         row.max_size64 = maxSize64(size);
         ++total;
       } else {
-        OUTCOME_TRY(cid, CID::read(input));
-        if (ipld) {
-          if (!asIdentity(cid)) {
-            OUTCOME_TRY(ipld->set(cid, input));
+        if (!startsWith(input, kMainnetGenesisBlockParent)) {
+          OUTCOME_TRY(cid, CID::read(input));
+          if (ipld) {
+            if (!asIdentity(cid)) {
+              OUTCOME_TRY(ipld->set(cid, input));
+            }
           }
         }
       }

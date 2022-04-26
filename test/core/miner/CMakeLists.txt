@@ -39,6 +39,7 @@ target_link_libraries(tipset_cache_test
 
 addtest(sealing_test
     sealing_test.cpp
+    sealing_mark_for_upgrade_test.cpp
     checks_test.cpp
     )
 target_link_libraries(sealing_test

@@ -26,7 +26,7 @@ namespace fc::vm::fvm {
       if (msb(big) >= 128) {
         return ERROR_TEXT("Ubig128::fromBig too big");
       }
-      struct It {
+      struct Iterator {
         Ubig128 u;
         size_t i{0};
 
@@ -44,7 +44,7 @@ namespace fc::vm::fvm {
           ++i;
         }
       };
-      const auto it{export_bits(big, It{}, 64, false)};
+      const auto it{export_bits(big, Iterator{}, 64, false)};
       return it.u;
     }
 

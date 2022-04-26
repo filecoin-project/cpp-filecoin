@@ -10,9 +10,9 @@
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/env_context.hpp"
-#include "vm/runtime/i_vm.hpp"
 #include "vm/runtime/pricelist.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
+#include "vm/runtime/virtual_machine.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::vm::runtime {
@@ -37,13 +37,13 @@ namespace fc::vm::runtime {
   };
 
   /// Environment contains objects that are shared by runtime contexts
-  struct Env : IVm, std::enable_shared_from_this<Env> {
+  struct Env : VirtualMachine, std::enable_shared_from_this<Env> {
     static outcome::result<std::shared_ptr<Env>> make(
         const EnvironmentContext &env_context,
         TsBranchPtr ts_branch,
-        TipsetCPtr tipset);
-
-    outcome::result<void> setHeight(ChainEpoch height);
+        const TokenAmount &base_fee,
+        const CID &state,
+        ChainEpoch epoch);
 
     outcome::result<ApplyRet> applyMessage(const UnsignedMessage &message,
                                            size_t size) override;
@@ -57,8 +57,8 @@ namespace fc::vm::runtime {
     EnvironmentContext env_context;
     ChainEpoch epoch;  // mutable epoch for cron()
     TsBranchPtr ts_branch;
+    CID base_state;
     TokenAmount base_fee;
-    TipsetCPtr tipset;
     Pricelist pricelist{0};
     TokenAmount base_circulating;
   };

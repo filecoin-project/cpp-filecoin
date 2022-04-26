@@ -7,13 +7,15 @@
 
 #include <boost/filesystem.hpp>
 #include <regex>
-#include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
 #include "common/logger.hpp"
 #include "common/tarutil.hpp"
+#include "primitives/json_types.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
+  using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SectorRef;
   namespace http = api::http;
   using tcp = api::tcp;
   using primitives::StorageID;
@@ -38,7 +40,7 @@ namespace fc::sector_storage {
                                     http::status::internal_server_error);
     }
 
-    auto json_doc = fc::api::encode(maybe_stat.value());
+    auto json_doc = fc::codec::json::encode(maybe_stat.value());
 
     auto maybe_json = fc::codec::json::format(&json_doc);
 

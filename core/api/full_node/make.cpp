@@ -37,8 +37,8 @@
 #include "vm/actor/builtin/v5/miner/monies.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message.hpp"
-#include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
+#include "vm/runtime/make_vm.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
@@ -71,7 +71,6 @@ namespace fc::api {
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
   using vm::interpreter::InterpreterCache;
-  using vm::runtime::Env;
   using vm::state::StateTreeImpl;
   using vm::toolchain::Toolchain;
   using vm::version::getNetworkVersion;
@@ -588,7 +587,14 @@ namespace fc::api {
       if (!message.gas_limit) {
         message.gas_limit = kBlockGasLimit;
       }
-      OUTCOME_TRY(env, Env::make(env_context, ts_branch, context.tipset));
+      const auto buf_ipld{std::make_shared<vm::IpldBuffered>(ipld)};
+      OUTCOME_TRY(env,
+                  vm::makeVm(buf_ipld,
+                             env_context,
+                             ts_branch,
+                             context.tipset->getParentBaseFee(),
+                             context.tipset->getParentStateRoot(),
+                             context.tipset->epoch()));
       InvocResult result;
       result.message = message;
       OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));

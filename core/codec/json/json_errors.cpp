@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/rpc/json_errors.hpp"
+#include "codec/json/json_errors.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::api, JsonError, e) {
-  using E = fc::api::JsonError;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::json, JsonError, e) {
+  using E = fc::codec::json::JsonError;
   switch (e) {
     case E::kWrongLength:
       return "wrong length";

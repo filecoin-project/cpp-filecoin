@@ -139,9 +139,4 @@ namespace fc::vm::actor::builtin::types::market {
   };
   CBOR_TUPLE(ClientDealProposal, proposal, client_signature)
 
-  struct StorageParticipantBalance {
-    TokenAmount locked;
-    TokenAmount available;
-  };
-
 }  // namespace fc::vm::actor::builtin::types::market

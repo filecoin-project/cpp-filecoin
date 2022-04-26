@@ -16,27 +16,28 @@
 #include "storage/buffer_map.hpp"
 
 namespace fc::sector_storage {
-  using storage::BufferMap;
-  using WorkerID = uint64_t;
   using primitives::Resources;
+  using storage::BufferMap;
+
+  using WorkerId = uint64_t;
 
   struct TaskRequest {
     inline TaskRequest(const SectorRef &sector,
-                       TaskType task_type,
+                       const TaskType &task_type,
                        uint64_t priority,
                        std::shared_ptr<WorkerSelector> sel,
                        WorkerAction prepare,
                        WorkerAction work,
                        ReturnCb cb)
         : sector(sector),
-          task_type(std::move(task_type)),
+          task_type(task_type),
           priority(priority),
           sel(std::move(sel)),
           prepare(std::move(prepare)),
           work(std::move(work)),
           cb(std::move(cb)) {
       const auto &resource_table{primitives::getResourceTable()};
-      const auto resource_iter = resource_table.find(task_type);
+      const auto resource_iter = resource_table.find(this->task_type);
       if (resource_iter != resource_table.end()) {
         need_resources = resource_iter->second.at(sector.proof_type);
       }
@@ -56,12 +57,9 @@ namespace fc::sector_storage {
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
-    return less(rhs.priority,
-                lhs.priority,
-                lhs.task_type,
-                rhs.task_type,
-                lhs.sector.id.sector,
-                rhs.sector.id.sector);
+    // priority is intentionally reversed
+    return std::tie(rhs.priority, lhs.task_type, lhs.sector.id.sector)
+           < std::tie(lhs.priority, rhs.task_type, rhs.sector.id.sector);
   }
 
   class SchedulerImpl : public Scheduler {
@@ -94,15 +92,15 @@ namespace fc::sector_storage {
     outcome::result<bool> maybeScheduleRequest(
         const std::shared_ptr<TaskRequest> &request);
 
-    void assignWorker(WorkerID wid,
+    void assignWorker(WorkerId wid,
                       const std::shared_ptr<WorkerHandle> &worker,
                       const std::shared_ptr<TaskRequest> &request);
 
-    void freeWorker(WorkerID wid);
+    void freeWorker(WorkerId wid);
 
     std::mutex workers_lock_;
-    WorkerID current_worker_id_;
-    std::unordered_map<WorkerID, std::shared_ptr<WorkerHandle>> workers_;
+    WorkerId current_worker_id_;
+    std::unordered_map<WorkerId, std::shared_ptr<WorkerHandle>> workers_;
 
     std::mutex cbs_lock_;
     std::map<CallId, ReturnCb> callbacks_;

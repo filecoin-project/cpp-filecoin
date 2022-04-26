@@ -360,7 +360,12 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
     std::shared_ptr<RuntimeRandomness> randomness =
         std::make_shared<ReplayingRandomness>(mv.randomness);
     fc::vm::runtime::EnvironmentContext env_context{ipld, invoker, randomness};
-    auto env{fc::vm::runtime::Env::make(env_context, nullptr, ts).value()};
+    auto env{fc::vm::runtime::Env::make(env_context,
+                                        nullptr,
+                                        ts->getParentBaseFee(),
+                                        ts->getParentStateRoot(),
+                                        ts->epoch())
+                 .value()};
     auto i{0};
     for (const auto &[epoch_offset, message] : mv.messages) {
       const auto &receipt{mv.receipts[i]};

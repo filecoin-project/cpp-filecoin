@@ -12,6 +12,8 @@
 #include "common/which.hpp"
 
 namespace fc::api::rpc {
+  using codec::json::decode;
+
   Client::Client(io_context &io2)
       : io2{io2},
         work_guard{io.get_executor()},

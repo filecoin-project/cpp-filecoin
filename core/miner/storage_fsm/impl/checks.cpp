@@ -299,16 +299,21 @@ namespace fc::mining::checks {
     if (deal_count == 0) {
       return ERROR_TEXT("checkUpdate: no deals");
     }
+
+    if (!sector_info->update_unsealed) {
+      return ChecksError::kBadUpdateReplica;
+    }
+
     OUTCOME_TRY(comm_d,
                 getDataCommitment(miner_address, sector_info, tipset_key, api));
-    if (sector_info->update_comm_d != comm_d) {
-      return ERROR_TEXT("checkUpdate: wrong update_comm_d");
+    if (sector_info->update_unsealed != comm_d) {
+      return ChecksError::kBadUpdateReplica;
     }
-    if (!sector_info->update_comm_r) {
-      return ERROR_TEXT("checkUpdate: no update_comm_r");
+    if (!sector_info->update_sealed) {
+      return ChecksError::kBadUpdateReplica;
     }
     if (!sector_info->update_proof) {
-      return ERROR_TEXT("checkUpdate: no update_proof");
+      return ChecksError::kBadUpdateProof;
     }
     OUTCOME_TRY(update_type,
                 getRegisteredUpdateProof(sector_info->sector_type));
@@ -316,12 +321,12 @@ namespace fc::mining::checks {
                 proofs->verifyUpdateProof({
                     update_type,
                     *sector_info->comm_r,
-                    *sector_info->update_comm_r,
-                    *sector_info->update_comm_d,
+                    *sector_info->update_sealed,
+                    *sector_info->update_unsealed,
                     *sector_info->update_proof,
                 }));
     if (!verified) {
-      return ERROR_TEXT("checkUpdate: wrong proof");
+      return ChecksError::kBadUpdateProof;
     }
     return outcome::success();
   }
@@ -358,6 +363,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::mining::checks, ChecksError, e) {
       return "ChecksError: need to wait commit";
     case E::kMinerVersion:
       return "ChecksError::kMinerVersion";
+    case E::kBadUpdateReplica:
+      return "ChecksError: bad update replica";
+    case E::kBadUpdateProof:
+      return "ChecksError: bad update proof";
     default:
       return "ChecksError: unknown error";
   }

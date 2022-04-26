@@ -56,7 +56,7 @@ namespace fc::sector_storage {
   CBOR_TUPLE(CallId, sector, id);
 
   inline bool operator<(const CallId &lhs, const CallId &rhs) {
-    return less(lhs.sector, rhs.sector, lhs.id, rhs.id);
+    return std::tie(lhs.sector, lhs.id) < std::tie(rhs.sector, rhs.id);
   }
 
   inline bool operator==(const CallId &lhs, const CallId &rhs) {
@@ -110,6 +110,9 @@ namespace fc::sector_storage {
         const CID &new_sealed,
         const CID &new_unsealed,
         const Update1Output &update_1_output) = 0;
+
+    virtual outcome::result<CallId> finalizeReplicaUpdate(
+        const SectorRef &sector, std::vector<Range> keep_unsealed) = 0;
 
     virtual outcome::result<CallId> moveStorage(const SectorRef &sector,
                                                 SectorFileType types) = 0;
