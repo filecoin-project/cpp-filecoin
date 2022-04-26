@@ -25,8 +25,28 @@ namespace fc::vm::actor::builtin::types {
   struct Universal : vm::actor::WithActorVersion {
     Universal() = default;
     explicit Universal(ActorVersion v) : WithActorVersion{v}, object{make(v)} {}
+
     Universal(ActorVersion v, std::shared_ptr<T> obj)
         : WithActorVersion{v}, object{obj} {}
+
+    Universal(const Universal<T> &other)
+        : WithActorVersion{other.actor_version}, object{other.object} {}
+
+    Universal(Universal<T> &&other)
+        : WithActorVersion{other.actor_version},
+          object{std::move(other.object)} {}
+
+    Universal<T> &operator=(const Universal<T> &other) {
+      actor_version = other.actor_version;
+      object = other.object;
+      return *this;
+    }
+
+    Universal<T> &operator=(Universal<T> &&other) {
+      actor_version = other.actor_version;
+      object = std::move(other.object);
+      return *this;
+    }
 
     static std::shared_ptr<T> make(ActorVersion v);
     codec::cbor::CborDecodeStream &decode(codec::cbor::CborDecodeStream &s);

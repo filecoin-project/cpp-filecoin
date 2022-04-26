@@ -10,6 +10,8 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "testutil/cbor.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
+#include "vm/actor/builtin/types/market/v0/deal_proposal.hpp"
 
 namespace fc::markets::storage {
   using crypto::bls::BlsProviderImpl;
@@ -18,7 +20,7 @@ namespace fc::markets::storage {
   using primitives::address::decodeFromString;
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::UnpaddedPieceSize;
-  using vm::actor::builtin::types::market::DealProposal;
+  using vm::actor::builtin::types::Universal;
 
   class ProtocolNamedCborTestFixture : public ::testing::Test {
    public:
@@ -29,20 +31,8 @@ namespace fc::markets::storage {
     CID cid = CID::fromString("QmTTA2daxGqo5denp6SwLzzkLJm3fuisYEi9CoWsuHpzfb")
                   .value();
 
-    DealProposal deal_proposal{
-        .piece_cid = cid,
-        .piece_size = PaddedPieceSize{256},
-        .verified = true,
-        .client = address,
-        .provider = address,
-        .label = "label",
-        .start_epoch = 101,
-        .end_epoch = 2002,
-        .storage_price_per_epoch = 22,
-        .provider_collateral = 333,
-        .client_collateral = 4444,
-    };
-
+    Universal<vm::actor::builtin::types::market::DealProposal> deal_proposal{
+        ActorVersion::kVersion0};
     std::vector<uint8_t> privkey_bytes{
         "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"_unhex};
     crypto::bls::PrivateKey private_key;
@@ -50,6 +40,18 @@ namespace fc::markets::storage {
     crypto::bls::BlsProviderImpl bls_provider;
 
     void SetUp() override {
+      deal_proposal->piece_cid = cid;
+      deal_proposal->piece_size = PaddedPieceSize{256};
+      deal_proposal->verified = true;
+      deal_proposal->client = address;
+      deal_proposal->provider = address;
+      deal_proposal->label_v0 = "label";
+      deal_proposal->start_epoch = 101;
+      deal_proposal->end_epoch = 2002;
+      deal_proposal->storage_price_per_epoch = 22;
+      deal_proposal->provider_collateral = 333;
+      deal_proposal->client_collateral = 4444;
+
       std::copy(
           privkey_bytes.begin(), privkey_bytes.end(), private_key.begin());
       EXPECT_OUTCOME_TRUE(pubkey, bls_provider.derivePublicKey(private_key));

@@ -20,6 +20,8 @@
 #include "markets/storage/client/client_events.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/client/storage_market_client.hpp"
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::markets::storage::client {
   using api::FullNodeApi;
@@ -37,6 +39,9 @@ namespace fc::markets::storage::client {
   using Datastore = fc::storage::face::PersistentMap<Bytes, Bytes>;
   using data_transfer::DataTransfer;
   using libp2p::connection::StreamOpenQueue;
+  using vm::actor::builtin::types::Universal;
+  using UniversalDealProposal =
+      Universal<vm::actor::builtin::types::market::DealProposal>;
 
   class StorageMarketClientImpl
       : public StorageMarketClient,
@@ -97,7 +102,7 @@ namespace fc::markets::storage::client {
         const DataRef &data_ref) const;
 
     outcome::result<ClientDealProposal> signProposal(
-        const Address &address, const DealProposal &proposal) const;
+        const Address &address, const UniversalDealProposal &proposal) const;
 
     /**
      * Ensure client has enough funds. In case of lack of funds add funds

@@ -26,6 +26,7 @@
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/json_types.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/market/v0/deal_proposal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 
 namespace fc::common {
@@ -974,6 +975,42 @@ namespace fc::vm::actor::builtin::types {
       Get(j, "SectorStartEpoch", v.sector_start_epoch);
       Get(j, "LastUpdatedEpoch", v.last_updated_epoch);
       Get(j, "SlashEpoch", v.slash_epoch);
+    }
+
+    JSON_ENCODE(Universal<DealProposal>) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PieceCID", v->piece_cid, allocator);
+      Set(j, "PieceSize", v->piece_size, allocator);
+      Set(j, "VerifiedDeal", v->verified, allocator);
+      Set(j, "Client", v->client, allocator);
+      Set(j, "Provider", v->provider, allocator);
+      Set(j, "StartEpoch", v->start_epoch, allocator);
+      Set(j, "EndEpoch", v->end_epoch, allocator);
+      Set(j, "StoragePricePerEpoch", v->storage_price_per_epoch, allocator);
+      Set(j, "ProviderCollateral", v->provider_collateral, allocator);
+      Set(j, "ClientCollateral", v->client_collateral, allocator);
+      return j;
+    }
+
+    JSON_DECODE(Universal<DealProposal>) {
+      // TODO (a.chernyshov) use V8 actor asap
+      vm::actor::builtin::v0::market::DealProposal deal_proposal;
+      Get(j, "PieceCID", deal_proposal.piece_cid);
+      Get(j, "PieceSize", deal_proposal.piece_size);
+      Get(j, "VerifiedDeal", deal_proposal.verified);
+      Get(j, "Client", deal_proposal.client);
+      Get(j, "Provider", deal_proposal.provider);
+      Get(j, "StartEpoch", deal_proposal.start_epoch);
+      Get(j, "EndEpoch", deal_proposal.end_epoch);
+      Get(j, "StoragePricePerEpoch", deal_proposal.storage_price_per_epoch);
+      Get(j, "ProviderCollateral", deal_proposal.provider_collateral);
+      Get(j, "ClientCollateral", deal_proposal.client_collateral);
+
+      v = vm::actor::builtin::types::Universal<
+          vm::actor::builtin::types::market::DealProposal>(
+          vm::actor::ActorVersion::kVersion0,
+          std::make_shared<vm::actor::builtin::v0::market::DealProposal>(
+              deal_proposal));
     }
 
     JSON_ENCODE(DealProposal) {

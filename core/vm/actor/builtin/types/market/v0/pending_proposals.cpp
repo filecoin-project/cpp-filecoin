@@ -15,8 +15,8 @@ namespace fc::vm::actor::builtin::v0::market {
     return pending_proposals_0.has(key);
   }
 
-  outcome::result<void> PendingProposals::set(const Key &key,
-                                              const DealProposal &value) {
+  outcome::result<void> PendingProposals::set(
+      const Key &key, const Universal<types::market::DealProposal> &value) {
     return pending_proposals_0.set(key, value);
   }
 

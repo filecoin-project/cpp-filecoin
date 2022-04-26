@@ -11,6 +11,7 @@ add_library(market_types
     bind_types.cpp
     )
 target_link_libraries(market_types
+    PUBLIC utf8::utf8
     actor
     address
     const

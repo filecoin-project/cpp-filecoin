@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using states::DealArray;
   using states::MarketActorStatePtr;
   using types::Controls;
+  using types::Universal;
   using types::market::ClientDealProposal;
   using types::market::DealProposal;
 
@@ -36,10 +37,11 @@ namespace fc::vm::actor::builtin::v0::market {
         const ClientDealProposal &client_deal) const override;
 
     outcome::result<TokenAmount> dealGetPaymentRemaining(
-        const DealProposal &deal, ChainEpoch slash_epoch) const override;
+        const Universal<DealProposal> &deal,
+        ChainEpoch slash_epoch) const override;
 
     outcome::result<ChainEpoch> genRandNextEpoch(
-        const DealProposal &deal) const override;
+        const Universal<DealProposal> &deal) const override;
 
     outcome::result<void> deleteDealProposalAndState(
         MarketActorStatePtr &state,
@@ -48,7 +50,7 @@ namespace fc::vm::actor::builtin::v0::market {
         bool remove_state) const override;
 
     outcome::result<void> validateDealCanActivate(
-        const DealProposal &deal,
+        const Universal<DealProposal> &deal,
         const Address &miner,
         const ChainEpoch &sector_expiration,
         const ChainEpoch &current_epoch) const override;
@@ -77,10 +79,10 @@ namespace fc::vm::actor::builtin::v0::market {
     getRawAndQaPowerFromPowerActor() const override;
 
     outcome::result<void> callVerifRegUseBytes(
-        const DealProposal &deal) const override;
+        const Universal<DealProposal> &deal) const override;
 
     outcome::result<void> callVerifRegRestoreBytes(
-        const DealProposal &deal) const override;
+        const Universal<DealProposal> &deal) const override;
 
     outcome::result<Controls> requestMinerControlAddress(
         const Address &miner) const override;

@@ -122,16 +122,16 @@ namespace fc {
             deal.proposal_cid,
             deal.state,
             deal.message,
-            deal.client_deal_proposal.proposal.provider,
+            deal.client_deal_proposal.proposal->provider,
             deal.data_ref,
-            deal.client_deal_proposal.proposal.piece_cid,
-            deal.client_deal_proposal.proposal.piece_size.unpadded(),
-            deal.client_deal_proposal.proposal.storage_price_per_epoch,
-            deal.client_deal_proposal.proposal.duration(),
+            deal.client_deal_proposal.proposal->piece_cid,
+            deal.client_deal_proposal.proposal->piece_size.unpadded(),
+            deal.client_deal_proposal.proposal->storage_price_per_epoch,
+            deal.client_deal_proposal.proposal->duration(),
             deal.deal_id,
             // TODO (a.chernyshov) creation time - actually not used
             {},
-            deal.client_deal_proposal.proposal.verified,
+            deal.client_deal_proposal.proposal->verified,
             // TODO (a.chernyshov) actual ChannelId
             {node_objects.host->getId(), deal.miner.id, 0},
             // TODO (a.chernyshov) actual data transfer
@@ -147,15 +147,15 @@ namespace fc {
           .proposal_cid = deal.proposal_cid,
           .state = deal.state,
           .message = deal.message,
-          .provider = deal.client_deal_proposal.proposal.provider,
+          .provider = deal.client_deal_proposal.proposal->provider,
           .data_ref = deal.data_ref,
-          .piece_cid = deal.client_deal_proposal.proposal.piece_cid,
-          .size = deal.client_deal_proposal.proposal.piece_size.unpadded(),
+          .piece_cid = deal.client_deal_proposal.proposal->piece_cid,
+          .size = deal.client_deal_proposal.proposal->piece_size.unpadded(),
           .price_per_epoch =
-              deal.client_deal_proposal.proposal.storage_price_per_epoch,
-          .duration = deal.client_deal_proposal.proposal.duration(),
+              deal.client_deal_proposal.proposal->storage_price_per_epoch,
+          .duration = deal.client_deal_proposal.proposal->duration(),
           .deal_id = deal.deal_id,
-          .verified = deal.client_deal_proposal.proposal.verified,
+          .verified = deal.client_deal_proposal.proposal->verified,
       };  // TODO(@Elestrias): [FIL-614] Creation time
     };
 

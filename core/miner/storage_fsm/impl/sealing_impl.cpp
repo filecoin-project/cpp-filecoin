@@ -2722,7 +2722,7 @@ namespace fc::mining {
       }
       const auto &proposal{maybe_proposal.value().proposal};
 
-      if (proposal.provider != miner_address_) {
+      if (proposal->provider != miner_address_) {
         logger_->warn(
             "piece {} (of {}) of sector {} refers deal {} with wrong provider: "
             "{} != {}",
@@ -2731,13 +2731,13 @@ namespace fc::mining {
             info->sector_number,
             piece.deal_info->deal_id,
             encodeToString(miner_address_),
-            encodeToString(proposal.provider));
+            encodeToString(proposal->provider));
         to_fix.push_back(i);
         continue;
       }
 
-      if (proposal.piece_cid != piece.piece.cid) {
-        OUTCOME_TRY(expected_cid, proposal.piece_cid.toString());
+      if (proposal->piece_cid != piece.piece.cid) {
+        OUTCOME_TRY(expected_cid, proposal->piece_cid.toString());
         OUTCOME_TRY(actual_cid, piece.piece.cid.toString());
         logger_->warn(
             "piece {} (of {}) of sector {} refers deal {} with wrong PieceCID: "
@@ -2751,7 +2751,7 @@ namespace fc::mining {
         to_fix.push_back(i);
         continue;
       }
-      if (proposal.piece_size != piece.piece.size) {
+      if (proposal->piece_size != piece.piece.size) {
         logger_->warn(
             "piece {} (of {}) of sector {} refers deal {} with different size: "
             "{} != {}",
@@ -2762,12 +2762,12 @@ namespace fc::mining {
 
             piece.piece.size,
 
-            proposal.piece_size);
+            proposal->piece_size);
         to_fix.push_back(i);
         continue;
       }
 
-      if (head->height() >= proposal.start_epoch) {
+      if (head->height() >= proposal->start_epoch) {
         // TODO(ortyomka): [FIL-382] try to remove the offending pieces
         logger_->error(
             "can't fix sector deals: piece {} (of {}) of sector {} refers "
@@ -2776,7 +2776,7 @@ namespace fc::mining {
             info->pieces.size(),
             info->sector_number,
             piece.deal_info->deal_id,
-            proposal.start_epoch,
+            proposal->start_epoch,
             head->height());
         return ERROR_TEXT("Invalid Deal");
       }
@@ -2902,11 +2902,12 @@ namespace fc::mining {
       }
       const auto &head{maybe_head.value()};
 
-      const auto maybe_error = checks::checkUpdate(self->miner_address_,
-                                             info,
-                                             head->key,
-                                             self->api_,
-                                             self->sealer_->getProofEngine());
+      const auto maybe_error =
+          checks::checkUpdate(self->miner_address_,
+                              info,
+                              head->key,
+                              self->api_,
+                              self->sealer_->getProofEngine());
       if (maybe_error.has_error()) {
         if (maybe_error
             == outcome::failure(checks::ChecksError::kBadUpdateReplica)) {

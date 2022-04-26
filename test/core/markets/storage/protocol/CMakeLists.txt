@@ -17,4 +17,5 @@ target_link_libraries(storage_market_protocol_named_cbor_test
     cbor
     signature
     piece
+    market_types
     )

@@ -7,6 +7,7 @@
 #include "vm/actor/builtin/types/market/policy.hpp"
 
 namespace fc::mining {
+  using vm::actor::builtin::types::Universal;
   using vm::actor::builtin::types::market::kDealMinDuration;
 
   class SealingTest : public SealingTestFixture {};
@@ -296,11 +297,11 @@ namespace fc::mining {
 
     api_->ChainHead = [&]() -> outcome::result<TipsetCPtr> { return tipset; };
 
-    DealProposal proposal;
-    proposal.piece_cid = info.cid;
-    proposal.piece_size = info.size;
-    proposal.start_epoch = tipset->height() + 1;
-    proposal.provider = miner_addr_;
+    auto proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+    proposal->piece_cid = info.cid;
+    proposal->piece_size = info.size;
+    proposal->start_epoch = tipset->height() + 1;
+    proposal->provider = miner_addr_;
     StorageDeal storage_deal;
     storage_deal.proposal = proposal;
 
@@ -629,14 +630,14 @@ namespace fc::mining {
                 replicaUpdate(sector_ref, infos, _, kDealSectorPriority))
         .WillOnce(testing::Invoke(
             [=](auto, auto, auto cb, auto) { cb(replica_update_out); }));
-    DealProposal proposal;
-    proposal.piece_cid = info.cid;
-    proposal.piece_size = info.size;
-    proposal.start_epoch = head->height() + 1;
-    proposal.provider = miner_addr_;
+    auto proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+    proposal->piece_cid = info.cid;
+    proposal->piece_size = info.size;
+    proposal->start_epoch = head->height() + 1;
+    proposal->provider = miner_addr_;
     StorageDeal storage_deal;
     storage_deal.proposal = proposal;
-    storage_deal.proposal = proposal;
+
     api_->StateMarketStorageDeal =
         [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {

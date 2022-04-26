@@ -22,10 +22,8 @@
 #include "vm/actor/builtin/types/market/publish_deals_result.hpp"
 #include "vm/message/message.hpp"
 
-#define MOVE(x)  \
-  x {            \
-    std::move(x) \
-  }
+#define MOVE(x) \
+  x { std::move(x) }
 
 #define CALLBACK_ACTION(_action)                                    \
   [this](auto deal, auto event, auto context, auto from, auto to) { \
@@ -131,7 +129,7 @@ namespace fc::markets::storage::client {
     OUTCOME_EXCEPT(bytes, codec::cbor::encode(deal->proposal_cid));
     OUTCOME_CB(
         auto signature,
-        api_->WalletSign(deal->client_deal_proposal.proposal.client, bytes));
+        api_->WalletSign(deal->client_deal_proposal.proposal->client, bytes));
     DealStatusRequestV1_1_0 req{{deal->proposal_cid, signature}};
     status_streams_->open({
         deal->miner,
@@ -191,7 +189,7 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(all_deals, api_->StateMarketDeals(chain_head->key));
     std::vector<StorageDeal> client_deals;
     for (const auto &deal : all_deals) {
-      if (deal.second.proposal.client == address) {
+      if (deal.second.proposal->client == address) {
         client_deals.emplace_back(deal.second);
       }
     }
@@ -281,19 +279,20 @@ namespace fc::markets::storage::client {
       provider_collateral = bigdiv(bounds.min * 12, 10);
     }
 
-    DealProposal deal_proposal{
-        .piece_cid = comm_p,
-        .piece_size = piece_size.padded(),
-        .verified = verified_deal,
-        .client = client_address,
-        .provider = provider_info.address,
-        .label = {},
-        .start_epoch = start_epoch,
-        .end_epoch = end_epoch,
-        .storage_price_per_epoch = price,
-        .provider_collateral = provider_collateral,
-        .client_collateral = 0,
-    };
+    // TODO (a.chernyshov) change to v8 and label_v8
+    auto deal_proposal = UniversalDealProposal(ActorVersion::kVersion0);
+    deal_proposal->piece_cid = comm_p;
+    deal_proposal->piece_size = piece_size.padded();
+    deal_proposal->verified = verified_deal;
+    deal_proposal->client = client_address;
+    deal_proposal->provider = provider_info.address;
+    deal_proposal->label_v0 = {};
+    deal_proposal->start_epoch = start_epoch;
+    deal_proposal->end_epoch = end_epoch;
+    deal_proposal->storage_price_per_epoch = price;
+    deal_proposal->provider_collateral = provider_collateral;
+    deal_proposal->client_collateral = 0;
+
     OUTCOME_TRY(signed_proposal, signProposal(client_address, deal_proposal));
     auto proposal_cid{signed_proposal.cid()};
 
@@ -365,7 +364,7 @@ namespace fc::markets::storage::client {
   }
 
   outcome::result<ClientDealProposal> StorageMarketClientImpl::signProposal(
-      const Address &address, const DealProposal &proposal) const {
+      const Address &address, const UniversalDealProposal &proposal) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(key_address, api_->StateAccountKey(address, chain_head->key));
     OUTCOME_TRY(proposal_bytes, codec::cbor::encode(proposal));
@@ -379,9 +378,9 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(
         maybe_cid,
         api_->MarketReserveFunds(
-            deal->client_deal_proposal.proposal.client,
-            deal->client_deal_proposal.proposal.client,
-            deal->client_deal_proposal.proposal.clientBalanceRequirement()));
+            deal->client_deal_proposal.proposal->client,
+            deal->client_deal_proposal.proposal->client,
+            deal->client_deal_proposal.proposal->clientBalanceRequirement()));
     return std::move(maybe_cid);
   }
 
@@ -410,7 +409,7 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(publish_message, api_->ChainGetMessage(deal->publish_message));
     OUTCOME_TRY(
         miner_info,
-        api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
+        api_->StateMinerInfo(deal->client_deal_proposal.proposal->provider,
                              msg_state.tipset));
     OUTCOME_TRY(from_id_address,
                 api_->StateLookupID(publish_message.from, msg_state.tipset));
@@ -644,7 +643,7 @@ namespace fc::markets::storage::client {
       StorageDealStatus from,
       StorageDealStatus to) {
     chain_events_->onDealSectorCommitted(
-        deal->client_deal_proposal.proposal.provider,
+        deal->client_deal_proposal.proposal->provider,
         deal->deal_id,
         [self{shared_from_this()}, deal](auto _r) {
           SELF_FSM_HALT_ON_ERROR(_r, "onDealSectorCommitted error", deal);

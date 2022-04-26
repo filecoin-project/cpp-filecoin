@@ -17,6 +17,7 @@ target_link_libraries(storage_market_client
     logger
     piece
     signature
+    market_types
     message
     tipset
     memory_indexed_car

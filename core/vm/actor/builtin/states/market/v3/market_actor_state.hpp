@@ -12,6 +12,7 @@ namespace fc::vm::actor::builtin::v3::market {
   using primitives::DealId;
   using primitives::TokenAmount;
   using runtime::Runtime;
+  using types::Universal;
   using types::market::DealProposal;
   using types::market::DealState;
 
@@ -19,7 +20,7 @@ namespace fc::vm::actor::builtin::v3::market {
     outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
     updatePendingDealState(Runtime &runtime,
                            DealId deal_id,
-                           const DealProposal &deal,
+                           const Universal<DealProposal> &deal,
                            const DealState &deal_state,
                            ChainEpoch epoch) override;
 

@@ -11,7 +11,9 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
   using v0::market::PublishStorageDeals;
 
   outcome::result<CurrentDealInfo> DealInfoManagerImpl::getCurrentDealInfo(
-      const DealProposal &proposal, const CID &publish_cid) {
+      const Universal<vm::actor::builtin::types::market::DealProposal>
+          &proposal,
+      const CID &publish_cid) {
     // TODO (ortyomka): maybe async call, it's long
     OUTCOME_TRY(publish_message_wait,
                 api_->StateSearchMsg(
@@ -53,7 +55,9 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
         logger_(common::createLogger("deal info manager")) {}
 
   outcome::result<DealId> DealInfoManagerImpl::dealIdFromPublishDealsMsg(
-      const MsgWait &publish_message_wait, const DealProposal &proposal) {
+      const MsgWait &publish_message_wait,
+      const Universal<vm::actor::builtin::types::market::DealProposal>
+          &proposal) {
     if (publish_message_wait.receipt.exit_code != VMExitCode::kOk) {
       OUTCOME_TRY(cid_str, publish_message_wait.message.toString());
       logger_->error(
@@ -102,9 +106,11 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
   }
 
   outcome::result<bool> DealInfoManagerImpl::checkProposalEquality(
-      const TipsetKey &tipset_key, DealProposal lhs, DealProposal rhs) {
-    OUTCOME_TRYA(lhs.client, api_->StateLookupID(lhs.client, tipset_key));
-    OUTCOME_TRYA(rhs.client, api_->StateLookupID(rhs.client, tipset_key));
+      const TipsetKey &tipset_key,
+      Universal<vm::actor::builtin::types::market::DealProposal> lhs,
+      Universal<vm::actor::builtin::types::market::DealProposal> rhs) {
+    OUTCOME_TRYA(lhs->client, api_->StateLookupID(lhs->client, tipset_key));
+    OUTCOME_TRYA(rhs->client, api_->StateLookupID(rhs->client, tipset_key));
 
     return lhs == rhs;
   }

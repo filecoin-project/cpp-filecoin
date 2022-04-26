@@ -5,10 +5,10 @@
 
 #pragma once
 
+#include <libp2p/peer/peer_id.hpp>
 #include "primitives/address/address.hpp"
 #include "primitives/sector/sector.hpp"
-
-#include <libp2p/peer/peer_id.hpp>
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
 
 namespace fc::miner::types {
   using libp2p::peer::PeerId;
@@ -17,13 +17,14 @@ namespace fc::miner::types {
   using primitives::SectorSize;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using vm::actor::builtin::types::Universal;
   using vm::actor::builtin::types::market::DealProposal;
 
   struct PreSealSector {
     CID comm_r;
     CID comm_d;
     SectorNumber sector_id;
-    DealProposal deal;
+    Universal<DealProposal> deal;
     RegisteredSealProof proof_type;
   };
 

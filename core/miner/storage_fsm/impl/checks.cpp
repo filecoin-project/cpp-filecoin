@@ -86,19 +86,19 @@ namespace fc::mining::checks {
       }
 
       const auto &proposal{maybe_proposal.value()};
-      if (miner_address != proposal.proposal.provider) {
+      if (miner_address != proposal.proposal->provider) {
         return ChecksError::kInvalidDeal;
       }
 
-      if (piece.piece.cid != proposal.proposal.piece_cid) {
+      if (piece.piece.cid != proposal.proposal->piece_cid) {
         return ChecksError::kInvalidDeal;
       }
 
-      if (piece.piece.size != proposal.proposal.piece_size) {
+      if (piece.piece.size != proposal.proposal->piece_size) {
         return ChecksError::kInvalidDeal;
       }
 
-      if (chain_head->epoch() >= proposal.proposal.start_epoch) {
+      if (chain_head->epoch() >= proposal.proposal->start_epoch) {
         return ChecksError::kExpiredDeal;
       }
       ++deal_count;

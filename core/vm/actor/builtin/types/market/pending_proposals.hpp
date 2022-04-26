@@ -9,6 +9,7 @@
 #include "adt/map.hpp"
 #include "adt/set.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
 
 namespace fc::vm::actor::builtin::types::market {
   using adt::CidKeyer;
@@ -16,7 +17,7 @@ namespace fc::vm::actor::builtin::types::market {
   struct PendingProposals {
     using Key = CidKeyer::Key;
 
-    adt::Map<DealProposal, CidKeyer> pending_proposals_0;
+    adt::Map<Universal<DealProposal>, CidKeyer> pending_proposals_0;
     adt::Set<CidKeyer> pending_proposals_3;
 
     virtual ~PendingProposals() = default;
@@ -24,7 +25,7 @@ namespace fc::vm::actor::builtin::types::market {
     virtual outcome::result<void> loadRoot() const = 0;
     virtual outcome::result<bool> has(const Key &key) const = 0;
     virtual outcome::result<void> set(const Key &key,
-                                      const DealProposal &value) = 0;
+                                      const Universal<DealProposal> &value) = 0;
     virtual outcome::result<void> remove(const Key &key) = 0;
   };
 
