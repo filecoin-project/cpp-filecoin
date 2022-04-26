@@ -11,17 +11,19 @@ namespace fc::vm::actor::builtin {
 
   // These methods must be actual with the last version of actors
 
-  enum class AccountActor : MethodNumber {
-    kConstruct = 1,
-    kPubkeyAddress,
-  }
+  struct AccountActor {
+    enum class Method : MethodNumber {
+      kConstruct = 1,
+      kPubkeyAddress,
+    }
 
-  struct Construct : ActorMethodBase<AccountActor::kConstruct> {
-    using Params = Address;
-  };
+    struct Construct : ActorMethodBase<Method::kConstruct> {
+      using Params = Address;
+    };
 
-  struct PubkeyAddress : ActorMethodBase<AccountActor::kPubkeyAddress> {
-    using Result = Address;
+    struct PubkeyAddress : ActorMethodBase<Method::kPubkeyAddress> {
+      using Result = Address;
+    };
   };
 
 }  // namespace fc::vm::actor::builtin

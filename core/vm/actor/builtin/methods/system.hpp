@@ -11,10 +11,12 @@ namespace fc::vm::actor::builtin {
 
   // These methods must be actual with the last version of actors
 
-  enum class SystemActor : MethodNumber {
-    kConstruct = 1,
-  }
+  struct SystemActor {
+    enum class Method : MethodNumber {
+      kConstruct = 1,
+    }
 
-  struct Construct : ActorMethodBase<SystemActor::kConstruct> {};
+    struct Construct : ActorMethodBase<Method::kConstruct> {};
+  };
 
 }  // namespace fc::vm::actor::builtin

@@ -1,7 +1,7 @@
 hunter_config(
     libarchive
-    URL https://github.com/soramitsu/fuhon-libarchive/archive/hunter-v3.4.3.tar.gz
-    SHA1 0996fd781195df120744164ba5e0033a14c79e06
+    URL https://github.com/Markuu-s/fuhon-libarchive/archive/fc8661c5619505ec252196e7e1b9436edf91cd58.tar.gz
+    SHA1 5e21e7e10a36dfeafbe5fa665254faf83ba56ee3
     CMAKE_ARGS ENABLE_INSTALL=ON
 )
 
