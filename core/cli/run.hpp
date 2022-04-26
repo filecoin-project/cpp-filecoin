@@ -100,7 +100,7 @@ namespace fc::cli {
       fmt::print("\n");
 
       if (not tree->description.empty()) {
-        fmt::print("usage:\n  {}\n", tree->description);
+        fmt::print("description:\n  {}\n", tree->description);
       }
       fmt::print("options:\n{}", args.opts);
       if (!tree->sub.empty()) {

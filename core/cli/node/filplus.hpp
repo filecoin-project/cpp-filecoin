@@ -142,7 +142,7 @@ namespace fc::cli::cli_node {
           vm::actor::builtin::v0::verified_registry::AddVerifier::Params{
               *args.from, *args.amount
           }));
-      const SignedMessage signed_message1 = cliTry(api->MpoolPushMessage(
+      const SignedMessage signed_message = cliTry(api->MpoolPushMessage(
           {kVerifiedRegistryAddress,
            state->root_key,
            {},
@@ -153,7 +153,7 @@ namespace fc::cli::cli_node {
            encoded_params},
           api::kPushNoSpec));
       const MsgWait message_wait =
-          cliTry(api->StateWaitMsg(signed_message1.getCid(), 1, 10, false),
+          cliTry(api->StateWaitMsg(signed_message.getCid(), 1, 10, false),
                  "Wait message");
     }
   };
