@@ -16,4 +16,50 @@ namespace fc::vm::actor::builtin {
     kExec,
   }
 
+  struct Construct : ActorMethodBase<InitActor::kConstruct> {
+    struct Params {
+      std::string network_name;
+
+      inline bool operator==(const Params &other) const {
+        return network_name == other.network_name;
+      }
+
+      inline bool operator!=(const Params &other) const {
+        return !(*this == other);
+      }
+    };
+  };
+  CBOR_TUPLE(Construct::Params, network_name)
+
+  struct Exec : ActorMethodBase<InitActor::kExec> {
+    struct Params {
+      CodeId code;
+      MethodParams params;
+
+      inline bool operator==(const Params &other) const {
+        return code == other.code && params == other.params;
+      }
+
+      inline bool operator!=(const Params &other) const {
+        return !(*this == other);
+      }
+    };
+
+    struct Result {
+      Address id_address;
+      Address robust_address;
+
+      inline bool operator==(const Result &other) const {
+        return id_address == other.id_address
+               && robust_address == other.robust_address;
+      }
+
+      inline bool operator!=(const Result &other) const {
+        return !(*this == other);
+      }
+    };
+  };
+  CBOR_TUPLE(Exec::Params, code, params)
+  CBOR_TUPLE(Exec::Result, id_address, robust_address)
+
 }  // namespace fc::vm::actor::builtin

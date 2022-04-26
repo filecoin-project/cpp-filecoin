@@ -22,6 +22,14 @@ namespace fc::common::smoothing {
   struct FilterEstimate {
     BigInt position;
     BigInt velocity;
+
+    inline bool operator==(const FilterEstimate &other) const {
+      return position == other.position && velocity == other.velocity;
+    }
+
+    inline bool operator!=(const FilterEstimate &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(FilterEstimate, position, velocity)
 

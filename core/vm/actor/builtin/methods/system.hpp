@@ -15,4 +15,6 @@ namespace fc::vm::actor::builtin {
     kConstruct = 1,
   }
 
+  struct Construct : ActorMethodBase<SystemActor::kConstruct> {};
+
 }  // namespace fc::vm::actor::builtin

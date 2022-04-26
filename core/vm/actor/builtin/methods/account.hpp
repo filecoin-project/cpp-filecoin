@@ -16,4 +16,12 @@ namespace fc::vm::actor::builtin {
     kPubkeyAddress,
   }
 
+  struct Construct : ActorMethodBase<AccountActor::kConstruct> {
+    using Params = Address;
+  };
+
+  struct PubkeyAddress : ActorMethodBase<AccountActor::kPubkeyAddress> {
+    using Result = Address;
+  };
+
 }  // namespace fc::vm::actor::builtin

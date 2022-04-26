@@ -9,9 +9,9 @@
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::verified_registry {
+  using primitives::DataCap;
   using primitives::StoragePower;
   using primitives::address::Address;
-  using states::DataCap;
   using states::VerifiedRegistryActorStatePtr;
 
   struct Construct : ActorMethodBase<1> {

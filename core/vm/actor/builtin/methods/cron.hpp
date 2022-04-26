@@ -7,7 +7,10 @@
 
 #include "vm/actor/actor_method.hpp"
 
+#include "vm/actor/builtin/types/cron/cron_table_entry.hpp"
+
 namespace fc::vm::actor::builtin {
+  using types::cron::CronTableEntry;
 
   // These methods must be actual with the last version of actors
 
@@ -15,5 +18,11 @@ namespace fc::vm::actor::builtin {
     kConstruct = 1,
     kEpochTick,
   }
+
+  struct Construct : ActorMethodBase<CronActor::kConstruct> {
+    using Params = std::vector<CronTableEntry>;
+  };
+
+  struct EpochTick : ActorMethodBase<CronActor::kEpochTick> {};
 
 }  // namespace fc::vm::actor::builtin

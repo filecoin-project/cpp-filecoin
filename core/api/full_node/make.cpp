@@ -1087,7 +1087,7 @@ namespace fc::api {
 
     api->StateVerifiedClientStatus = [=](const Address &address,
                                          const TipsetKey &tipset_key)
-        -> outcome::result<boost::optional<StoragePower>> {
+        -> outcome::result<boost::optional<DataCap>> {
       OUTCOME_TRY(context, tipsetContext(tipset_key, true));
       OUTCOME_TRY(id, context.state_tree.lookupId(address));
       OUTCOME_TRY(state, context.verifiedRegistryState());

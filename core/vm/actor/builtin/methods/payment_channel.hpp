@@ -7,7 +7,11 @@
 
 #include "vm/actor/actor_method.hpp"
 
+#include "vm/actor/builtin/types/payment_channel/voucher.hpp"
+
 namespace fc::vm::actor::builtin {
+  using primitives::EpochDuration;
+  using types::payment_channel::SignedVoucher;
 
   // These methods must be actual with the last version of actors
 
@@ -17,5 +21,42 @@ namespace fc::vm::actor::builtin {
     kSettle,
     kCollect,
   }
+
+  struct Construct : ActorMethodBase<PaymentChannelActor::kConstruct> {
+    struct Params {
+      Address from;
+      Address to;
+
+      inline bool operator==(const Params &other) const {
+        return from == other.from && to == other.to;
+      }
+
+      inline bool operator!=(const Params &other) const {
+        return !(*this == other);
+      }
+    };
+  };
+  CBOR_TUPLE(Construct::Params, from, to)
+
+  struct UpdateChannelState
+      : ActorMethodBase<PaymentChannelActor::kUpdateChannelState> {
+    struct Params {
+      SignedVoucher signed_voucher;
+      Bytes secret;
+
+      inline bool operator==(const Params &other) const {
+        return signed_voucher == other.signed_voucher && secret == other.secret;
+      }
+
+      inline bool operator!=(const Params &other) const {
+        return !(*this == other);
+      }
+    };
+  };
+  CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret)
+
+  struct Settle : ActorMethodBase<PaymentChannelActor::kSettle> {};
+
+  struct Collect : ActorMethodBase<PaymentChannelActor::kCollect> {};
 
 }  // namespace fc::vm::actor::builtin

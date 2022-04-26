@@ -16,6 +16,14 @@ namespace fc::vm::actor::builtin::types::market {
   struct SectorDeals {
     ChainEpoch sector_expiry{};
     std::vector<DealId> deal_ids;
+
+    inline bool operator==(const SectorDeals &other) const {
+      return sector_expiry == other.sector_expiry && deal_ids == other.deal_ids;
+    }
+
+    inline bool operator!=(const SectorDeals &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(SectorDeals, sector_expiry, deal_ids)
 

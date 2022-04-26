@@ -102,5 +102,7 @@ namespace fc::primitives {
 
   using SectorQuality = BigInt;
 
+  using DataCap = StoragePower;
+
   CBOR_TUPLE(SectorStorageWeightDesc, sector_size, duration, deal_weight)
 }  // namespace fc::primitives

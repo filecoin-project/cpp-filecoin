@@ -48,6 +48,7 @@ namespace fc::api {
   using markets::storage::client::import_manager::Import;
   using primitives::BigInt;
   using primitives::ChainEpoch;
+  using primitives::DataCap;
   using primitives::DealId;
   using primitives::EpochDuration;
   using primitives::GasAmount;
@@ -761,7 +762,7 @@ namespace fc::api {
      */
     API_METHOD(StateVerifiedClientStatus,
                jwt::kReadPermission,
-               boost::optional<StoragePower>,
+               boost::optional<DataCap>,
                const Address &,
                const TipsetKey &)
 

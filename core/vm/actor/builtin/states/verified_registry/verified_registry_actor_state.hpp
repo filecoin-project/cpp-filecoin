@@ -12,9 +12,9 @@
 #include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
+  using primitives::DataCap;
   using primitives::StoragePower;
   using primitives::address::Address;
-  using DataCap = primitives::StoragePower;
 
   struct VerifiedRegistryActorState {
     virtual ~VerifiedRegistryActorState() = default;
