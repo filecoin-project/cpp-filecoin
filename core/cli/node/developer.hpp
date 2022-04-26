@@ -10,6 +10,7 @@
 #include "cli/node/node.hpp"
 #include "cli/validate/address.hpp"
 #include "cli/validate/cid.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::cli::cli_node {
   using api::BlockMessages;
@@ -106,8 +107,8 @@ namespace fc::cli::cli_node {
     }
     fmt::print("Exit Code: {}\n", message_wait.receipt.exit_code);
     fmt::print("Gas Used: {}\n", message_wait.receipt.gas_used);
-    //    fmt::print("Return: {}\n\n", message_wait.receipt.return_value); // TODO
-    //    TODO ERROR becase encode value? or just print bytes
+    fmt::print("Return: {}\n\n",
+               common::hex_lower(message_wait.receipt.return_value));
     printReceiptReturn(api, message, message_wait.receipt);
   }
 
@@ -706,7 +707,11 @@ namespace fc::cli::cli_node {
   struct Node_developer_listMiners {
     struct Args {
       tipset_template tipset;
-      CLI_DEFAULT("sort-by", "criteria to sort miners by (none{default}, num-deals)", std::string, {"none"}) sort_by;
+      CLI_DEFAULT("sort-by",
+                  "criteria to sort miners by (none{default}, num-deals)",
+                  std::string,
+                  {"none"})
+      sort_by;
       CLI_OPTS() {
         Opts opts;
         tipset(opts);
@@ -719,11 +724,29 @@ namespace fc::cli::cli_node {
       const Node::Api api{argm};
       const TipsetCPtr tipset = loadTipset(api, args.tipset.v);
 
-      const std::vector<Address> miners = cliTry(api->StateListMiners(tipset->key));
+      const std::vector<Address> miners =
+          cliTry(api->StateListMiners(tipset->key));
 
       if (*args.sort_by == "num-deals") {
-        // TODO make sort
-      } else if (*args.sort_by != "none"){
+        const api::MarketDealMap all_deals = cliTry(api->StateMarketDeals({}));
+        std::map<Address, int> out;
+        for (const auto &[_, deal] : all_deals) {
+          if (deal.state.sector_start_epoch != -1) {
+            out[deal.proposal.provider]++;
+          }
+        }
+
+        std::sort(miners.begin(),
+                  miners.end(),
+                  [&](const Address &lhs, const Address &rhs) {
+                    return out[lhs] > out[rhs];
+                  });
+
+        for (int i = 0; i < std::min(50, (int)miners.size()); ++i) {
+          fmt::print("{} {}\n", miners[i], out[miners[i]]);
+        }
+
+      } else if (*args.sort_by != "none") {
         throw CliError("unrecognized sorting order: {}\n", *args.sort_by);
       }
 
@@ -814,11 +837,16 @@ namespace fc::cli::cli_node {
 
         const Actor actor =
             cliTry(api->StateGetActor(miner_address, tipset->key));
-        // TODO
-        //          if !builtin.IsStorageMinerActor(ma.Code) {
-        //              return xerrors.New("provided address does not correspond
-        //              to a miner actor")
-        //            }
+        auto version = cliTry(api->StateNetworkVersion(TipsetKey()),
+                              "Getting Chain Version...");
+        const auto address_matcher =
+            vm::toolchain::Toolchain::createAddressMatcher(
+                actorVersion(version));
+
+        if (not address_matcher->isStorageMinerActor(actor.code)) {
+          throw CliError(
+              "provided address does not correspond to a miner actor");
+        }
       }
 
       const api::MinerPower power =
