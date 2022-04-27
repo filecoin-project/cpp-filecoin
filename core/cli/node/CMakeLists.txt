@@ -9,6 +9,10 @@ add_executable(fuhon-node-cli
 target_link_libraries(fuhon-node-cli
     cli
     rpc
+    car
+    memory_indexed_car
+    unixfs
+    api_ipfs_datastore
     file
     )
 set_target_properties(fuhon-node-cli PROPERTIES

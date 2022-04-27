@@ -6,6 +6,7 @@
 #pragma once
 
 #include "cli/cli.hpp"
+#include <string>
 
 namespace fc::cli {
   struct Tree {
@@ -17,6 +18,8 @@ namespace fc::cli {
     std::function<Args()> args;
     std::function<RunResult(ArgsMap &argm, Argv &&argv)> run;
     Sub sub;
+    std::string description;
+    std::vector<std::string> argusage;
   };
   template <typename Cmd>
   Tree tree(Tree::Sub sub = {}) {
@@ -37,4 +40,13 @@ namespace fc::cli {
     t.sub = std::move(sub);
     return t;
   }
+  template<class Cmd>
+  auto treeDesc(std::string description, std::vector<std::string> argusage = {}) {
+    return [=](Tree::Sub sub = {}) {
+      auto t = tree<Cmd>(sub);
+      t.description = description;
+      t.argusage = argusage;
+      return t;
+    }; }
+
 }  // namespace fc::cli

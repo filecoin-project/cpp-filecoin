@@ -155,8 +155,13 @@ namespace fc {
               deal.client_deal_proposal.proposal->storage_price_per_epoch,
           .duration = deal.client_deal_proposal.proposal->duration(),
           .deal_id = deal.deal_id,
+          // TODO(@Elestrias): [FIL-614] Creation time
+          .creation_time = {},
           .verified = deal.client_deal_proposal.proposal->verified,
-      };  // TODO(@Elestrias): [FIL-614] Creation time
+          .transfer_channel_id = {node_objects.host->getId(), deal.miner.id, 0},
+          .data_transfer =
+              {0, 0, deal.proposal_cid, true, true, "", "", deal.miner.id, 0},
+      };
     };
 
     node_objects.api->ClientListRetrievals =
