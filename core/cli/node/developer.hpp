@@ -11,6 +11,7 @@
 #include "cli/validate/address.hpp"
 #include "cli/validate/cid.hpp"
 #include "vm/toolchain/toolchain.hpp"
+#include "codec/uvarint.hpp"
 
 namespace fc::cli::cli_node {
   using api::BlockMessages;
@@ -66,6 +67,14 @@ namespace fc::cli::cli_node {
                    });
 
     return cliTry(api->ChainGetTipSet(TipsetKey::make(cids).value()));
+  }
+
+  std::string make_kib(const primitives::BigInt &x) {
+    return fmt::format("{} KiB", x / 1024); // TODO is correct or cast to double?
+  }
+
+  std::string make_fil(const primitives::BigInt &x) {
+    return fmt::format("{} FIL", x / kFilecoinPrecision);
   }
 
   std::string epochTime(ChainEpoch current, ChainEpoch start) {
@@ -381,11 +390,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_state_market_balance : Empty {
-    CLI_RUN() {
-//       Node_client_balance::run(argm, args, argv); TODO
-    }
-  };
+  struct Node_state_market_balance : public Node_client_balances {}; // TODO wrong
 
   struct Node_state_sector {
     struct Args {
@@ -430,11 +435,11 @@ namespace fc::cli::cli_node {
       fmt::print("DealWeight: {}\n", sector_info.deal_weight);
       fmt::print("VerifiedDealWeight: {}\n", sector_info.verified_deal_weight);
       fmt::print("InitialPledge: {}\n",
-                 sector_info.init_pledge);  // TODO types.FIL
+                 make_fil(sector_info.init_pledge));
       fmt::print("ExpectedDayReward: {}\n",
-                 sector_info.expected_day_reward);  // TODO types.FIL
+                 make_fil(sector_info.expected_day_reward));
       fmt::print("ExpectedStoragePledge: {}\n\n",
-                 sector_info.expected_storage_pledge);  // TODO types.FIL
+                 make_fil(sector_info.expected_storage_pledge));
 
       const api::SectorLocation sector_partition = cliTry(
           api->StateSectorPartition(miner_address, sector_number, tipset->key),
@@ -614,7 +619,7 @@ namespace fc::cli::cli_node {
           cliTry(api->StateMinerInfo(miner_address, tipset->key));
 
       fmt::print("{} ({})\n",
-                 std::to_string(miner_info.sector_size).size(),
+                 make_kib(miner_info.sector_size),
                  miner_info.sector_size);
     }
   };
@@ -671,10 +676,9 @@ namespace fc::cli::cli_node {
           cliTry(api->StateGetActor(actor_address, tipset->key));
 
       fmt::print("Address:\t{}\n", actor_address);
-      fmt::print("Balance:\t{}\n", actor.balance);  // TODO types.FIL
+      fmt::print("Balance:\t{}\n", make_fil(actor.balance));
       fmt::print("Nonce:\t\t{}\n", actor.nonce);
-      //      fmt::print("Code:\t\t{} ({})\n", actor.code, strtype);  // TODO
-      //      strtype
+      fmt::print("Code:\t\t{} ({})\n", actor.code, cliTry(actor.code.toString())); // TODO matcher codeId
       fmt::print("Head:\t\t{}\n", actor.head);
     }
   };
@@ -754,11 +758,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_state_getDeal : Empty {
-    CLI_RUN() {
-//      Node_client_getDeal::run(argm, args, fc::cli::Argv()); TODO
-    }
-  };
+  struct Node_state_getDeal : public Node_client_getDeal {}; // TODO wrong
 
   struct Node_state_activeSectors {
     struct Args {
@@ -852,19 +852,19 @@ namespace fc::cli::cli_node {
           cliTry(api->StateMinerPower(miner_address, tipset->key));
 
       const Claim total_power = power.total;
-      if (argv_empty) {
+      if (not argv_empty) {
         const Claim miner_power = power.miner;
-        fmt::print("{}({}) / {}({}) ~= {}\n",
+        fmt::print("{}({}) / {}({}) ~= {}%\n",
                    miner_power.qa_power,
-                   fmt::to_string(miner_power.qa_power).size(),
+                   make_kib(miner_power.qa_power),
 
                    total_power.qa_power,
-                   fmt::to_string(total_power.qa_power).size(),
+                   make_kib(total_power.qa_power),
                    bigdiv(miner_power.qa_power * 100, total_power.qa_power));
       } else {
         fmt::print("{}({})\n",
                    total_power.qa_power,
-                   fmt::to_string(total_power.qa_power).size());
+                   make_kib(total_power.qa_power));
       }
     }
   };
