@@ -10,8 +10,8 @@
 #include "cli/node/node.hpp"
 #include "cli/validate/address.hpp"
 #include "cli/validate/cid.hpp"
-#include "vm/toolchain/toolchain.hpp"
 #include "codec/uvarint.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::cli::cli_node {
   using api::BlockMessages;
@@ -20,17 +20,18 @@ namespace fc::cli::cli_node {
   using api::MinerPower;
   using api::MsgWait;
   using api::SignedMessage;
+  using primitives::DealId;
   using primitives::SectorNumber;
   using primitives::address::Address;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
+  using storage::ipfs::ApiIpfsDatastore;
   using vm::VMExitCode;
   using vm::actor::Actor;
   using vm::actor::MethodParams;
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
   using vm::actor::builtin::types::storage_power::Claim;
   using vm::message::UnsignedMessage;
-  using storage::ipfs::ApiIpfsDatastore;
   using vm::runtime::MessageReceipt;
   using base64 = cppcodec::base64_rfc4648;
   using common::unhex;
@@ -69,12 +70,15 @@ namespace fc::cli::cli_node {
     return cliTry(api->ChainGetTipSet(TipsetKey::make(cids).value()));
   }
 
-  std::string make_kib(const primitives::BigInt &x) {
-    return fmt::format("{} KiB", x / 1024); // TODO is correct or cast to double?
+  std::string makeKib(const primitives::BigInt &x) {
+    return fmt::format("{} KiB",
+                       x / 1024);  // TODO is correct or cast to double?
   }
 
-  std::string make_fil(const primitives::BigInt &x) {
-    return fmt::format("{} FIL", x / kFilecoinPrecision);
+  std::string makeFil(const primitives::BigInt &x) {
+    return fmt::format(
+        "{} FIL",
+        x / kFilecoinPrecision);  // TODO is correct or cast to double?
   }
 
   std::string epochTime(ChainEpoch current, ChainEpoch start) {
@@ -112,9 +116,11 @@ namespace fc::cli::cli_node {
     }
 
     fmt::print("Executed in tipset: ");
-    for (const auto &cbCid : message_wait.tipset.cids()) {
-      fmt::print("{},", CID(cbCid).toString().value());
+    const std::vector<CbCid> CbCids = message_wait.tipset.cids();
+    for (auto it = CbCids.begin(); it != --CbCids.end(); ++it) {
+      fmt::print("{},", CID(*it).toString().value());
     }
+    fmt::print("{}\n", CID(CbCids.back()).toString().value());
     fmt::print("Exit Code: {}\n", message_wait.receipt.exit_code);
     fmt::print("Gas Used: {}\n", message_wait.receipt.gas_used);
     fmt::print("Return: {}\n\n",
@@ -390,7 +396,8 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_state_market_balance : public Node_client_balances {}; // TODO wrong
+  struct Node_state_market_balance : public Node_client_balances {
+  };  // TODO wrong
 
   struct Node_state_sector {
     struct Args {
@@ -434,12 +441,11 @@ namespace fc::cli::cli_node {
 
       fmt::print("DealWeight: {}\n", sector_info.deal_weight);
       fmt::print("VerifiedDealWeight: {}\n", sector_info.verified_deal_weight);
-      fmt::print("InitialPledge: {}\n",
-                 make_fil(sector_info.init_pledge));
+      fmt::print("InitialPledge: {}\n", makeFil(sector_info.init_pledge));
       fmt::print("ExpectedDayReward: {}\n",
-                 make_fil(sector_info.expected_day_reward));
+                 makeFil(sector_info.expected_day_reward));
       fmt::print("ExpectedStoragePledge: {}\n\n",
-                 make_fil(sector_info.expected_storage_pledge));
+                 makeFil(sector_info.expected_storage_pledge));
 
       const api::SectorLocation sector_partition = cliTry(
           api->StateSectorPartition(miner_address, sector_number, tipset->key),
@@ -550,7 +556,8 @@ namespace fc::cli::cli_node {
     CLI_RUN() {
       const Node::Api api{argm};
 
-      const CID message_cid{cliArgv<CID>(argv, 0, "Message CID")};
+      const CID message_cid{
+          cliArgv<CID>(argv, 0, "Message CID")};  // TODO Maybe decode?
 
       const std::string_view process_desc = "Getting state message...";
       const MsgWait message_wait = cliTry(
@@ -618,9 +625,8 @@ namespace fc::cli::cli_node {
       const MinerInfo miner_info =
           cliTry(api->StateMinerInfo(miner_address, tipset->key));
 
-      fmt::print("{} ({})\n",
-                 make_kib(miner_info.sector_size),
-                 miner_info.sector_size);
+      fmt::print(
+          "{} ({})\n", makeKib(miner_info.sector_size), miner_info.sector_size);
     }
   };
 
@@ -676,9 +682,11 @@ namespace fc::cli::cli_node {
           cliTry(api->StateGetActor(actor_address, tipset->key));
 
       fmt::print("Address:\t{}\n", actor_address);
-      fmt::print("Balance:\t{}\n", make_fil(actor.balance));
+      fmt::print("Balance:\t{}\n", makeFil(actor.balance));
       fmt::print("Nonce:\t\t{}\n", actor.nonce);
-      fmt::print("Code:\t\t{} ({})\n", actor.code, cliTry(actor.code.toString())); // TODO matcher codeId
+      fmt::print("Code:\t\t{} ({})\n",
+                 actor.code,
+                 cliTry(actor.code.toString()));  // TODO matcher codeId
       fmt::print("Head:\t\t{}\n", actor.head);
     }
   };
@@ -728,8 +736,7 @@ namespace fc::cli::cli_node {
       const Node::Api api{argm};
       const TipsetCPtr tipset = loadTipset(api, args.tipset.v);
 
-      std::vector<Address> miners =
-          cliTry(api->StateListMiners(tipset->key));
+      std::vector<Address> miners = cliTry(api->StateListMiners(tipset->key));
 
       if (*args.sort_by == "num-deals") {
         const api::MarketDealMap all_deals = cliTry(api->StateMarketDeals({}));
@@ -758,7 +765,29 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_state_getDeal : public Node_client_getDeal {}; // TODO wrong
+  struct Node_state_getDeal : public Node_client_getDeal {
+    struct Args {
+      tipset_template tipset;
+
+      CLI_OPTS() {
+        Opts opts;
+        tipset(opts);
+        return opts;
+      }
+    };
+
+    CLI_RUN() {
+      const Node::Api api{argm};
+
+      const DealId deal_id{cliArgv<DealId>(argv, 0, "Deal ID")};
+
+      const TipsetCPtr tipset = loadTipset(api, args.tipset.v);
+
+      const StorageDeal deal = cliTry(api->StateMarketStorageDeal(deal_id, tipset->key));
+
+      fmt::print("{}\n", deal); // TODO json marshal?
+    }
+  };
 
   struct Node_state_activeSectors {
     struct Args {
@@ -856,15 +885,14 @@ namespace fc::cli::cli_node {
         const Claim miner_power = power.miner;
         fmt::print("{}({}) / {}({}) ~= {}%\n",
                    miner_power.qa_power,
-                   make_kib(miner_power.qa_power),
+                   makeKib(miner_power.qa_power),
 
                    total_power.qa_power,
-                   make_kib(total_power.qa_power),
+                   makeKib(total_power.qa_power),
                    bigdiv(miner_power.qa_power * 100, total_power.qa_power));
       } else {
-        fmt::print("{}({})\n",
-                   total_power.qa_power,
-                   make_kib(total_power.qa_power));
+        fmt::print(
+            "{}({})\n", total_power.qa_power, makeKib(total_power.qa_power));
       }
     }
   };
