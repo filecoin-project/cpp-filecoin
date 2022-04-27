@@ -30,9 +30,10 @@ namespace fc::vm::actor::builtin::types {
         : WithActorVersion{v}, object{obj} {}
 
     Universal(const Universal<T> &other)
-        : WithActorVersion{other.actor_version}, object{other.object} {}
+        : WithActorVersion{other.actor_version},
+          object{other.object} {}
 
-    Universal(Universal<T> &&other)
+    Universal(Universal<T> &&other) noexcept
         : WithActorVersion{other.actor_version},
           object{std::move(other.object)} {}
 
@@ -42,7 +43,7 @@ namespace fc::vm::actor::builtin::types {
       return *this;
     }
 
-    Universal<T> &operator=(Universal<T> &&other) {
+    Universal<T> &operator=(Universal<T> &&other) noexcept {
       actor_version = other.actor_version;
       object = std::move(other.object);
       return *this;
