@@ -377,7 +377,8 @@ namespace fc::mining {
         [&](const UnsignedMessage &message,
             const TipsetKey &tipset_key) -> outcome::result<InvocResult> {
       InvocResult result;
-      ComputeDataCommitment::Result call_res{.commds = {cids.unsealed_cid}};
+      market::ComputeDataCommitment::Result call_res{
+          .commds = {cids.unsealed_cid}};
       EXPECT_OUTCOME_TRUE(unsealed_buffer, codec::cbor::encode(call_res));
       result.receipt = MessageReceipt{
           .exit_code = vm::VMExitCode::kOk,
@@ -710,7 +711,8 @@ namespace fc::mining {
         [&](const UnsignedMessage &message,
             const TipsetKey &tipset_key) -> outcome::result<InvocResult> {
       InvocResult result;
-      ComputeDataCommitment::Result call_res{.commds = {cids.unsealed_cid}};
+      market::ComputeDataCommitment::Result call_res{
+          .commds = {cids.unsealed_cid}};
       EXPECT_OUTCOME_TRUE(unsealed_buffer, codec::cbor::encode(call_res));
       result.receipt = MessageReceipt{
           .exit_code = vm::VMExitCode::kOk,

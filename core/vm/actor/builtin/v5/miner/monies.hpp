@@ -8,6 +8,7 @@
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "const.hpp"
 
+// TODO (m.tagirov) move to the proper directory
 namespace fc::vm::actor::builtin::v5::miner {
   using common::math::kPrecision128;
   using common::smoothing::FilterEstimate;

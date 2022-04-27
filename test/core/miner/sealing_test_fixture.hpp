@@ -28,7 +28,7 @@
 #include "testutil/mocks/sector_storage/manager_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/vm/actor/builtin/actor_test_util.hpp"
-#include "vm/actor/builtin/v5/market/market_actor.hpp"
+#include "vm/actor/builtin/methods/market.hpp"
 #include "vm/actor/codes.hpp"
 
 namespace fc::mining {
@@ -64,9 +64,9 @@ namespace fc::mining {
   using vm::actor::builtin::makeMinerActorState;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
-  using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::message::SignedMessage;
   using vm::runtime::MessageReceipt;
+  namespace market = vm::actor::builtin::market;
 
   /**
    * Fixture for sealing tests, see .cpp files.

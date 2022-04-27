@@ -30,6 +30,5 @@ namespace fc::vm::actor {
     // Temp for miner actor
     std::set<MethodNumber> ready_miner_actor_methods_v0;
     std::set<MethodNumber> ready_miner_actor_methods_v2;
-    std::set<MethodNumber> ready_miner_actor_methods_v3;
   };
 }  // namespace fc::vm::actor
