@@ -36,15 +36,16 @@ namespace fc::vm::actor::builtin::market {
     kOnMinerSectorsTerminate,
     kComputeDataCommitment,
     kCronTick,
-  }
+  };
 
-  struct Construct : ActorMethodBase<MarketActor::kConstruct> {};
+  struct Construct : ActorMethodBase<MethodNumber(MarketActor::kConstruct)> {};
 
-  struct AddBalance : ActorMethodBase<MarketActor::kAddBalance> {
+  struct AddBalance : ActorMethodBase<MethodNumber(MarketActor::kAddBalance)> {
     using Params = Address;
   };
 
-  struct WithdrawBalance : ActorMethodBase<MarketActor::kWithdrawBalance> {
+  struct WithdrawBalance
+      : ActorMethodBase<MethodNumber(MarketActor::kWithdrawBalance)> {
     struct Params {
       Address address;
       TokenAmount amount;
@@ -61,7 +62,7 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(WithdrawBalance::Params, address, amount)
 
   struct PublishStorageDeals
-      : ActorMethodBase<MarketActor::kPublishStorageDeals> {
+      : ActorMethodBase<MethodNumber(MarketActor::kPublishStorageDeals)> {
     struct Params {
       std::vector<ClientDealProposal> deals;
 
@@ -91,7 +92,7 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(PublishStorageDeals::Result, deals, valid_deals)
 
   struct VerifyDealsForActivation
-      : ActorMethodBase<MarketActor::kVerifyDealsForActivation> {
+      : ActorMethodBase<MethodNumber(MarketActor::kVerifyDealsForActivation)> {
     struct Params {
       std::vector<SectorDeals> sectors;
 
@@ -107,6 +108,10 @@ namespace fc::vm::actor::builtin::market {
       std::vector<SectorWeights> sectors;
 
       inline bool operator==(const Result &other) const {
+        return sectors == other.sectors;
+      }
+
+      inline bool operator!=(const Result &other) const {
         return !(*this == other);
       }
     };
@@ -114,7 +119,8 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(VerifyDealsForActivation::Params, sectors)
   CBOR_TUPLE(VerifyDealsForActivation::Result, sectors)
 
-  struct ActivateDeals : ActorMethodBase<MarketActor::kActivateDeals> {
+  struct ActivateDeals
+      : ActorMethodBase<MethodNumber(MarketActor::kActivateDeals)> {
     struct Params {
       std::vector<DealId> deals;
       ChainEpoch sector_expiry{};
@@ -131,7 +137,7 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(ActivateDeals::Params, deals, sector_expiry)
 
   struct OnMinerSectorsTerminate
-      : ActorMethodBase<MarketActor::kOnMinerSectorsTerminate> {
+      : ActorMethodBase<MethodNumber(MarketActor::kOnMinerSectorsTerminate)> {
     struct Params {
       ChainEpoch epoch{};
       std::vector<DealId> deals;
@@ -148,7 +154,7 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(OnMinerSectorsTerminate::Params, epoch, deals)
 
   struct ComputeDataCommitment
-      : ActorMethodBase<MarketActor::kComputeDataCommitment> {
+      : ActorMethodBase<MethodNumber(MarketActor::kComputeDataCommitment)> {
     struct Params {
       std::vector<SectorDataSpec> inputs;
 
@@ -176,6 +182,6 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(ComputeDataCommitment::Params, inputs)
   CBOR_TUPLE(ComputeDataCommitment::Result, commds)
 
-  struct CronTick : ActorMethodBase<MarketActor::kCronTick> {};
+  struct CronTick : ActorMethodBase<MethodNumber(MarketActor::kCronTick)> {};
 
 }  // namespace fc::vm::actor::builtin::market

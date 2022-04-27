@@ -6,21 +6,20 @@
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
 #include "common/outcome_fmt.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
+#include "vm/actor/builtin/methods/miner.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v7/miner/miner_actor.hpp"
+#include "vm/actor/builtin/types/miner/replica_update.hpp"
+#include "vm/actor/builtin/types/miner/sector_info.hpp"
 
 namespace fc::markets::storage::chain_events {
   using primitives::RleBitset;
   using primitives::tipset::HeadChangeType;
   using vm::VMExitCode;
+  using vm::actor::builtin::states::MinerActorStatePtr;
+  using vm::actor::builtin::types::miner::ReplicaUpdate;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
-  using vm::actor::builtin::v5::miner::PreCommitBatch;
-  using vm::actor::builtin::v5::miner::PreCommitSector;
-  using vm::actor::builtin::v5::miner::ProveCommitAggregate;
-  using vm::actor::builtin::v5::miner::ProveCommitSector;
-  using vm::actor::builtin::v7::miner::ProveReplicaUpdates;
-  using vm::actor::builtin::v7::miner::ReplicaUpdate;
   using vm::message::SignedMessage;
+  namespace miner = vm::actor::builtin::miner;
 
   ChainEventsImpl::ChainEventsImpl(std::shared_ptr<FullNodeApi> api,
                                    IsDealPrecommited is_deal_precommited)
@@ -36,9 +35,7 @@ namespace fc::markets::storage::chain_events {
             std::make_shared<fc::storage::ipfs::ApiIpfsDatastore>(api)};
         OUTCOME_TRY(network, api->StateNetworkVersion(tsk));
         ipld->actor_version = actorVersion(network);
-        OUTCOME_TRY(state,
-                    getCbor<vm::actor::builtin::states::MinerActorStatePtr>(
-                        ipld, actor.head));
+        OUTCOME_TRY(state, getCbor<MinerActorStatePtr>(ipld, actor.head));
         boost::optional<SectorNumber> result;
         constexpr auto kStop{std::errc::interrupted};
         const auto visit{state->precommitted_sectors.visit(
@@ -162,9 +159,10 @@ namespace fc::markets::storage::chain_events {
                   return cb(r.receipt.exit_code);
                 }
                 if (update) {
-                  OUTCOME_CB(auto result,
-                             codec::cbor::decode<ProveReplicaUpdates::Result>(
-                                 r.receipt.return_value));
+                  OUTCOME_CB(
+                      auto result,
+                      codec::cbor::decode<miner::ProveReplicaUpdates::Result>(
+                          r.receipt.return_value));
                   if (!result.has(sector)) {
                     return cb(ERROR_TEXT("ProveReplicaUpdates failed"));
                   }
@@ -207,32 +205,34 @@ namespace fc::markets::storage::chain_events {
     const auto on_update{[&](const ReplicaUpdate &update) {
       on_deals(update.deals, update.sector, true);
     }};
-    if (message.method == PreCommitSector::Number) {
-      OUTCOME_TRY(param,
-                  codec::cbor::decode<PreCommitSector::Params>(message.params));
+    if (message.method == miner::PreCommitSector::Number) {
+      OUTCOME_TRY(
+          param,
+          codec::cbor::decode<miner::PreCommitSector::Params>(message.params));
       on_precommit(param);
-    } else if (message.method == PreCommitBatch::Number) {
+    } else if (message.method == miner::PreCommitSectorBatch::Number) {
       OUTCOME_TRY(param,
-                  codec::cbor::decode<PreCommitBatch::Params>(message.params));
+                  codec::cbor::decode<miner::PreCommitSectorBatch::Params>(
+                      message.params));
       for (const auto &precommit : param.sectors) {
         on_precommit(precommit);
       }
-    } else if (message.method == ProveCommitSector::Number) {
-      OUTCOME_TRY(
-          param,
-          codec::cbor::decode<ProveCommitSector::Params>(message.params));
+    } else if (message.method == miner::ProveCommitSector::Number) {
+      OUTCOME_TRY(param,
+                  codec::cbor::decode<miner::ProveCommitSector::Params>(
+                      message.params));
       on_commit(param.sector);
-    } else if (message.method == ProveCommitAggregate::Number) {
-      OUTCOME_TRY(
-          param,
-          codec::cbor::decode<ProveCommitAggregate::Params>(message.params));
+    } else if (message.method == miner::ProveCommitAggregate::Number) {
+      OUTCOME_TRY(param,
+                  codec::cbor::decode<miner::ProveCommitAggregate::Params>(
+                      message.params));
       for (const auto &sector : param.sectors) {
         on_commit(sector);
       }
-    } else if (message.method == ProveReplicaUpdates::Number) {
-      OUTCOME_TRY(
-          param,
-          codec::cbor::decode<ProveReplicaUpdates::Params>(message.params));
+    } else if (message.method == miner::ProveReplicaUpdates::Number) {
+      OUTCOME_TRY(param,
+                  codec::cbor::decode<miner::ProveReplicaUpdates::Params>(
+                      message.params));
       for (const auto &update : param.updates) {
         on_update(update);
       }

@@ -13,8 +13,8 @@ namespace fc::vm::actor::builtin::system {
 
   enum class SystemActor : MethodNumber {
     kConstruct = 1,
-  }
+  };
 
-  struct Construct : ActorMethodBase<SystemActor::kConstruct> {};
+  struct Construct : ActorMethodBase<MethodNumber(SystemActor::kConstruct)> {};
 
 }  // namespace fc::vm::actor::builtin::system

@@ -28,11 +28,11 @@
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/car/car.hpp"
 #include "storage/unixfs/unixfs.hpp"
+#include "vm/actor/builtin/methods/market.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
-#include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v5/market/validate.hpp"
 #include "vm/actor/builtin/v5/miner/monies.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
@@ -74,6 +74,7 @@ namespace fc::api {
   using vm::state::StateTreeImpl;
   using vm::toolchain::Toolchain;
   using vm::version::getNetworkVersion;
+  namespace market = vm::actor::builtin::market;
 
   void beaconEntriesForBlock(const DrandSchedule &schedule,
                              Beaconizer &beaconizer,
@@ -415,22 +416,16 @@ namespace fc::api {
       }
       // TODO(a.chernyshov): method should use fund manager batch reserve
       // and release funds requests for market actor.
-      OUTCOME_TRY(
-          encoded_params,
-          codec::cbor::encode(
-              vm::actor::builtin::v0::market::AddBalance::Params{address}));
-      UnsignedMessage unsigned_message{
-          kStorageMarketAddress,
-          wallet,
-          {},
-          amount,
-          0,
-          0,
-          // TODO (a.chernyshov) there is v0 actor method number, but the
-          // actor methods do not depend on version. Should be changed to
-          // general method number when methods number are made general
-          vm::actor::builtin::v0::market::AddBalance::Number,
-          encoded_params};
+      OUTCOME_TRY(encoded_params,
+                  codec::cbor::encode(market::AddBalance::Params{address}));
+      UnsignedMessage unsigned_message{kStorageMarketAddress,
+                                       wallet,
+                                       {},
+                                       amount,
+                                       0,
+                                       0,
+                                       market::AddBalance::Number,
+                                       encoded_params};
       OUTCOME_TRY(signed_message,
                   api->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
       return signed_message.getCid();
@@ -755,21 +750,18 @@ namespace fc::api {
     };
     api->MarketAddBalance =
         [=](auto &address, auto &wallet, auto &amount) -> outcome::result<CID> {
-      OUTCOME_TRY(
-          encoded_params,
-          codec::cbor::encode(
-              vm::actor::builtin::v0::market::AddBalance::Params{address}));
+      OUTCOME_TRY(encoded_params,
+                  codec::cbor::encode(market::AddBalance::Params{address}));
       OUTCOME_TRY(signed_message,
                   api->MpoolPushMessage(
-                      vm::message::UnsignedMessage(
-                          kStorageMarketAddress,
-                          wallet,
-                          0,
-                          amount,
-                          0,
-                          0,
-                          vm::actor::builtin::v0::market::AddBalance::Number,
-                          encoded_params),
+                      vm::message::UnsignedMessage(kStorageMarketAddress,
+                                                   wallet,
+                                                   0,
+                                                   amount,
+                                                   0,
+                                                   0,
+                                                   market::AddBalance::Number,
+                                                   encoded_params),
                       api::kPushNoSpec));
       return signed_message.getCid();
     };

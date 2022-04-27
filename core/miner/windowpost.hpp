@@ -8,7 +8,7 @@
 #include "api/full_node/node_api.hpp"
 #include "sector_storage/fault_tracker.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/methods/miner.hpp"
 
 namespace fc::mining {
   using api::Address;
@@ -20,8 +20,8 @@ namespace fc::mining {
   using sector_storage::FaultTracker;
   using sector_storage::Prover;
   using sector_storage::RegisteredPoStProof;
-  using vm::actor::builtin::v0::miner::SubmitWindowedPoSt;
   using vm::message::MethodNumber;
+  namespace miner = vm::actor::builtin::miner;
 
   // synchronous WindowPoSt
   struct WindowPoStScheduler
@@ -30,7 +30,7 @@ namespace fc::mining {
 
     struct Cached {
       DeadlineInfo deadline;
-      std::vector<SubmitWindowedPoSt::Params> params;
+      std::vector<miner::SubmitWindowedPoSt::Params> params;
       size_t submitted;
     };
 

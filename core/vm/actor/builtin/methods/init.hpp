@@ -14,9 +14,9 @@ namespace fc::vm::actor::builtin::init {
   enum class InitActor : MethodNumber {
     kConstruct = 1,
     kExec,
-  }
+  };
 
-  struct Construct : ActorMethodBase<InitActor::kConstruct> {
+  struct Construct : ActorMethodBase<MethodNumber(InitActor::kConstruct)> {
     struct Params {
       std::string network_name;
 
@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::init {
   };
   CBOR_TUPLE(Construct::Params, network_name)
 
-  struct Exec : ActorMethodBase<InitActor::kExec> {
+  struct Exec : ActorMethodBase<MethodNumber(InitActor::kExec)> {
     struct Params {
       CodeId code;
       MethodParams params;

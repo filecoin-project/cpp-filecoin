@@ -17,12 +17,12 @@ namespace fc::vm::actor::builtin::cron {
   enum class CronActor : MethodNumber {
     kConstruct = 1,
     kEpochTick,
-  }
+  };
 
-  struct Construct : ActorMethodBase<CronActor::kConstruct> {
+  struct Construct : ActorMethodBase<MethodNumber(CronActor::kConstruct)> {
     using Params = std::vector<CronTableEntry>;
   };
 
-  struct EpochTick : ActorMethodBase<CronActor::kEpochTick> {};
+  struct EpochTick : ActorMethodBase<MethodNumber(CronActor::kEpochTick)> {};
 
 }  // namespace fc::vm::actor::builtin::cron

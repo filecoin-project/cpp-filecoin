@@ -32,11 +32,11 @@ namespace fc::vm::actor::builtin::power {
     kOnConsensusFault,  // deprecated since v2
     kSubmitPoRepForBulkVerify,
     kCurrentTotalPower,
-  }
+  };
 
-  struct Construct : ActorMethodBase<PowerActor::kConstruct> {};
+  struct Construct : ActorMethodBase<MethodNumber(PowerActor::kConstruct)> {};
 
-  struct CreateMiner : ActorMethodBase<PowerActor::kCreateMiner> {
+  struct CreateMiner : ActorMethodBase<MethodNumber(PowerActor::kCreateMiner)> {
     using Params = CreateMinerParams;
 
     struct Result {
@@ -55,7 +55,8 @@ namespace fc::vm::actor::builtin::power {
   };
   CBOR_TUPLE(CreateMiner::Result, id_address, robust_address)
 
-  struct UpdateClaimedPower : ActorMethodBase<PowerActor::kUpdateClaimedPower> {
+  struct UpdateClaimedPower
+      : ActorMethodBase<MethodNumber(PowerActor::kUpdateClaimedPower)> {
     struct Params {
       StoragePower raw_byte_delta;
       StoragePower quality_adjusted_delta;
@@ -72,7 +73,8 @@ namespace fc::vm::actor::builtin::power {
   };
   CBOR_TUPLE(UpdateClaimedPower::Params, raw_byte_delta, quality_adjusted_delta)
 
-  struct EnrollCronEvent : ActorMethodBase<PowerActor::kEnrollCronEvent> {
+  struct EnrollCronEvent
+      : ActorMethodBase<MethodNumber(PowerActor::kEnrollCronEvent)> {
     struct Params {
       ChainEpoch event_epoch{};
       Bytes payload;
@@ -88,22 +90,25 @@ namespace fc::vm::actor::builtin::power {
   };
   CBOR_TUPLE(EnrollCronEvent::Params, event_epoch, payload)
 
-  struct CronTick : ActorMethodBase<PowerActor::kCronTick> {};
+  struct CronTick : ActorMethodBase<MethodNumber(PowerActor::kCronTick)> {};
 
-  struct UpdatePledgeTotal : ActorMethodBase<PowerActor::kUpdatePledgeTotal> {
+  struct UpdatePledgeTotal
+      : ActorMethodBase<MethodNumber(PowerActor::kUpdatePledgeTotal)> {
     using Params = TokenAmount;
   };
 
-  struct OnConsensusFault : ActorMethodBase<PowerActor::kOnConsensusFault> {
+  struct OnConsensusFault
+      : ActorMethodBase<MethodNumber(PowerActor::kOnConsensusFault)> {
     using Params = TokenAmount;
   };
 
   struct SubmitPoRepForBulkVerify
-      : ActorMethodBase<PowerActor::kSubmitPoRepForBulkVerify> {
+      : ActorMethodBase<MethodNumber(PowerActor::kSubmitPoRepForBulkVerify)> {
     using Params = SealVerifyInfo;
   };
 
-  struct CurrentTotalPower : ActorMethodBase<PowerActor::kCurrentTotalPower> {
+  struct CurrentTotalPower
+      : ActorMethodBase<MethodNumber(PowerActor::kCurrentTotalPower)> {
     struct Result {
       StoragePower raw_byte_power;
       StoragePower quality_adj_power;

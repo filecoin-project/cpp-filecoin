@@ -20,13 +20,14 @@ namespace fc::vm::actor::builtin::reward {
     kAwardBlockReward,
     kThisEpochReward,
     kUpdateNetworkKPI,
-  }
+  };
 
-  struct Constructor : ActorMethodBase<RewardActor::kConstruct> {
+  struct Constructor : ActorMethodBase<MethodNumber(RewardActor::kConstruct)> {
     using Params = StoragePower;
   };
 
-  struct AwardBlockReward : ActorMethodBase<RewardActor::kAwardBlockReward> {
+  struct AwardBlockReward
+      : ActorMethodBase<MethodNumber(RewardActor::kAwardBlockReward)> {
     struct Params {
       Address miner;
       TokenAmount penalty;
@@ -46,7 +47,8 @@ namespace fc::vm::actor::builtin::reward {
   };
   CBOR_TUPLE(AwardBlockReward::Params, miner, penalty, gas_reward, win_count)
 
-  struct ThisEpochReward : ActorMethodBase<RewardActor::kThisEpochReward> {
+  struct ThisEpochReward
+      : ActorMethodBase<MethodNumber(RewardActor::kThisEpochReward)> {
     struct Result {
       FilterEstimate this_epoch_reward_smoothed;
       StoragePower this_epoch_baseline_power;
@@ -65,7 +67,8 @@ namespace fc::vm::actor::builtin::reward {
              this_epoch_reward_smoothed,
              this_epoch_baseline_power)
 
-  struct UpdateNetworkKPI : ActorMethodBase<RewardActor::kUpdateNetworkKPI> {
+  struct UpdateNetworkKPI
+      : ActorMethodBase<MethodNumber(RewardActor::kUpdateNetworkKPI)> {
     using Params = StoragePower;
   };
 

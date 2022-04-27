@@ -65,13 +65,14 @@ namespace fc::vm::actor::builtin::miner {
     kPreCommitSectorBatch,    // since v5
     kProveCommitAggregate,    // since v5
     kProveReplicaUpdates,     // since v7
-  }
+  };
 
-  struct Construct : ActorMethodBase<MinerActor::kConstruct> {
+  struct Construct : ActorMethodBase<MethodNumber(MinerActor::kConstruct)> {
     using Params = types::storage_power::CreateMinerParams;
   };
 
-  struct ControlAddresses : ActorMethodBase<MinerActor::kControlAddresses> {
+  struct ControlAddresses
+      : ActorMethodBase<MethodNumber(MinerActor::kControlAddresses)> {
     struct Result {
       Address owner;
       Address worker;
@@ -90,7 +91,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(ControlAddresses::Result, owner, worker, control)
 
   struct ChangeWorkerAddress
-      : ActorMethodBase<MinerActor::kChangeWorkerAddress> {
+      : ActorMethodBase<MethodNumber(MinerActor::kChangeWorkerAddress)> {
     struct Params {
       Address new_worker;
       std::vector<Address> new_control_addresses;
@@ -107,7 +108,8 @@ namespace fc::vm::actor::builtin::miner {
   };
   CBOR_TUPLE(ChangeWorkerAddress::Params, new_worker, new_control_addresses)
 
-  struct ChangePeerId : ActorMethodBase<MinerActor::kChangePeerId> {
+  struct ChangePeerId
+      : ActorMethodBase<MethodNumber(MinerActor::kChangePeerId)> {
     struct Params {
       Bytes new_id;
 
@@ -122,7 +124,8 @@ namespace fc::vm::actor::builtin::miner {
   };
   CBOR_TUPLE(ChangePeerId::Params, new_id)
 
-  struct SubmitWindowedPoSt : ActorMethodBase<MinerActor::kSubmitWindowedPoSt> {
+  struct SubmitWindowedPoSt
+      : ActorMethodBase<MethodNumber(MinerActor::kSubmitWindowedPoSt)> {
     struct Params {
       uint64_t deadline{};
       std::vector<PoStPartition> partitions;
@@ -149,11 +152,13 @@ namespace fc::vm::actor::builtin::miner {
              chain_commit_epoch,
              chain_commit_rand)
 
-  struct PreCommitSector : ActorMethodBase<MinerActor::kPreCommitSector> {
+  struct PreCommitSector
+      : ActorMethodBase<MethodNumber(MinerActor::kPreCommitSector)> {
     using Params = SectorPreCommitInfo;
   };
 
-  struct ProveCommitSector : ActorMethodBase<MinerActor::kProveCommitSector> {
+  struct ProveCommitSector
+      : ActorMethodBase<MethodNumber(MinerActor::kProveCommitSector)> {
     struct Params {
       SectorNumber sector{};
       Proof proof;
@@ -170,7 +175,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(ProveCommitSector::Params, sector, proof)
 
   struct ExtendSectorExpiration
-      : ActorMethodBase<MinerActor::kExtendSectorExpiration> {
+      : ActorMethodBase<MethodNumber(MinerActor::kExtendSectorExpiration)> {
     struct Params {
       std::vector<ExpirationExtension> extensions;
 
@@ -185,7 +190,8 @@ namespace fc::vm::actor::builtin::miner {
   };
   CBOR_TUPLE(ExtendSectorExpiration::Params, extensions)
 
-  struct TerminateSectors : ActorMethodBase<MinerActor::kTerminateSectors> {
+  struct TerminateSectors
+      : ActorMethodBase<MethodNumber(MinerActor::kTerminateSectors)> {
     struct Params {
       std::vector<SectorDeclaration> terminations;
 
@@ -213,7 +219,8 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(TerminateSectors::Params, terminations)
   CBOR_TUPLE(TerminateSectors::Result, done)
 
-  struct DeclareFaults : ActorMethodBase<MinerActor::kDeclareFaults> {
+  struct DeclareFaults
+      : ActorMethodBase<MethodNumber(MinerActor::kDeclareFaults)> {
     struct Params {
       std::vector<FaultDeclaration> faults;
 
@@ -229,7 +236,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(DeclareFaults::Params, faults)
 
   struct DeclareFaultsRecovered
-      : ActorMethodBase<MinerActor::kDeclareFaultsRecovered> {
+      : ActorMethodBase<MethodNumber(MinerActor::kDeclareFaultsRecovered)> {
     struct Params {
       std::vector<RecoveryDeclaration> recoveries;
 
@@ -245,7 +252,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(DeclareFaultsRecovered::Params, recoveries)
 
   struct OnDeferredCronEvent
-      : ActorMethodBase<MinerActor::kOnDeferredCronEvent> {
+      : ActorMethodBase<MethodNumber(MinerActor::kOnDeferredCronEvent)> {
     struct Params {
       Bytes event_payload;
       FilterEstimate reward_smoothed;
@@ -267,7 +274,8 @@ namespace fc::vm::actor::builtin::miner {
              reward_smoothed,
              qa_power_smoothed)
 
-  struct CheckSectorProven : ActorMethodBase<MinerActor::kCheckSectorProven> {
+  struct CheckSectorProven
+      : ActorMethodBase<MethodNumber(MinerActor::kCheckSectorProven)> {
     struct Params {
       SectorNumber sector{};
 
@@ -282,7 +290,8 @@ namespace fc::vm::actor::builtin::miner {
   };
   CBOR_TUPLE(CheckSectorProven::Params, sector)
 
-  struct ApplyRewards : ActorMethodBase<MinerActor::kApplyRewards> {
+  struct ApplyRewards
+      : ActorMethodBase<MethodNumber(MinerActor::kApplyRewards)> {
     struct Params {
       TokenAmount reward;
       TokenAmount penalty;
@@ -299,7 +308,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(ApplyRewards::Params, reward, penalty)
 
   struct ReportConsensusFault
-      : ActorMethodBase<MinerActor::kReportConsensusFault> {
+      : ActorMethodBase<MethodNumber(MinerActor::kReportConsensusFault)> {
     struct Params {
       Bytes block_header_1;
       Bytes block_header_2;
@@ -321,7 +330,8 @@ namespace fc::vm::actor::builtin::miner {
              block_header_2,
              block_header_extra)
 
-  struct WithdrawBalance : ActorMethodBase<MinerActor::kWithdrawBalance> {
+  struct WithdrawBalance
+      : ActorMethodBase<MethodNumber(MinerActor::kWithdrawBalance)> {
     struct Params {
       TokenAmount amount;
 
@@ -339,7 +349,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(WithdrawBalance::Params, amount)
 
   struct ConfirmSectorProofsValid
-      : ActorMethodBase<MinerActor::kConfirmSectorProofsValid> {
+      : ActorMethodBase<MethodNumber(MinerActor::kConfirmSectorProofsValid)> {
     struct Params {
       std::vector<SectorNumber> sectors;
 
@@ -355,7 +365,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(ConfirmSectorProofsValid::Params, sectors)
 
   struct ChangeMultiaddresses
-      : ActorMethodBase<MinerActor::kChangeMultiaddresses> {
+      : ActorMethodBase<MethodNumber(MinerActor::kChangeMultiaddresses)> {
     struct Params {
       std::vector<Multiaddress> new_multiaddresses;
 
@@ -370,7 +380,8 @@ namespace fc::vm::actor::builtin::miner {
   };
   CBOR_TUPLE(ChangeMultiaddresses::Params, new_multiaddresses)
 
-  struct CompactPartitions : ActorMethodBase<MinerActor::kCompactPartitions> {
+  struct CompactPartitions
+      : ActorMethodBase<MethodNumber(MinerActor::kCompactPartitions)> {
     struct Params {
       uint64_t deadline{};
       RleBitset partitions;
@@ -387,7 +398,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(CompactPartitions::Params, deadline, partitions)
 
   struct CompactSectorNumbers
-      : ActorMethodBase<MinerActor::kCompactSectorNumbers> {
+      : ActorMethodBase<MethodNumber(MinerActor::kCompactSectorNumbers)> {
     struct Params {
       RleBitset mask_sector_numbers;
 
@@ -403,16 +414,17 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(CompactSectorNumbers::Params, mask_sector_numbers)
 
   struct ConfirmUpdateWorkerKey
-      : ActorMethodBase<MinerActor::kConfirmUpdateWorkerKey> {};
+      : ActorMethodBase<MethodNumber(MinerActor::kConfirmUpdateWorkerKey)> {};
 
-  struct RepayDebt : ActorMethodBase<MinerActor::kRepayDebt> {};
+  struct RepayDebt : ActorMethodBase<MethodNumber(MinerActor::kRepayDebt)> {};
 
-  struct ChangeOwnerAddress : ActorMethodBase<MinerActor::kChangeOwnerAddress> {
+  struct ChangeOwnerAddress
+      : ActorMethodBase<MethodNumber(MinerActor::kChangeOwnerAddress)> {
     using Params = Address;
   };
 
   struct DisputeWindowedPoSt
-      : ActorMethodBase<MinerActor::kDisputeWindowedPoSt> {
+      : ActorMethodBase<MethodNumber(MinerActor::kDisputeWindowedPoSt)> {
     struct Params {
       uint64_t deadline{};
       uint64_t post_index{};
@@ -429,7 +441,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(DisputeWindowedPoSt::Params, deadline, post_index)
 
   struct PreCommitSectorBatch
-      : ActorMethodBase<MinerActor::kPreCommitSectorBatch> {
+      : ActorMethodBase<MethodNumber(MinerActor::kPreCommitSectorBatch)> {
     struct Params {
       std::vector<SectorPreCommitInfo> sectors;
 
@@ -445,7 +457,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(PreCommitSectorBatch::Params, sectors);
 
   struct ProveCommitAggregate
-      : ActorMethodBase<MinerActor::kProveCommitAggregate> {
+      : ActorMethodBase<MethodNumber(MinerActor::kProveCommitAggregate)> {
     struct Params {
       RleBitset sectors;
       Bytes proof;
@@ -462,7 +474,7 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(ProveCommitAggregate::Params, sectors, proof);
 
   struct ProveReplicaUpdates
-      : ActorMethodBase<MinerActor::kProveReplicaUpdates> {
+      : ActorMethodBase<MethodNumber(MinerActor::kProveReplicaUpdates)> {
     struct Params {
       std::vector<ReplicaUpdate> updates;
 

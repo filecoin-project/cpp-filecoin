@@ -20,9 +20,10 @@ namespace fc::vm::actor::builtin::paych {
     kUpdateChannelState,
     kSettle,
     kCollect,
-  }
+  };
 
-  struct Construct : ActorMethodBase<PaymentChannelActor::kConstruct> {
+  struct Construct
+      : ActorMethodBase<MethodNumber(PaymentChannelActor::kConstruct)> {
     struct Params {
       Address from;
       Address to;
@@ -38,8 +39,8 @@ namespace fc::vm::actor::builtin::paych {
   };
   CBOR_TUPLE(Construct::Params, from, to)
 
-  struct UpdateChannelState
-      : ActorMethodBase<PaymentChannelActor::kUpdateChannelState> {
+  struct UpdateChannelState : ActorMethodBase<MethodNumber(
+                                  PaymentChannelActor::kUpdateChannelState)> {
     struct Params {
       SignedVoucher signed_voucher;
       Bytes secret;
@@ -55,8 +56,10 @@ namespace fc::vm::actor::builtin::paych {
   };
   CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret)
 
-  struct Settle : ActorMethodBase<PaymentChannelActor::kSettle> {};
+  struct Settle : ActorMethodBase<MethodNumber(PaymentChannelActor::kSettle)> {
+  };
 
-  struct Collect : ActorMethodBase<PaymentChannelActor::kCollect> {};
+  struct Collect
+      : ActorMethodBase<MethodNumber(PaymentChannelActor::kCollect)> {};
 
 }  // namespace fc::vm::actor::builtin::paych

@@ -28,9 +28,9 @@ namespace fc::vm::actor::builtin::multisig {
     kSwapSigner,
     kChangeThreshold,
     kLockBalance,
-  }
+  };
 
-  struct Construct : ActorMethodBase<MultisigActor::kConstruct> {
+  struct Construct : ActorMethodBase<MethodNumber(MultisigActor::kConstruct)> {
     struct Params {
       std::vector<Address> signers;
       size_t threshold{};
@@ -51,7 +51,7 @@ namespace fc::vm::actor::builtin::multisig {
   CBOR_TUPLE(
       Construct::Params, signers, threshold, unlock_duration, start_epoch)
 
-  struct Propose : ActorMethodBase<MultisigActor::kPropose> {
+  struct Propose : ActorMethodBase<MethodNumber(MultisigActor::kPropose)> {
     struct Params {
       Address to;
       TokenAmount value;
@@ -87,7 +87,7 @@ namespace fc::vm::actor::builtin::multisig {
   CBOR_TUPLE(Propose::Params, to, value, method, params)
   CBOR_TUPLE(Propose::Result, tx_id, applied, code, return_value)
 
-  struct Approve : ActorMethodBase<MultisigActor::kApprove> {
+  struct Approve : ActorMethodBase<MethodNumber(MultisigActor::kApprove)> {
     struct Params {
       TransactionId tx_id{};
       Bytes proposal_hash;
@@ -119,7 +119,7 @@ namespace fc::vm::actor::builtin::multisig {
   CBOR_TUPLE(Approve::Params, tx_id, proposal_hash)
   CBOR_TUPLE(Approve::Result, applied, code, return_value)
 
-  struct Cancel : ActorMethodBase<MultisigActor::kCancel> {
+  struct Cancel : ActorMethodBase<MethodNumber(MultisigActor::kCancel)> {
     struct Params {
       TransactionId tx_id{};
       Bytes proposal_hash;
@@ -135,7 +135,7 @@ namespace fc::vm::actor::builtin::multisig {
   };
   CBOR_TUPLE(Cancel::Params, tx_id, proposal_hash)
 
-  struct AddSigner : ActorMethodBase<MultisigActor::kAddSigner> {
+  struct AddSigner : ActorMethodBase<MethodNumber(MultisigActor::kAddSigner)> {
     struct Params {
       Address signer;
       bool increase_threshold{false};
@@ -152,7 +152,8 @@ namespace fc::vm::actor::builtin::multisig {
   };
   CBOR_TUPLE(AddSigner::Params, signer, increase_threshold)
 
-  struct RemoveSigner : ActorMethodBase<MultisigActor::kRemoveSigner> {
+  struct RemoveSigner
+      : ActorMethodBase<MethodNumber(MultisigActor::kRemoveSigner)> {
     struct Params {
       Address signer;
       bool decrease_threshold{false};
@@ -169,7 +170,8 @@ namespace fc::vm::actor::builtin::multisig {
   };
   CBOR_TUPLE(RemoveSigner::Params, signer, decrease_threshold)
 
-  struct SwapSigner : ActorMethodBase<MultisigActor::kSwapSigner> {
+  struct SwapSigner
+      : ActorMethodBase<MethodNumber(MultisigActor::kSwapSigner)> {
     struct Params {
       Address from;
       Address to;
@@ -185,7 +187,8 @@ namespace fc::vm::actor::builtin::multisig {
   };
   CBOR_TUPLE(SwapSigner::Params, from, to)
 
-  struct ChangeThreshold : ActorMethodBase<MultisigActor::kChangeThreshold> {
+  struct ChangeThreshold
+      : ActorMethodBase<MethodNumber(MultisigActor::kChangeThreshold)> {
     struct Params {
       size_t new_threshold{};
 
@@ -200,7 +203,8 @@ namespace fc::vm::actor::builtin::multisig {
   };
   CBOR_TUPLE(ChangeThreshold::Params, new_threshold)
 
-  struct LockBalance : ActorMethodBase<MultisigActor::kLockBalance> {
+  struct LockBalance
+      : ActorMethodBase<MethodNumber(MultisigActor::kLockBalance)> {
     struct Params {
       ChainEpoch start_epoch{};
       EpochDuration unlock_duration{};

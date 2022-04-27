@@ -14,13 +14,14 @@ namespace fc::vm::actor::builtin::account {
   enum class AccountActor : MethodNumber {
     kConstruct = 1,
     kPubkeyAddress,
-  }
+  };
 
-  struct Construct : ActorMethodBase<AccountActor::kConstruct> {
+  struct Construct : ActorMethodBase<MethodNumber(AccountActor::kConstruct)> {
     using Params = Address;
   };
 
-  struct PubkeyAddress : ActorMethodBase<AccountActor::kPubkeyAddress> {
+  struct PubkeyAddress
+      : ActorMethodBase<MethodNumber(AccountActor::kPubkeyAddress)> {
     using Result = Address;
   };
 

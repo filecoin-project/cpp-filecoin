@@ -24,13 +24,15 @@ namespace fc::vm::actor::builtin::verifreg {
     kUseBytes,
     kRestoreBytes,
     kRemoveVerifiedClientDataCap,  // since v7
-  }
+  };
 
-  struct Construct : ActorMethodBase<VerifiedRegistryActor::kConstruct> {
+  struct Construct
+      : ActorMethodBase<MethodNumber(VerifiedRegistryActor::kConstruct)> {
     using Params = Address;
   };
 
-  struct AddVerifier : ActorMethodBase<VerifiedRegistryActor::kAddVerifier> {
+  struct AddVerifier
+      : ActorMethodBase<MethodNumber(VerifiedRegistryActor::kAddVerifier)> {
     struct Params {
       Address address;
       DataCap allowance;
@@ -47,12 +49,12 @@ namespace fc::vm::actor::builtin::verifreg {
   CBOR_TUPLE(AddVerifier::Params, address, allowance)
 
   struct RemoveVerifier
-      : ActorMethodBase<VerifiedRegistryActor::kRemoveVerifier> {
+      : ActorMethodBase<MethodNumber(VerifiedRegistryActor::kRemoveVerifier)> {
     using Params = Address;
   };
 
-  struct AddVerifiedClient
-      : ActorMethodBase<VerifiedRegistryActor::kAddVerifiedClient> {
+  struct AddVerifiedClient : ActorMethodBase<MethodNumber(
+                                 VerifiedRegistryActor::kAddVerifiedClient)> {
     struct Params {
       Address address;
       DataCap allowance;
@@ -68,7 +70,8 @@ namespace fc::vm::actor::builtin::verifreg {
   };
   CBOR_TUPLE(AddVerifiedClient::Params, address, allowance)
 
-  struct UseBytes : ActorMethodBase<VerifiedRegistryActor::kUseBytes> {
+  struct UseBytes
+      : ActorMethodBase<MethodNumber(VerifiedRegistryActor::kUseBytes)> {
     struct Params {
       Address address;
       StoragePower deal_size;
@@ -84,7 +87,8 @@ namespace fc::vm::actor::builtin::verifreg {
   };
   CBOR_TUPLE(UseBytes::Params, address, deal_size)
 
-  struct RestoreBytes : ActorMethodBase<VerifiedRegistryActor::kRestoreBytes> {
+  struct RestoreBytes
+      : ActorMethodBase<MethodNumber(VerifiedRegistryActor::kRestoreBytes)> {
     struct Params {
       Address address;
       StoragePower deal_size;
@@ -101,7 +105,8 @@ namespace fc::vm::actor::builtin::verifreg {
   CBOR_TUPLE(RestoreBytes::Params, address, deal_size)
 
   struct RemoveVerifiedClientDataCap
-      : ActorMethodBase<VerifiedRegistryActor::kRemoveVerifiedClientDataCap> {
+      : ActorMethodBase<MethodNumber(
+            VerifiedRegistryActor::kRemoveVerifiedClientDataCap)> {
     struct Params {
       Address client_to_remove;
       DataCap amount_to_remove;

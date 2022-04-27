@@ -12,10 +12,9 @@
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp"
+#include "vm/actor/builtin/methods/market.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/v5/market/market_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining::checks {
@@ -38,9 +37,9 @@ namespace fc::mining::checks {
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::maxSealDuration;
   using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
-  using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::message::UnsignedMessage;
   using vm::toolchain::Toolchain;
+  namespace market = vm::actor::builtin::market;
 
   outcome::result<EpochDuration> getMaxProveCommitDuration(
       NetworkVersion network, const std::shared_ptr<SectorInfo> &sector_info) {
@@ -120,7 +119,7 @@ namespace fc::mining::checks {
     }
 
     OUTCOME_TRY(params,
-                codec::cbor::encode(ComputeDataCommitment::Params{
+                codec::cbor::encode(market::ComputeDataCommitment::Params{
                     .inputs =
                         {
                             {
@@ -136,7 +135,7 @@ namespace fc::mining::checks {
                             {},
                             {},
                             {},
-                            ComputeDataCommitment::Number,
+                            market::ComputeDataCommitment::Number,
                             params};
     OUTCOME_TRY(invocation_result, api->StateCall(message, tipset_key));
     if (invocation_result.receipt.exit_code != VMExitCode::kOk) {
@@ -144,7 +143,7 @@ namespace fc::mining::checks {
     }
 
     OUTCOME_TRY(res,
-                codec::cbor::decode<ComputeDataCommitment::Result>(
+                codec::cbor::decode<market::ComputeDataCommitment::Result>(
                     invocation_result.receipt.return_value));
 
     if (res.commds.size() != 1) {
