@@ -29,6 +29,7 @@ namespace fc::cli::cli_node {
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
   using vm::actor::builtin::types::storage_power::Claim;
   using vm::message::UnsignedMessage;
+  using storage::ipfs::ApiIpfsDatastore;
   using vm::runtime::MessageReceipt;
   using base64 = cppcodec::base64_rfc4648;
   using common::unhex;
@@ -112,7 +113,7 @@ namespace fc::cli::cli_node {
     printReceiptReturn(api, message, message_wait.receipt);
   }
 
-  struct Node_developer_pending {
+  struct Node_mpool_pending {
     struct Args {
       CLI_BOOL("local", "output will consist of local messages") local;
       CLI_BOOL("cids", "only print cids of messages in output") cids;
@@ -161,12 +162,12 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_sub : Empty {
+  struct Node_mpool_sub : Empty {
     // TODO: Implement it
     CLI_RUN() {}
   };
 
-  struct Node_developer_find {
+  struct Node_mpool_find {
     struct Args {
       CLI_OPTIONAL("from",
                    "search for messages with given 'from' address",
@@ -203,7 +204,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_createToken {
+  struct Node_auth_createToken {
     struct Args {
       CLI_OPTIONAL(
           "perm",
@@ -223,12 +224,12 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_apiInfo : Empty {
+  struct Node_auth_apiInfo : Empty {
     // TODO: develop
     CLI_RUN() {}
   };
 
-  struct Node_developer_head : Empty {
+  struct Node_chain_head : Empty {
     CLI_RUN() {
       Node::Api api{argm};
       auto head = cliTry(api->ChainHead());
@@ -239,7 +240,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_getBlock {
+  struct Node_chain_getBlock {
     struct Args {
       CLI_BOOL("raw", "Get a block and print its details") raw;
 
@@ -271,7 +272,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_readObject : Empty {
+  struct Node_chain_readObject : Empty {
     CLI_RUN() {
       auto object_cid{cliArgv<CID>(argv, 0, "object CID")};
       Node::Api api{argm};
@@ -280,7 +281,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_getMessage : Empty {
+  struct Node_chain_getMessage : Empty {
     CLI_RUN() {
       auto message_cid{cliArgv<CID>(argv, 0, "message CID")};
       Node::Api api{argm};
@@ -295,17 +296,17 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_get : Empty {
+  struct Node_chain_get : Empty {
     // TODO: develop
     CLI_RUN() {}
   };
 
-  struct Node_developer_slashConsensus : Empty {
+  struct Node_chain_slashConsensus : Empty {
     // TODO: develop
     CLI_RUN() {}
   };
 
-  struct Node_developer_estimateGasPrices : Empty {
+  struct Node_chain_estimateGasPrices : Empty {
     CLI_RUN() {
       Node::Api api{argm};
       std::vector<uint64_t> number_of_blocks{1, 2, 3, 5, 10, 20, 50, 100, 300};
@@ -319,7 +320,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_stateMinerInfo : Empty {
+  struct Node_state_stateMinerInfo : Empty {
     CLI_RUN() {
       auto miner_address{cliArgv<Address>(argv, 0, "miner Address")};
       Node::Api api{argm};
@@ -369,7 +370,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_networkVersion : Empty {
+  struct Node_state_networkVersion : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
 
@@ -380,14 +381,13 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_balance : Empty {
+  struct Node_state_market_balance : Empty {
     CLI_RUN() {
-      // TODO wait to client pr
-      // Node_client_balance::run(argm, args, argv);
+//       Node_client_balance::run(argm, args, argv); TODO
     }
   };
 
-  struct Node_developer_sector {
+  struct Node_state_sector {
     struct Args {
       tipset_template tipset;
 
@@ -445,7 +445,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_call {
+  struct Node_state_call {
     struct Args {
       tipset_template tipset;
       CLI_DEFAULT("from",
@@ -541,7 +541,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_searchMsg : Empty {
+  struct Node_state_searchMsg : Empty {
     CLI_RUN() {
       const Node::Api api{argm};
 
@@ -561,7 +561,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_waitMsg {
+  struct Node_state_waitMsg {
     struct Args {
       CLI_DEFAULT(
           "(NOT SUPPORT)"
@@ -592,7 +592,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_sectorSize {
+  struct Node_state_sectorSize {
     struct Args {
       tipset_template tipset;
 
@@ -619,7 +619,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_lookup {
+  struct Node_state_lookup {
     struct Args {
       tipset_template tipset;
       CLI_BOOL("reverse,r", "Perform reverse lookup") reverse;
@@ -650,7 +650,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_getActor {
+  struct Node_state_getActor {
     struct Args {
       tipset_template tipset;
       CLI_OPTS() {
@@ -679,7 +679,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_listActors {
+  struct Node_state_listActors {
     struct Args {
       tipset_template tipset;
 
@@ -704,7 +704,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_listMiners {
+  struct Node_state_listMiners {
     struct Args {
       tipset_template tipset;
       CLI_DEFAULT("sort-by",
@@ -724,7 +724,7 @@ namespace fc::cli::cli_node {
       const Node::Api api{argm};
       const TipsetCPtr tipset = loadTipset(api, args.tipset.v);
 
-      const std::vector<Address> miners =
+      std::vector<Address> miners =
           cliTry(api->StateListMiners(tipset->key));
 
       if (*args.sort_by == "num-deals") {
@@ -754,14 +754,13 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_getDeal : Empty {
+  struct Node_state_getDeal : Empty {
     CLI_RUN() {
-      // TODO wait to client pr
-      // Node_client_getDeal::run(argm, args, argv);
+//      Node_client_getDeal::run(argm, args, fc::cli::Argv()); TODO
     }
   };
 
-  struct Node_developer_activeSectors {
+  struct Node_state_activeSectors {
     struct Args {
       tipset_template tipset;
 
@@ -788,7 +787,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_sectors {
+  struct Node_state_sectors {
     struct Args {
       tipset_template tipset;
 
@@ -815,7 +814,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_developer_power {
+  struct Node_state_power {
     struct Args {
       tipset_template tipset;
 
