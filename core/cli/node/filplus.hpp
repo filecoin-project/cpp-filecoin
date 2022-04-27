@@ -154,7 +154,7 @@ namespace fc::cli::cli_node {
                                         encoded_params},
                                        api::kPushNoSpec));
       const MsgWait message_wait =
-          cliTry(api->StateWaitMsg(signed_message1.getCid(), 1, 10, false),
+          cliTry(api->StateWaitMsg(signed_message.getCid(), 1, 10, false),
                  "Wait message");
     }
   };
