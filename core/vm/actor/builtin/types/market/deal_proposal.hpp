@@ -76,6 +76,7 @@ namespace fc::vm::actor::builtin::types::market {
       return s;
     }
     assert(false);  // must be a string or bytes
+    return s;
   }
 
   struct DealProposal {
