@@ -138,11 +138,11 @@ namespace fc::cli::cli_node {
       auto state =
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
 
-      auto encoded_params1 = cliTry(codec::cbor::encode(
+      auto encoded_params = cliTry(codec::cbor::encode(
           vm::actor::builtin::v0::verified_registry::AddVerifier::Params{
               *args.from, *args.amount
           }));
-      SignedMessage signed_message1 = cliTry(api->MpoolPushMessage(
+      const SignedMessage signed_message = cliTry(api->MpoolPushMessage(
           {kVerifiedRegistryAddress,
            state->root_key,
            {},
@@ -150,10 +150,10 @@ namespace fc::cli::cli_node {
            0,
            0,
            vm::actor::builtin::v0::verified_registry::AddVerifier::Number,
-           encoded_params1},
+           encoded_params},
           api::kPushNoSpec));
-      const MsgWait message_wait1 =
-          cliTry(api->StateWaitMsg(signed_message1.getCid(), 1, 10, false),
+      const MsgWait message_wait =
+          cliTry(api->StateWaitMsg(signed_message.getCid(), 1, 10, false),
                  "Wait message");
     }
   };

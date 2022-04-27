@@ -199,7 +199,7 @@ namespace fc::cli::cli_node {
     }
   };
 
-  struct Node_client_importData {
+  struct Node_client_import {
     struct Args {
       CLI_BOOL("car", "import from a car file instead of a regular file") car;
 
