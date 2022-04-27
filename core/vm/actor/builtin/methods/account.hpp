@@ -7,7 +7,7 @@
 
 #include "vm/actor/actor_method.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::account {
 
   // These methods must be actual with the last version of actors
 
@@ -24,4 +24,4 @@ namespace fc::vm::actor::builtin {
     using Result = Address;
   };
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::account

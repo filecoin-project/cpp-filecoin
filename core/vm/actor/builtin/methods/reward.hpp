@@ -9,7 +9,7 @@
 
 #include "common/smoothing/alpha_beta_filter.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::reward {
   using common::smoothing::FilterEstimate;
   using primitives::StoragePower;
 
@@ -69,4 +69,4 @@ namespace fc::vm::actor::builtin {
     using Params = StoragePower;
   };
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::reward

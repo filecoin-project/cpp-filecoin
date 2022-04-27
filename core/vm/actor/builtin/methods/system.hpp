@@ -7,7 +7,7 @@
 
 #include "vm/actor/actor_method.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::system {
 
   // These methods must be actual with the last version of actors
 
@@ -17,4 +17,4 @@ namespace fc::vm::actor::builtin {
 
   struct Construct : ActorMethodBase<SystemActor::kConstruct> {};
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::system

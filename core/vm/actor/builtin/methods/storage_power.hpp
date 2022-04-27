@@ -11,7 +11,7 @@
 #include "primitives/sector/sector.hpp"
 #include "vm/actor/builtin/types/storage_power/miner_params.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::power {
   using common::smoothing::FilterEstimate;
   using primitives::ChainEpoch;
   using primitives::StoragePower;
@@ -129,4 +129,4 @@ namespace fc::vm::actor::builtin {
              pledge_collateral,
              quality_adj_power_smoothed)
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::power

@@ -9,7 +9,7 @@
 
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::paych {
   using primitives::EpochDuration;
   using types::payment_channel::SignedVoucher;
 
@@ -59,4 +59,4 @@ namespace fc::vm::actor::builtin {
 
   struct Collect : ActorMethodBase<PaymentChannelActor::kCollect> {};
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::paych

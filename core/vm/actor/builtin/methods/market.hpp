@@ -13,7 +13,7 @@
 #include "vm/actor/builtin/types/market/sector_deals.hpp"
 #include "vm/actor/builtin/types/market/sector_weights.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::market {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::DealWeight;
@@ -178,4 +178,4 @@ namespace fc::vm::actor::builtin {
 
   struct CronTick : ActorMethodBase<MarketActor::kCronTick> {};
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::market

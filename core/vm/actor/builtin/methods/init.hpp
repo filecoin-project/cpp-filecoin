@@ -7,7 +7,7 @@
 
 #include "vm/actor/actor_method.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::init {
 
   // These methods must be actual with the last version of actors
 
@@ -62,4 +62,4 @@ namespace fc::vm::actor::builtin {
   CBOR_TUPLE(Exec::Params, code, params)
   CBOR_TUPLE(Exec::Result, id_address, robust_address)
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::init

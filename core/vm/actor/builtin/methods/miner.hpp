@@ -16,7 +16,7 @@
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 #include "vm/actor/builtin/types/storage_power/miner_params.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::miner {
   using common::smoothing::FilterEstimate;
   using crypto::randomness::Randomness;
   using libp2p::multi::Multiaddress;
@@ -479,4 +479,4 @@ namespace fc::vm::actor::builtin {
   };
   CBOR_TUPLE(ProveReplicaUpdates::Params, updates)
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::miner

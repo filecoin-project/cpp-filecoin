@@ -9,7 +9,7 @@
 
 #include "vm/actor/builtin/types/verified_registry/remove_data_cap_request.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::verifreg {
   using primitives::DataCap;
   using primitives::StoragePower;
   using types::verified_registry::RemoveDataCapRequest;
@@ -142,4 +142,4 @@ namespace fc::vm::actor::builtin {
              verified_client,
              data_cap_removed)
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::verifreg

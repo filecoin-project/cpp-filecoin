@@ -9,7 +9,7 @@
 
 #include "vm/actor/builtin/types/multisig/transaction.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::multisig {
   using primitives::ChainEpoch;
   using primitives::EpochDuration;
   using types::multisig::ProposalHashData;
@@ -219,4 +219,4 @@ namespace fc::vm::actor::builtin {
   };
   CBOR_TUPLE(LockBalance::Params, start_epoch, unlock_duration, amount)
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::multisig

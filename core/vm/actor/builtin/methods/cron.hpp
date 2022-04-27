@@ -9,7 +9,7 @@
 
 #include "vm/actor/builtin/types/cron/cron_table_entry.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::cron {
   using types::cron::CronTableEntry;
 
   // These methods must be actual with the last version of actors
@@ -25,4 +25,4 @@ namespace fc::vm::actor::builtin {
 
   struct EpochTick : ActorMethodBase<CronActor::kEpochTick> {};
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::cron
