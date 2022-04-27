@@ -37,16 +37,19 @@
 #include "vm/actor/builtin/v5/miner/monies.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message.hpp"
-#include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/runtime/make_vm.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
-#define MOVE(x) \
-  x { std::move(x) }
+#define MOVE(x)  \
+  x {            \
+    std::move(x) \
+  }
 
-#define FWD(x) \
-  x { std::forward<decltype(x)>(x) }
+#define FWD(x)                   \
+  x {                            \
+    std::forward<decltype(x)>(x) \
+  }
 
 namespace fc::api {
   using connection_t = boost::signals2::connection;
