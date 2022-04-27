@@ -14,17 +14,15 @@ namespace fc::vm::actor::builtin {
 
   // These methods must be actual with the last version of actors
 
-  struct CronActor {
-    enum class Method : MethodNumber {
-      kConstruct = 1,
-      kEpochTick,
-    }
+  enum class CronActor : MethodNumber {
+    kConstruct = 1,
+    kEpochTick,
+  }
 
-    struct Construct : ActorMethodBase<Method::kConstruct> {
-      using Params = std::vector<CronTableEntry>;
-    };
-
-    struct EpochTick : ActorMethodBase<Method::kEpochTick> {};
+  struct Construct : ActorMethodBase<CronActor::kConstruct> {
+    using Params = std::vector<CronTableEntry>;
   };
+
+  struct EpochTick : ActorMethodBase<CronActor::kEpochTick> {};
 
 }  // namespace fc::vm::actor::builtin

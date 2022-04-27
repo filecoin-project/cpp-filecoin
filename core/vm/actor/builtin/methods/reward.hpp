@@ -15,61 +15,58 @@ namespace fc::vm::actor::builtin {
 
   // These methods must be actual with the last version of actors
 
-  struct RewardActor {
-    enum class Method : MethodNumber {
-      kConstruct = 1,
-      kAwardBlockReward,
-      kThisEpochReward,
-      kUpdateNetworkKPI,
-    }
+  enum class RewardActor : MethodNumber {
+    kConstruct = 1,
+    kAwardBlockReward,
+    kThisEpochReward,
+    kUpdateNetworkKPI,
+  }
 
-    struct Constructor : ActorMethodBase<Method::kConstruct> {
-      using Params = StoragePower;
+  struct Constructor : ActorMethodBase<RewardActor::kConstruct> {
+    using Params = StoragePower;
+  };
+
+  struct AwardBlockReward : ActorMethodBase<RewardActor::kAwardBlockReward> {
+    struct Params {
+      Address miner;
+      TokenAmount penalty;
+      TokenAmount gas_reward;
+      int64_t win_count{};
+
+      inline bool operator==(const Params &other) const {
+        return miner == other.miner && penalty == other.penalty
+               && gas_reward == other.gas_reward
+               && win_count == other.win_count;
+      }
+
+      inline bool operator!=(const Params &other) const {
+        return !(*this == other);
+      }
     };
+  };
+  CBOR_TUPLE(AwardBlockReward::Params, miner, penalty, gas_reward, win_count)
 
-    struct AwardBlockReward : ActorMethodBase<Method::kAwardBlockReward> {
-      struct Params {
-        Address miner;
-        TokenAmount penalty;
-        TokenAmount gas_reward;
-        int64_t win_count{};
+  struct ThisEpochReward : ActorMethodBase<RewardActor::kThisEpochReward> {
+    struct Result {
+      FilterEstimate this_epoch_reward_smoothed;
+      StoragePower this_epoch_baseline_power;
 
-        inline bool operator==(const Params &other) const {
-          return miner == other.miner && penalty == other.penalty
-                 && gas_reward == other.gas_reward
-                 && win_count == other.win_count;
-        }
+      inline bool operator==(const Result &other) const {
+        return this_epoch_reward_smoothed == other.this_epoch_reward_smoothed
+               && this_epoch_baseline_power == other.this_epoch_baseline_power;
+      }
 
-        inline bool operator!=(const Params &other) const {
-          return !(*this == other);
-        }
-      };
+      inline bool operator!=(const Result &other) const {
+        return !(*this == other);
+      }
     };
-    CBOR_TUPLE(AwardBlockReward::Params, miner, penalty, gas_reward, win_count)
+  };
+  CBOR_TUPLE(ThisEpochReward::Result,
+             this_epoch_reward_smoothed,
+             this_epoch_baseline_power)
 
-    struct ThisEpochReward : ActorMethodBase<Method::kThisEpochReward> {
-      struct Result {
-        FilterEstimate this_epoch_reward_smoothed;
-        StoragePower this_epoch_baseline_power;
-
-        inline bool operator==(const Result &other) const {
-          return this_epoch_reward_smoothed == other.this_epoch_reward_smoothed
-                 && this_epoch_baseline_power
-                        == other.this_epoch_baseline_power;
-        }
-
-        inline bool operator!=(const Result &other) const {
-          return !(*this == other);
-        }
-      };
-    };
-    CBOR_TUPLE(ThisEpochReward::Result,
-               this_epoch_reward_smoothed,
-               this_epoch_baseline_power)
-
-    struct UpdateNetworkKPI : ActorMethodBase<Method::kUpdateNetworkKPI> {
-      using Params = StoragePower;
-    };
+  struct UpdateNetworkKPI : ActorMethodBase<RewardActor::kUpdateNetworkKPI> {
+    using Params = StoragePower;
   };
 
 }  // namespace fc::vm::actor::builtin

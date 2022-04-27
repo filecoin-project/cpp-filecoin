@@ -15,50 +15,48 @@ namespace fc::vm::actor::builtin {
 
   // These methods must be actual with the last version of actors
 
-  struct PaymentChannelActor {
-    enum class Method : MethodNumber {
-      kConstruct = 1,
-      kUpdateChannelState,
-      kSettle,
-      kCollect,
-    }
+  enum class PaymentChannelActor : MethodNumber {
+    kConstruct = 1,
+    kUpdateChannelState,
+    kSettle,
+    kCollect,
+  }
 
-    struct Construct : ActorMethodBase<Method::kConstruct> {
-      struct Params {
-        Address from;
-        Address to;
+  struct Construct : ActorMethodBase<PaymentChannelActor::kConstruct> {
+    struct Params {
+      Address from;
+      Address to;
 
-        inline bool operator==(const Params &other) const {
-          return from == other.from && to == other.to;
-        }
+      inline bool operator==(const Params &other) const {
+        return from == other.from && to == other.to;
+      }
 
-        inline bool operator!=(const Params &other) const {
-          return !(*this == other);
-        }
-      };
+      inline bool operator!=(const Params &other) const {
+        return !(*this == other);
+      }
     };
-    CBOR_TUPLE(Construct::Params, from, to)
-
-    struct UpdateChannelState : ActorMethodBase<Method::kUpdateChannelState> {
-      struct Params {
-        SignedVoucher signed_voucher;
-        Bytes secret;
-
-        inline bool operator==(const Params &other) const {
-          return signed_voucher == other.signed_voucher
-                 && secret == other.secret;
-        }
-
-        inline bool operator!=(const Params &other) const {
-          return !(*this == other);
-        }
-      };
-    };
-    CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret)
-
-    struct Settle : ActorMethodBase<Method::kSettle> {};
-
-    struct Collect : ActorMethodBase<Method::kCollect> {};
   };
+  CBOR_TUPLE(Construct::Params, from, to)
+
+  struct UpdateChannelState
+      : ActorMethodBase<PaymentChannelActor::kUpdateChannelState> {
+    struct Params {
+      SignedVoucher signed_voucher;
+      Bytes secret;
+
+      inline bool operator==(const Params &other) const {
+        return signed_voucher == other.signed_voucher && secret == other.secret;
+      }
+
+      inline bool operator!=(const Params &other) const {
+        return !(*this == other);
+      }
+    };
+  };
+  CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret)
+
+  struct Settle : ActorMethodBase<PaymentChannelActor::kSettle> {};
+
+  struct Collect : ActorMethodBase<PaymentChannelActor::kCollect> {};
 
 }  // namespace fc::vm::actor::builtin
