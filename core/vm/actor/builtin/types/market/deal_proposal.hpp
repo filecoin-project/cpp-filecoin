@@ -16,6 +16,7 @@
 #include "primitives/types.hpp"
 
 namespace fc::vm::actor::builtin::types::market {
+  using codec::cbor::CborDecodeError;
   using primitives::EpochDuration;
   using primitives::TokenAmount;
   using primitives::address::Address;
@@ -75,7 +76,8 @@ namespace fc::vm::actor::builtin::types::market {
       v = Label::make(bytes).value();
       return s;
     }
-    assert(false);  // must be a string or bytes
+    // must be a string or bytes
+    outcome::raise(CborDecodeError::kInvalidCbor);
     return s;
   }
 
