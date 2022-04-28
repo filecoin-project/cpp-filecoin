@@ -18,16 +18,17 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
     explicit DealInfoManagerImpl(std::shared_ptr<FullNodeApi> api);
 
     outcome::result<CurrentDealInfo> getCurrentDealInfo(
-        const Universal<vm::actor::builtin::types::market::DealProposal> &proposal, const CID &publish_cid) override;
+        const Universal<DealProposal> &proposal,
+        const CID &publish_cid) override;
 
     outcome::result<DealId> dealIdFromPublishDealsMsg(
         const MsgWait &publish_message_wait,
-        const Universal<vm::actor::builtin::types::market::DealProposal> &proposal) override;
+        const Universal<DealProposal> &proposal) override;
 
    private:
     outcome::result<bool> checkProposalEquality(const TipsetKey &tipset_key,
-                                                Universal<vm::actor::builtin::types::market::DealProposal> lhs,
-                                                Universal<vm::actor::builtin::types::market::DealProposal> rhs);
+                                                Universal<DealProposal> lhs,
+                                                Universal<DealProposal> rhs);
 
     std::shared_ptr<FullNodeApi> api_;
     Logger logger_;

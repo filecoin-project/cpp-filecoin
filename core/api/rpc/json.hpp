@@ -26,7 +26,7 @@
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/json_types.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
-#include "vm/actor/builtin/types/market/v0/deal_proposal.hpp"
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 
 namespace fc::common {
@@ -993,24 +993,16 @@ namespace fc::vm::actor::builtin::types {
     }
 
     JSON_DECODE(Universal<DealProposal>) {
-      // TODO (a.chernyshov) use V8 actor asap
-      vm::actor::builtin::v0::market::DealProposal deal_proposal;
-      Get(j, "PieceCID", deal_proposal.piece_cid);
-      Get(j, "PieceSize", deal_proposal.piece_size);
-      Get(j, "VerifiedDeal", deal_proposal.verified);
-      Get(j, "Client", deal_proposal.client);
-      Get(j, "Provider", deal_proposal.provider);
-      Get(j, "StartEpoch", deal_proposal.start_epoch);
-      Get(j, "EndEpoch", deal_proposal.end_epoch);
-      Get(j, "StoragePricePerEpoch", deal_proposal.storage_price_per_epoch);
-      Get(j, "ProviderCollateral", deal_proposal.provider_collateral);
-      Get(j, "ClientCollateral", deal_proposal.client_collateral);
-
-      v = vm::actor::builtin::types::Universal<
-          vm::actor::builtin::types::market::DealProposal>(
-          vm::actor::ActorVersion::kVersion0,
-          std::make_shared<vm::actor::builtin::v0::market::DealProposal>(
-              deal_proposal));
+      Get(j, "PieceCID", v->piece_cid);
+      Get(j, "PieceSize", v->piece_size);
+      Get(j, "VerifiedDeal", v->verified);
+      Get(j, "Client", v->client);
+      Get(j, "Provider", v->provider);
+      Get(j, "StartEpoch", v->start_epoch);
+      Get(j, "EndEpoch", v->end_epoch);
+      Get(j, "StoragePricePerEpoch", v->storage_price_per_epoch);
+      Get(j, "ProviderCollateral", v->provider_collateral);
+      Get(j, "ClientCollateral", v->client_collateral);
     }
 
     JSON_ENCODE(DealProposal) {
