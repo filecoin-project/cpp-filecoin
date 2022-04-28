@@ -89,6 +89,9 @@ find_package(libarchive CONFIG REQUIRED)
 hunter_add_package(prometheus-cpp)
 find_package(prometheus-cpp CONFIG REQUIRED)
 
+hunter_add_package(utf8)
+find_package(utf8 CONFIG REQUIRED)
+
 # Add filecoin_ffi target if building without git submodules
 if (NOT BUILD_INTERNAL_DEPS)
   find_package(filecoin_ffi REQUIRED)

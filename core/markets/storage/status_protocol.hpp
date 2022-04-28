@@ -13,13 +13,14 @@
 #include "markets/storage/provider/miner_deal.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
 
 namespace fc::markets::storage {
   using codec::cbor::CborDecodeStream;
   using codec::cbor::CborEncodeStream;
   using primitives::DealId;
   using provider::MinerDeal;
+  using vm::actor::builtin::types::Universal;
   using vm::actor::builtin::types::market::DealProposal;
 
   const libp2p::peer::Protocol kDealStatusProtocolId_v1_0_1{
@@ -33,7 +34,7 @@ namespace fc::markets::storage {
   struct ProviderDealState {
     StorageDealStatus status{};
     std::string message;
-    DealProposal proposal;
+    Universal<DealProposal> proposal;
     CID proposal_cid;
     boost::optional<CID> add_funds_cid;
     boost::optional<CID> publish_cid;
@@ -196,7 +197,8 @@ namespace fc::markets::storage {
 
   inline CBOR2_DECODE(DealStatusResponseV1_1_0) {
     auto m{s.map()};
-    v.state = CborDecodeStream::named(m, "DealState").get<ProviderDealStateV1_1_0>();
+    v.state =
+        CborDecodeStream::named(m, "DealState").get<ProviderDealStateV1_1_0>();
     CborDecodeStream::named(m, "Signature") >> v.signature;
     return s;
   }

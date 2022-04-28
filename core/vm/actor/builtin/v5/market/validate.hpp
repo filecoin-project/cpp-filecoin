@@ -37,17 +37,17 @@ namespace fc::vm::actor::builtin::v5::market {
         return kTodoError;
       }
       OUTCOME_TRY(proposal, state->proposals.get(id));
-      if (proposal.provider != miner) {
+      if (proposal->provider != miner) {
         return kTodoError;
       }
-      if (activation > proposal.start_epoch) {
+      if (activation > proposal->start_epoch) {
         return kTodoError;
       }
-      if (proposal.end_epoch > expiration) {
+      if (proposal->end_epoch > expiration) {
         return kTodoError;
       }
-      result.space += proposal.piece_size;
-      (proposal.verified ? result.space_time_verified : result.space_time) +=
+      result.space += proposal->piece_size;
+      (proposal->verified ? result.space_time_verified : result.space_time) +=
           types::market::dealWeight(proposal);
     }
     return result;

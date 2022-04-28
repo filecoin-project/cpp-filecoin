@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::v2::market {
   using states::DealArray;
   using states::MarketActorStatePtr;
   using types::Controls;
+  using types::Universal;
   using types::market::ClientDealProposal;
   using types::market::DealProposal;
 
@@ -51,10 +52,10 @@ namespace fc::vm::actor::builtin::v2::market {
     getRawAndQaPowerFromPowerActor() const override;
 
     outcome::result<void> callVerifRegUseBytes(
-        const DealProposal &deal) const override;
+        const Universal<DealProposal> &deal) const override;
 
     outcome::result<void> callVerifRegRestoreBytes(
-        const DealProposal &deal) const override;
+        const Universal<DealProposal> &deal) const override;
 
     outcome::result<Controls> requestMinerControlAddress(
         const Address &miner) const override;

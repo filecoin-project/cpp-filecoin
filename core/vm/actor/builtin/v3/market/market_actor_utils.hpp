@@ -13,6 +13,7 @@ namespace fc::vm::actor::builtin::v3::market {
   using primitives::address::Address;
   using runtime::Runtime;
   using types::Controls;
+  using types::Universal;
   using types::market::DealProposal;
 
   class MarketUtils : public v2::market::MarketUtils {
@@ -28,10 +29,10 @@ namespace fc::vm::actor::builtin::v3::market {
     getRawAndQaPowerFromPowerActor() const override;
 
     outcome::result<void> callVerifRegUseBytes(
-        const DealProposal &deal) const override;
+        const Universal<DealProposal> &deal) const override;
 
     outcome::result<void> callVerifRegRestoreBytes(
-        const DealProposal &deal) const override;
+        const Universal<DealProposal> &deal) const override;
 
     outcome::result<Controls> requestMinerControlAddress(
         const Address &miner) const override;

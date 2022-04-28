@@ -52,16 +52,16 @@ namespace fc::vm::actor::builtin::v3::market {
   }
 
   outcome::result<void> MarketUtils::callVerifRegUseBytes(
-      const DealProposal &deal) const {
+      const Universal<DealProposal> &deal) const {
     OUTCOME_TRY(getRuntime().sendM<verified_registry::UseBytes>(
-        kVerifiedRegistryAddress, {deal.client, uint64_t{deal.piece_size}}, 0));
+        kVerifiedRegistryAddress, {deal->client, uint64_t{deal->piece_size}}, 0));
     return outcome::success();
   }
 
   outcome::result<void> MarketUtils::callVerifRegRestoreBytes(
-      const DealProposal &deal) const {
+      const Universal<DealProposal> &deal) const {
     OUTCOME_TRY(getRuntime().sendM<verified_registry::RestoreBytes>(
-        kVerifiedRegistryAddress, {deal.client, uint64_t{deal.piece_size}}, 0));
+        kVerifiedRegistryAddress, {deal->client, uint64_t{deal->piece_size}}, 0));
     return outcome::success();
   }
 

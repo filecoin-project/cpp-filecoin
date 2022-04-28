@@ -5,16 +5,19 @@
 
 #pragma once
 
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
 #include "vm/actor/builtin/types/market/pending_proposals.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
-  using types::market::DealProposal;
+  using types::Universal;
 
   struct PendingProposals : types::market::PendingProposals {
     outcome::result<void> loadRoot() const override;
     outcome::result<bool> has(const Key &key) const override;
-    outcome::result<void> set(const Key &key,
-                              const DealProposal &value) override;
+    outcome::result<void> set(
+        const Key &key,
+        const Universal<types::market::DealProposal> &value) override;
     outcome::result<void> remove(const Key &key) override;
   };
 

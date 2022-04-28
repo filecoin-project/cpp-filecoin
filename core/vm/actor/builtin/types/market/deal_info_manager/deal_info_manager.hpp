@@ -35,7 +35,7 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
     virtual ~DealInfoManager() = default;
 
     virtual outcome::result<CurrentDealInfo> getCurrentDealInfo(
-        const DealProposal &proposal, const CID &publish_cid) = 0;
+        const Universal<DealProposal> &proposal, const CID &publish_cid) = 0;
 
     /**
      * Returns published deal id.
@@ -46,7 +46,8 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
      * @param client_deal_proposal - deal proposal in message
      */
     virtual outcome::result<DealId> dealIdFromPublishDealsMsg(
-        const MsgWait &publish_message_wait, const DealProposal &proposal) = 0;
+        const MsgWait &publish_message_wait,
+        const Universal<DealProposal> &proposal) = 0;
   };
 
   enum class DealInfoManagerError {

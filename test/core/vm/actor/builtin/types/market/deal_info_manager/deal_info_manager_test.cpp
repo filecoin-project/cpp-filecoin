@@ -10,6 +10,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/mocks/api.hpp"
 #include "testutil/outcome.hpp"
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
@@ -17,6 +18,8 @@
 namespace fc::vm::actor::builtin::types::market::deal_info_manager {
   using api::Address;
   using api::MsgWait;
+  using fc::vm::actor::builtin::types::Universal;
+  using fc::vm::actor::builtin::types::market::DealProposal;
   using message::UnsignedMessage;
   using testing::_;
   using v0::market::PublishStorageDeals;
@@ -50,7 +53,7 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
    * @then DealInfoManagerError::kNotOkExitCode occurs
    */
   TEST_F(DealInfoManagerTest, NonOkCode) {
-    DealProposal proposal;
+    auto proposal = Universal<DealProposal>(ActorVersion::kVersion0);
 
     EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
@@ -70,10 +73,10 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
    * @then DealInfoManagerError::kNotFound occurs
    */
   TEST_F(DealInfoManagerTest, NotFoundDeal) {
-    DealProposal proposal;
-    proposal.verified = false;
-    proposal.client = Address::makeFromId(2);
-    proposal.provider = Address::makeFromId(1);
+    auto proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+    proposal->verified = false;
+    proposal->client = Address::makeFromId(2);
+    proposal->provider = Address::makeFromId(1);
 
     StorageDeal market_deal;
 
@@ -102,11 +105,11 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
         [&](const CID &cid) -> outcome::result<UnsignedMessage> {
       if (cid == publish_cid) {
         UnsignedMessage result;
-        DealProposal proposal;
-        proposal.piece_cid = "010001020005"_cid;
-        proposal.verified = false;
-        proposal.client = Address::makeFromId(2);
-        proposal.provider = another_provider;
+        auto proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+        proposal->piece_cid = "010001020005"_cid;
+        proposal->verified = false;
+        proposal->client = Address::makeFromId(2);
+        proposal->provider = another_provider;
         PublishStorageDeals::Params params{
             .deals = {ClientDealProposal{
                 .proposal = proposal,
@@ -146,11 +149,11 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
    * @then DealInfoManagerError::kOutOfRange occurs
    */
   TEST_F(DealInfoManagerTest, OutOfRangeDeal) {
-    DealProposal proposal;
-    proposal.piece_cid = "010001020006"_cid;
-    proposal.verified = false;
-    proposal.client = Address::makeFromId(2);
-    proposal.provider = Address::makeFromId(1);
+    auto proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+    proposal->piece_cid = "010001020006"_cid;
+    proposal->verified = false;
+    proposal->client = Address::makeFromId(2);
+    proposal->provider = Address::makeFromId(1);
 
     StorageDeal market_deal;
 
@@ -180,11 +183,11 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
             const CID &cid) -> outcome::result<UnsignedMessage> {
       if (cid == publish_cid) {
         UnsignedMessage result;
-        DealProposal proposal;
-        proposal.verified = false;
-        proposal.client = Address::makeFromId(2);
-        proposal.piece_cid = "010001020005"_cid;
-        proposal.provider = another_provider;
+        auto proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+        proposal->verified = false;
+        proposal->client = Address::makeFromId(2);
+        proposal->piece_cid = "010001020005"_cid;
+        proposal->provider = another_provider;
         PublishStorageDeals::Params params{
             .deals = {ClientDealProposal{
                           .proposal = proposal,
@@ -220,7 +223,8 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
 
     const auto res = manager_->getCurrentDealInfo(proposal, publish_cid);
     EXPECT_TRUE(res.has_error());
-    EXPECT_EQ(res.error().message(),"publishDealsResult: deal index out of bound");
+    EXPECT_EQ(res.error().message(),
+              "publishDealsResult: deal index out of bound");
   }
 
   /**
@@ -229,13 +233,14 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
    * @then DealInfoManagerError::kDealProposalNotMatch occurs
    */
   TEST_F(DealInfoManagerTest, NotMatchProposal) {
-    DealProposal proposal;
-    proposal.piece_cid = "010001020006"_cid;
-    proposal.verified = false;
-    proposal.client = Address::makeFromId(2);
-    proposal.provider = Address::makeFromId(1);
+    auto proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+    proposal->piece_cid = "010001020006"_cid;
+    proposal->verified = false;
+    proposal->client = Address::makeFromId(2);
+    proposal->provider = Address::makeFromId(1);
 
     StorageDeal market_deal;
+    market_deal.proposal = Universal<DealProposal>(ActorVersion::kVersion0);
 
     CurrentDealInfo result_deal{
         .deal_id = result_deal_id,
@@ -299,11 +304,11 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
    * @then success
    */
   TEST_F(DealInfoManagerTest, Success) {
-    DealProposal proposal;
-    proposal.piece_cid = "010001020006"_cid;
-    proposal.verified = false;
-    proposal.client = Address::makeFromId(2);
-    proposal.provider = Address::makeFromId(1);
+    auto proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+    proposal->piece_cid = "010001020006"_cid;
+    proposal->verified = false;
+    proposal->client = Address::makeFromId(2);
+    proposal->provider = Address::makeFromId(1);
 
     StorageDeal market_deal;
     market_deal.proposal = proposal;

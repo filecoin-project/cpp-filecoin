@@ -123,9 +123,9 @@ namespace fc::vm::actor::builtin::types::market {
     return provider_collateral;
   }
 
-  inline DealWeight dealWeight(const DealProposal &deal) {
-    const auto deal_duration = static_cast<int64_t>(deal.duration());
-    const auto deal_size = static_cast<uint64_t>(deal.piece_size);
+  inline DealWeight dealWeight(const Universal<DealProposal> &deal) {
+    const auto deal_duration = static_cast<int64_t>(deal->duration());
+    const auto deal_size = static_cast<uint64_t>(deal->piece_size);
     return deal_duration * deal_size;
   }
 }  // namespace fc::vm::actor::builtin::types::market

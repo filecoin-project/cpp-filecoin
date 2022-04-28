@@ -12,6 +12,7 @@
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/transit.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::utils {
@@ -24,6 +25,7 @@ namespace fc::vm::actor::builtin::utils {
   using states::DealArray;
   using states::MarketActorStatePtr;
   using types::Controls;
+  using types::Universal;
   using types::market::BalanceLockingReason;
   using types::market::ClientDealProposal;
   using types::market::DealProposal;
@@ -45,10 +47,10 @@ namespace fc::vm::actor::builtin::utils {
         const ClientDealProposal &client_deal) const = 0;
 
     virtual outcome::result<TokenAmount> dealGetPaymentRemaining(
-        const DealProposal &deal, ChainEpoch slash_epoch) const = 0;
+        const Universal<DealProposal> &deal, ChainEpoch slash_epoch) const = 0;
 
     virtual outcome::result<ChainEpoch> genRandNextEpoch(
-        const DealProposal &deal) const = 0;
+        const Universal<DealProposal> &deal) const = 0;
 
     virtual outcome::result<void> deleteDealProposalAndState(
         MarketActorStatePtr &state,
@@ -57,7 +59,7 @@ namespace fc::vm::actor::builtin::utils {
         bool remove_state) const = 0;
 
     virtual outcome::result<void> validateDealCanActivate(
-        const DealProposal &deal,
+        const Universal<DealProposal> &deal,
         const Address &miner,
         const ChainEpoch &sector_expiration,
         const ChainEpoch &current_epoch) const = 0;
@@ -85,10 +87,10 @@ namespace fc::vm::actor::builtin::utils {
     getRawAndQaPowerFromPowerActor() const = 0;
 
     virtual outcome::result<void> callVerifRegUseBytes(
-        const DealProposal &deal) const = 0;
+        const Universal<DealProposal> &deal) const = 0;
 
     virtual outcome::result<void> callVerifRegRestoreBytes(
-        const DealProposal &deal) const = 0;
+        const Universal<DealProposal> &deal) const = 0;
 
     virtual outcome::result<Controls> requestMinerControlAddress(
         const Address &miner) const = 0;

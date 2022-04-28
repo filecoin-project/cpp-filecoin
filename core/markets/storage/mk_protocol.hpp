@@ -16,6 +16,8 @@
 #include "primitives/types.hpp"
 #include "storage/filestore/path.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::markets::storage {
   using codec::cbor::CborDecodeStream;
@@ -27,6 +29,7 @@ namespace fc::markets::storage {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::UnpaddedPieceSize;
+  using vm::actor::builtin::types::Universal;
   using vm::actor::builtin::types::market::ClientDealProposal;
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::market::DealState;
@@ -171,7 +174,7 @@ namespace fc::markets::storage {
    * StorageDeal is a local combination of a proposal and a current deal state
    */
   struct StorageDeal {
-    DealProposal proposal;
+    Universal<DealProposal> proposal;
     DealState state;
   };
 

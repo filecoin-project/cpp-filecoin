@@ -183,7 +183,7 @@ namespace fc::markets::storage::provider {
 
     auto unpadded{proofs::padPiece(car_path)};
     if (unpadded.padded()
-        != deal_context->deal->client_deal_proposal.proposal.piece_size) {
+        != deal_context->deal->client_deal_proposal.proposal->piece_size) {
       return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }
     OUTCOME_TRY(registered_proof, api_->GetProofType(miner_actor_address_, {}));
@@ -191,7 +191,7 @@ namespace fc::markets::storage::provider {
                 piece_io_->generatePieceCommitment(registered_proof, car_path));
 
     if (piece_commitment.first
-        != deal_context->deal->client_deal_proposal.proposal.piece_cid) {
+        != deal_context->deal->client_deal_proposal.proposal->piece_cid) {
       return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }
     deal_context->deal->piece_path = car_path.string();
@@ -216,7 +216,7 @@ namespace fc::markets::storage::provider {
 
     // verify client's signature
     OUTCOME_TRY(bytes, request.getDigest());
-    const auto &client_address = deal.client_deal_proposal.proposal.client;
+    const auto &client_address = deal.client_deal_proposal.proposal->client;
     OUTCOME_TRY(verified,
                 api_->WalletVerify(client_address, bytes, request.signature));
     if (!verified) {
@@ -267,7 +267,7 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(proposal_bytes, codec::cbor::encode(proposal));
     OUTCOME_TRY(
         verified,
-        api_->WalletVerify(proposal.client,
+        api_->WalletVerify(proposal->client,
                            proposal_bytes,
                            deal->client_deal_proposal.client_signature));
     if (!verified) {
@@ -275,7 +275,7 @@ namespace fc::markets::storage::provider {
       return false;
     }
 
-    if (proposal.provider != miner_actor_address_) {
+    if (proposal->provider != miner_actor_address_) {
       deal->message =
           "Deal proposal verification failed, incorrect provider for deal";
       return false;
@@ -283,7 +283,7 @@ namespace fc::markets::storage::provider {
 
     OUTCOME_TRY(chain_head, api_->ChainHead());
     if (chain_head->epoch()
-        > proposal.start_epoch - kDefaultDealAcceptanceBuffer) {
+        > proposal->start_epoch - kDefaultDealAcceptanceBuffer) {
       deal->message =
           "Deal proposal verification failed, deal start epoch is too soon "
           "or deal already expired";
@@ -292,29 +292,29 @@ namespace fc::markets::storage::provider {
 
     OUTCOME_TRY(ask, stored_ask_->getAsk(miner_actor_address_));
     auto min_price = bigdiv(
-        ask.ask.price * static_cast<uint64_t>(proposal.piece_size), 1 << 30);
-    if (proposal.storage_price_per_epoch < min_price) {
+        ask.ask.price * static_cast<uint64_t>(proposal->piece_size), 1 << 30);
+    if (proposal->storage_price_per_epoch < min_price) {
       std::stringstream ss;
       ss << "Deal proposal verification failed, storage price per epoch less "
             "than asking price: "
-         << proposal.storage_price_per_epoch << " < " << min_price;
+         << proposal->storage_price_per_epoch << " < " << min_price;
       deal->message = ss.str();
       return false;
     }
 
-    if (proposal.piece_size < ask.ask.min_piece_size) {
+    if (proposal->piece_size < ask.ask.min_piece_size) {
       std::stringstream ss;
       ss << "Deal proposal verification failed, piece size less than minimum "
             "required size: "
-         << proposal.piece_size << " < " << ask.ask.min_piece_size;
+         << proposal->piece_size << " < " << ask.ask.min_piece_size;
       deal->message = ss.str();
       return false;
     }
-    if (proposal.piece_size > ask.ask.max_piece_size) {
+    if (proposal->piece_size > ask.ask.max_piece_size) {
       std::stringstream ss;
       ss << "Deal proposal verification failed, piece size more than maximum "
             "allowed size: "
-         << proposal.piece_size << " > " << ask.ask.max_piece_size;
+         << proposal->piece_size << " > " << ask.ask.max_piece_size;
       deal->message = ss.str();
       return false;
     }
@@ -322,13 +322,13 @@ namespace fc::markets::storage::provider {
     // This doesn't guarantee that the client won't withdraw / lock those
     // funds but it's a decent first filter
     OUTCOME_TRY(client_balance,
-                api_->StateMarketBalance(proposal.client, chain_head->key));
+                api_->StateMarketBalance(proposal->client, chain_head->key));
     TokenAmount available = client_balance.escrow - client_balance.locked;
-    if (available < proposal.getTotalStorageFee()) {
+    if (available < proposal->getTotalStorageFee()) {
       std::stringstream ss;
       ss << "Deal proposal verification failed, client market available "
             "balance too small: "
-         << available << " < " << proposal.getTotalStorageFee();
+         << available << " < " << proposal->getTotalStorageFee();
       deal->message = ss.str();
       return false;
     }
@@ -342,11 +342,11 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(proposal.provider, chain_head->key));
+                api_->StateMinerInfo(proposal->provider, chain_head->key));
     OUTCOME_TRY(maybe_cid,
                 api_->MarketReserveFunds(worker_info.worker,
-                                         proposal.provider,
-                                         proposal.provider_collateral));
+                                         proposal->provider,
+                                         proposal->provider_collateral));
     return std::move(maybe_cid);
   }
 
@@ -355,7 +355,7 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(
         worker_info,
-        api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
+        api_->StateMinerInfo(deal->client_deal_proposal.proposal->provider,
                              chain_head->key));
     market::PublishStorageDeals::Params params{{deal->client_deal_proposal}};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
@@ -441,9 +441,9 @@ namespace fc::markets::storage::provider {
       locations[deal->ref.root] = {};
     }
     OUTCOME_TRY(piece_storage_->addPayloadLocations(
-        deal->client_deal_proposal.proposal.piece_cid, locations));
+        deal->client_deal_proposal.proposal->piece_cid, locations));
     OUTCOME_TRY(piece_storage_->addDealForPiece(
-        deal->client_deal_proposal.proposal.piece_cid,
+        deal->client_deal_proposal.proposal->piece_cid,
         DealInfo{.deal_id = deal->deal_id,
                  .sector_id = piece_location.sector,
                  .offset = piece_location.offset,
@@ -673,12 +673,12 @@ namespace fc::markets::storage::provider {
   FSM_HANDLE_DEFINITION(StorageProviderImpl::onProviderEventDealPublished) {
     auto &proposal{deal_context->deal->client_deal_proposal.proposal};
     auto maybe_piece_location = sector_blocks_->addPiece(
-        proposal.piece_size.unpadded(),
+        proposal->piece_size.unpadded(),
         deal_context->deal->piece_path,
         mining::types::DealInfo{deal_context->deal->publish_cid,
                                 deal_context->deal->deal_id,
                                 proposal,
-                                {proposal.start_epoch, proposal.end_epoch},
+                                {proposal->start_epoch, proposal->end_epoch},
                                 deal_context->deal->is_fast_retrieval});
     FSM_HALT_ON_ERROR(
         maybe_piece_location, "Unable to locate piece", deal_context);
@@ -689,7 +689,7 @@ namespace fc::markets::storage::provider {
 
   FSM_HANDLE_DEFINITION(StorageProviderImpl::onProviderEventDealHandedOff) {
     chain_events_->onDealSectorCommitted(
-        deal_context->deal->client_deal_proposal.proposal.provider,
+        deal_context->deal->client_deal_proposal.proposal->provider,
         deal_context->deal->deal_id,
         [=](auto _r) {
           FSM_HALT_ON_ERROR(_r, "onDealSectorCommitted error", deal_context);

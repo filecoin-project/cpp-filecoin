@@ -37,7 +37,7 @@ namespace fc::vm::actor::builtin::states {
   constexpr size_t kProposalsAmtBitwidth = 5;
   constexpr size_t kStatesAmtBitwidth = 6;
 
-  using DealArray = adt::Array<DealProposal, kProposalsAmtBitwidth>;
+  using DealArray = adt::Array<Universal<DealProposal>, kProposalsAmtBitwidth>;
   using DealSet = adt::Set<UvarintKeyer>;
 
   struct MarketActorState {
@@ -69,15 +69,15 @@ namespace fc::vm::actor::builtin::states {
                                           const TokenAmount &amount);
 
     outcome::result<TokenAmount> processDealInitTimedOut(
-        const DealProposal &deal);
+        const Universal<DealProposal> &deal);
 
     virtual outcome::result<void> processDealExpired(
-        const DealProposal &deal, const DealState &deal_state);
+        const Universal<DealProposal> &deal, const DealState &deal_state);
 
     virtual outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
     updatePendingDealState(Runtime &runtime,
                            DealId deal_id,
-                           const DealProposal &deal,
+                           const Universal<DealProposal> &deal,
                            const DealState &deal_state,
                            ChainEpoch epoch);
 
@@ -85,7 +85,7 @@ namespace fc::vm::actor::builtin::states {
                                            const TokenAmount &amount);
 
     outcome::result<void> lockClientAndProviderBalances(
-        const DealProposal &deal);
+        const Universal<DealProposal> &deal);
 
    protected:
     virtual outcome::result<void> check(bool condition) const = 0;

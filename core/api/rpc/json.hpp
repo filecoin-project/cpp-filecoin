@@ -26,6 +26,7 @@
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/json_types.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 
 namespace fc::common {
@@ -974,6 +975,35 @@ namespace fc::vm::actor::builtin::types {
       Get(j, "SectorStartEpoch", v.sector_start_epoch);
       Get(j, "LastUpdatedEpoch", v.last_updated_epoch);
       Get(j, "SlashEpoch", v.slash_epoch);
+    }
+
+    JSON_ENCODE(Universal<DealProposal>) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PieceCID", v->piece_cid, allocator);
+      Set(j, "PieceSize", v->piece_size, allocator);
+      Set(j, "VerifiedDeal", v->verified, allocator);
+      Set(j, "Client", v->client, allocator);
+      Set(j, "Provider", v->provider, allocator);
+      Set(j, "StartEpoch", v->start_epoch, allocator);
+      Set(j, "EndEpoch", v->end_epoch, allocator);
+      Set(j, "StoragePricePerEpoch", v->storage_price_per_epoch, allocator);
+      Set(j, "ProviderCollateral", v->provider_collateral, allocator);
+      Set(j, "ClientCollateral", v->client_collateral, allocator);
+      return j;
+    }
+
+    JSON_DECODE(Universal<DealProposal>) {
+      v.actor_version = ActorVersion::kVersion0;
+      Get(j, "PieceCID", v->piece_cid);
+      Get(j, "PieceSize", v->piece_size);
+      Get(j, "VerifiedDeal", v->verified);
+      Get(j, "Client", v->client);
+      Get(j, "Provider", v->provider);
+      Get(j, "StartEpoch", v->start_epoch);
+      Get(j, "EndEpoch", v->end_epoch);
+      Get(j, "StoragePricePerEpoch", v->storage_price_per_epoch);
+      Get(j, "ProviderCollateral", v->provider_collateral);
+      Get(j, "ClientCollateral", v->client_collateral);
     }
 
     JSON_ENCODE(DealProposal) {

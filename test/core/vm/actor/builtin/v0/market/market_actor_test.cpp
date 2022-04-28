@@ -3,10 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/predef/compiler/gcc.h>
-
-#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
 #include "testutil/cbor.hpp"
@@ -71,19 +69,20 @@ namespace fc::vm::actor::builtin::v0::market {
 
   ClientDealProposal MarketActorTest::setupPublishStorageDeals() {
     ClientDealProposal proposal;
+    proposal.proposal = Universal<DealProposal>(ActorVersion::kVersion0);
     auto &deal = proposal.proposal;
-    auto duration = dealDurationBounds(deal.piece_size).min + 1;
-    deal.piece_cid =
+    auto duration = dealDurationBounds(deal->piece_size).min + 1;
+    deal->piece_cid =
         dataCommitmentV1ToCID(std::vector<uint8_t>(32, 'x')).value();
-    deal.piece_size = 128;
-    deal.verified = false;
-    deal.start_epoch = current_epoch;
-    deal.end_epoch = deal.start_epoch + duration;
-    deal.storage_price_per_epoch =
-        dealPricePerEpochBounds(deal.piece_size, duration).min + 1;
-    deal.provider_collateral =
-        dealProviderCollateralBounds(deal.piece_size,
-                                     deal.verified,
+    deal->piece_size = 128;
+    deal->verified = false;
+    deal->start_epoch = current_epoch;
+    deal->end_epoch = deal->start_epoch + duration;
+    deal->storage_price_per_epoch =
+        dealPricePerEpochBounds(deal->piece_size, duration).min + 1;
+    deal->provider_collateral =
+        dealProviderCollateralBounds(deal->piece_size,
+                                     deal->verified,
                                      0,
                                      0,
                                      0,
@@ -91,16 +90,16 @@ namespace fc::vm::actor::builtin::v0::market {
                                      NetworkVersion::kVersion0)
             .min
         + 1;
-    deal.client_collateral =
-        dealClientCollateralBounds(deal.piece_size, duration).min + 1;
-    deal.provider = miner_address;
-    deal.client = client_address;
+    deal->client_collateral =
+        dealClientCollateralBounds(deal->piece_size, duration).min + 1;
+    deal->provider = miner_address;
+    deal->client = client_address;
 
     EXPECT_OUTCOME_TRUE_1(state->escrow_table.set(
-        miner_address, deal.providerBalanceRequirement()));
+        miner_address, deal->providerBalanceRequirement()));
     EXPECT_OUTCOME_TRUE_1(state->locked_table.set(miner_address, 0));
     EXPECT_OUTCOME_TRUE_1(state->escrow_table.set(
-        client_address, deal.clientBalanceRequirement()));
+        client_address, deal->clientBalanceRequirement()));
     EXPECT_OUTCOME_TRUE_1(state->locked_table.set(client_address, 0));
 
     callerIs(worker_address);
@@ -183,8 +182,9 @@ namespace fc::vm::actor::builtin::v0::market {
 
   TEST_F(MarketActorTest, PublishStorageDealsCallerNotWorker) {
     ClientDealProposal proposal;
-    proposal.proposal.piece_cid = some_cid;
-    proposal.proposal.provider = miner_address;
+    proposal.proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+    proposal.proposal->piece_cid = some_cid;
+    proposal.proposal->provider = miner_address;
 
     callerIs(client_address);
     runtime.expectSendM<MinerActor::ControlAddresses>(
@@ -196,7 +196,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   TEST_F(MarketActorTest, PublishStorageDealsNonPositiveDuration) {
     auto proposal = setupPublishStorageDeals();
-    proposal.proposal.end_epoch = proposal.proposal.start_epoch;
+    proposal.proposal->end_epoch = proposal.proposal->start_epoch;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
@@ -209,7 +209,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   TEST_F(MarketActorTest, PublishStorageDealsWrongClientSignature) {
     auto proposal = setupPublishStorageDeals();
-    proposal.proposal.client = owner_address;
+    proposal.proposal->client = owner_address;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
@@ -222,7 +222,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   TEST_F(MarketActorTest, PublishStorageDealsStartTimeout) {
     auto proposal = setupPublishStorageDeals();
-    proposal.proposal.start_epoch = current_epoch - 1;
+    proposal.proposal->start_epoch = current_epoch - 1;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
@@ -236,8 +236,8 @@ namespace fc::vm::actor::builtin::v0::market {
   TEST_F(MarketActorTest, PublishStorageDealsDurationOutOfBounds) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
-    deal.end_epoch =
-        deal.start_epoch + dealDurationBounds(deal.piece_size).max + 1;
+    deal->end_epoch =
+        deal->start_epoch + dealDurationBounds(deal->piece_size).max + 1;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
@@ -251,8 +251,8 @@ namespace fc::vm::actor::builtin::v0::market {
   TEST_F(MarketActorTest, PublishStorageDealsPricePerEpochOutOfBounds) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
-    deal.storage_price_per_epoch =
-        dealPricePerEpochBounds(deal.piece_size, deal.duration()).max + 1;
+    deal->storage_price_per_epoch =
+        dealPricePerEpochBounds(deal->piece_size, deal->duration()).max + 1;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
@@ -266,9 +266,9 @@ namespace fc::vm::actor::builtin::v0::market {
   TEST_F(MarketActorTest, PublishStorageDealsProviderCollateralOutOfBounds) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
-    deal.provider_collateral =
-        dealProviderCollateralBounds(deal.piece_size,
-                                     deal.verified,
+    deal->provider_collateral =
+        dealProviderCollateralBounds(deal->piece_size,
+                                     deal->verified,
                                      0,
                                      0,
                                      0,
@@ -290,8 +290,8 @@ namespace fc::vm::actor::builtin::v0::market {
   TEST_F(MarketActorTest, PublishStorageDealsClientCollateralOutOfBounds) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
-    deal.client_collateral =
-        dealClientCollateralBounds(deal.piece_size, deal.duration()).max + 1;
+    deal->client_collateral =
+        dealClientCollateralBounds(deal->piece_size, deal->duration()).max + 1;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {0, {0, 0}, {}});
@@ -307,7 +307,8 @@ namespace fc::vm::actor::builtin::v0::market {
   TEST_F(MarketActorTest, PublishStorageDealsDifferentProviders) {
     auto proposal = setupPublishStorageDeals();
     auto proposal2 = proposal;
-    proposal2.proposal.provider = client_address;
+    proposal2.proposal = Universal<DealProposal>(ActorVersion::kVersion0);
+    proposal2.proposal->provider = client_address;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
@@ -375,9 +376,9 @@ namespace fc::vm::actor::builtin::v0::market {
     EXPECT_EQ(state->next_deal, deal_1_id + 1);
     expectHasDeal(deal_1_id, deal, true);
     EXPECT_OUTCOME_EQ(state->locked_table.get(miner_address),
-                      deal.providerBalanceRequirement());
+                      deal->providerBalanceRequirement());
     EXPECT_OUTCOME_EQ(state->locked_table.get(client_address),
-                      deal.clientBalanceRequirement());
+                      deal->clientBalanceRequirement());
   }
 
   TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitCallerNotMiner) {
@@ -389,7 +390,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitNotProvider) {
     auto deal = setupVerifyDealsOnSectorProveCommit(
-        [&](auto &deal) { deal.provider = client_address; });
+        [&](auto &deal) { deal->provider = client_address; });
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrForbidden),
@@ -408,7 +409,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitStartTimeout) {
     auto deal = setupVerifyDealsOnSectorProveCommit(
-        [&](auto &deal) { deal.start_epoch = current_epoch - 1; });
+        [&](auto &deal) { deal->start_epoch = current_epoch - 1; });
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
@@ -421,41 +422,42 @@ namespace fc::vm::actor::builtin::v0::market {
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
         VerifyDealsForActivation::call(
-            runtime, {{deal_1_id}, deal.end_epoch - 1, kChainEpochUndefined}));
+            runtime, {{deal_1_id}, deal->end_epoch - 1, kChainEpochUndefined}));
   }
 
   TEST_F(MarketActorTest, VerifyDealsForActivation) {
     auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
     EXPECT_OUTCOME_TRUE_1(VerifyDealsForActivation::call(
-        runtime, {{deal_1_id}, deal.end_epoch, kChainEpochUndefined}));
+        runtime, {{deal_1_id}, deal->end_epoch, kChainEpochUndefined}));
   }
 
   TEST_F(MarketActorTest, OnMinerSectorsTerminateNotDealMiner) {
-    DealProposal deal;
-    deal.piece_cid = some_cid;
-    deal.provider = client_address;
+    auto deal = Universal<DealProposal>(ActorVersion::kVersion0);
+    deal->piece_cid = some_cid;
+    deal->provider = client_address;
     EXPECT_OUTCOME_TRUE_1(state->proposals.set(deal_1_id, deal));
 
     callerIs(miner_address);
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrForbidden),
-        ActivateDeals::call(runtime, {{deal_1_id}, deal.end_epoch + 1}));
+        ActivateDeals::call(runtime, {{deal_1_id}, deal->end_epoch + 1}));
   }
 
   TEST_F(MarketActorTest, ActivateDeals) {
-    DealProposal deal;
-    deal.piece_cid = some_cid;
-    deal.provider = miner_address;
-    deal.start_epoch = current_epoch + 1;
-    deal.end_epoch = deal.start_epoch + 100;
+    auto deal = Universal<DealProposal>(ActorVersion::kVersion0);
+
+    deal->piece_cid = some_cid;
+    deal->provider = miner_address;
+    deal->start_epoch = current_epoch + 1;
+    deal->end_epoch = deal->start_epoch + 100;
     EXPECT_OUTCOME_TRUE_1(state->proposals.set(deal_1_id, deal));
-    EXPECT_OUTCOME_TRUE_1(state->pending_proposals->set(deal.cid(), deal));
+    EXPECT_OUTCOME_TRUE_1(state->pending_proposals->set(deal->cid(), deal));
 
     callerIs(miner_address);
     EXPECT_OUTCOME_TRUE_1(ActivateDeals::call(
-        runtime, {.deals = {deal_1_id}, .sector_expiry = deal.end_epoch + 1}));
+        runtime, {.deals = {deal_1_id}, .sector_expiry = deal->end_epoch + 1}));
 
     EXPECT_OUTCOME_TRUE(deal_state, state->states.get(deal_1_id));
     EXPECT_EQ(deal_state.slash_epoch, kChainEpochUndefined);
@@ -478,9 +480,9 @@ namespace fc::vm::actor::builtin::v0::market {
     };
 
     for (auto i = 0u; i < deal_ids.size(); ++i) {
-      DealProposal deal;
-      deal.piece_cid = pieces[i].cid;
-      deal.piece_size = pieces[i].size;
+      auto deal = Universal<DealProposal>(ActorVersion::kVersion0);
+      deal->piece_cid = pieces[i].cid;
+      deal->piece_size = pieces[i].size;
       EXPECT_OUTCOME_TRUE_1(state->proposals.set(deal_ids[i], deal));
     }
 

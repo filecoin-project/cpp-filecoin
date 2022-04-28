@@ -10,12 +10,14 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/market/deal_proposal.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::testutil::vm::actor::builtin::market {
   using fc::vm::actor::kSendMethodNumber;
   using fc::vm::actor::builtin::states::MarketActorState;
+  using fc::vm::actor::builtin::types::Universal;
   using fc::vm::actor::builtin::types::market::DealProposal;
   using fc::vm::state::StateTreeImpl;
   using primitives::DealId;
@@ -48,7 +50,9 @@ namespace fc::testutil::vm::actor::builtin::market {
           .WillOnce(Return(outcome::success()));
     }
 
-    void expectHasDeal(DealId deal_id, const DealProposal &deal, bool has) {
+    void expectHasDeal(DealId deal_id,
+                       const Universal<DealProposal> &deal,
+                       bool has) {
       if (has) {
         EXPECT_OUTCOME_EQ(state->proposals.get(deal_id), deal);
       } else {
@@ -56,14 +60,14 @@ namespace fc::testutil::vm::actor::builtin::market {
       }
     }
 
-    DealProposal setupVerifyDealsOnSectorProveCommit(
-        const std::function<void(DealProposal &)> &prepare) {
-      DealProposal deal;
-      deal.piece_size = 3;
-      deal.piece_cid = some_cid;
-      deal.provider = miner_address;
-      deal.start_epoch = current_epoch;
-      deal.end_epoch = deal.start_epoch + 10;
+    Universal<DealProposal> setupVerifyDealsOnSectorProveCommit(
+        const std::function<void(Universal<DealProposal> &)> &prepare) {
+      auto deal = Universal<DealProposal>(ActorVersion::kVersion0);
+      deal->piece_size = 3;
+      deal->piece_cid = some_cid;
+      deal->provider = miner_address;
+      deal->start_epoch = current_epoch;
+      deal->end_epoch = deal->start_epoch + 10;
       prepare(deal);
       EXPECT_OUTCOME_TRUE_1(state->proposals.set(deal_1_id, deal));
 
