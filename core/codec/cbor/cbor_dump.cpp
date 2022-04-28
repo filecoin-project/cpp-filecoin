@@ -21,6 +21,9 @@ namespace fc {
         && mh.getType() == libp2p::multi::HashType::blake2b_256) {
       return dumpBytes(hash);
     }
+    if (const auto id{asIdentity(cid)}) {
+      return std::string{common::span::bytestr(*id)};
+    }
     OUTCOME_EXCEPT(bytes, cid.toBytes());
     return dumpBytes(gsl::make_span(bytes).first(
                static_cast<ptrdiff_t>(bytes.size() - hash.size() - 1)))

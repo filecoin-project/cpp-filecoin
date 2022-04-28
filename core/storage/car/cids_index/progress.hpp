@@ -42,10 +42,12 @@ namespace fc::storage::cids_index {
   }
 
   struct Progress {
+    std::ofstream _null;
     indicators::ProgressBar bar{
         indicators::option::ShowPercentage{true},
         indicators::option::ShowElapsedTime{true},
         indicators::option::Completed{!isTty()},
+        indicators::option::Stream{_null},
     };
     Each car_offset;
     Each items;
