@@ -23,9 +23,7 @@
 #include "storage/ipld/memory_indexed_car.hpp"
 #include "storage/unixfs/unixfs.hpp"
 #include "vm/actor/actor.hpp"
-#include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::cli::cli_node {
@@ -348,7 +346,7 @@ namespace fc::cli::cli_node {
       if (not boost::filesystem::exists(path_in)) {
         throw CliError("Input file does not exist.\n");
       }
-      if (not boost::filesystem::is_regular_file(path_in)){
+      if (not boost::filesystem::is_regular_file(path_in)) {
         throw CliError("Provided path does not leads to regular file.\n");
       }
 

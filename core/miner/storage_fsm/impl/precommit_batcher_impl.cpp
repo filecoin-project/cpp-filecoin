@@ -8,16 +8,16 @@
 #include <utility>
 
 #include "vm/actor/actor.hpp"
+#include "vm/actor/builtin/methods/miner.hpp"
 #include "vm/actor/builtin/types/miner/v6/monies.hpp"
-#include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
 namespace fc::mining {
   using api::kPushNoSpec;
   using primitives::ChainEpoch;
   using vm::actor::MethodParams;
   using vm::actor::builtin::types::miner::kChainFinality;
-  using vm::actor::builtin::v5::miner::PreCommitBatch;
   using vm::actor::builtin::v6::miner::aggregatePreCommitNetworkFee;
+  namespace miner = vm::actor::builtin::miner;
 
   PreCommitBatcherImpl::PreCommitEntry::PreCommitEntry(TokenAmount number,
                                                        SectorPreCommitInfo info)
@@ -67,7 +67,7 @@ namespace fc::mining {
       OUTCOME_TRY(head, api_->ChainHead());
       OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
 
-      PreCommitBatch::Params params;
+      miner::PreCommitSectorBatch::Params params;
       TokenAmount mutual_deposit;
       for (const auto &data : batch_storage_) {
         mutual_deposit += data.second.deposit;
@@ -93,16 +93,16 @@ namespace fc::mining {
       OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
       OUTCOME_TRY(address, address_selector_(minfo, good_funds, api_));
       OUTCOME_TRY(signed_message,
-                  api_->MpoolPushMessage(
-                      vm::message::UnsignedMessage(miner_address_,
-                                                   address,
-                                                   0,
-                                                   need_funds,
-                                                   max_fee,
-                                                   {},
-                                                   PreCommitBatch::Number,
-                                                   MethodParams{encodedParams}),
-                      kPushNoSpec));
+                  api_->MpoolPushMessage(vm::message::UnsignedMessage(
+                                             miner_address_,
+                                             address,
+                                             0,
+                                             need_funds,
+                                             max_fee,
+                                             {},
+                                             miner::PreCommitSectorBatch::Number,
+                                             MethodParams{encodedParams}),
+                                         kPushNoSpec));
 
       batch_storage_.clear();
       logger_->info("Sending procedure completed");

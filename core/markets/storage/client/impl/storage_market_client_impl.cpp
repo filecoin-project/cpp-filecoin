@@ -19,6 +19,7 @@
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "storage/ipld/memory_indexed_car.hpp"
+#include "vm/actor/builtin/methods/market.hpp"
 #include "vm/actor/builtin/types/market/publish_deals_result.hpp"
 #include "vm/message/message.hpp"
 
@@ -56,9 +57,9 @@ namespace fc::markets::storage::client {
   using primitives::sector::RegisteredSealProof;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
-  using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
+  namespace market = vm::actor::builtin::market;
 
   StorageMarketClientImpl::StorageMarketClientImpl(
       std::shared_ptr<Host> host,
@@ -421,14 +422,14 @@ namespace fc::markets::storage::client {
       deal->message = "Receiver is not storage market actor";
       return false;
     }
-    if (publish_message.method != PublishStorageDeals::Number) {
+    if (publish_message.method != market::PublishStorageDeals::Number) {
       deal->message = "Wrong method called";
       return false;
     }
 
     // check publish contains proposal cid
     OUTCOME_TRY(params,
-                codec::cbor::decode<PublishStorageDeals::Params>(
+                codec::cbor::decode<market::PublishStorageDeals::Params>(
                     publish_message.params));
     const auto &proposals{params.deals};
     const auto it = std::find(

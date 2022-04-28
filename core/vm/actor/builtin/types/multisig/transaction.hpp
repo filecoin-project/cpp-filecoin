@@ -48,6 +48,10 @@ namespace fc::vm::actor::builtin::types::multisig {
              && params == other.params && approved == other.approved;
     }
 
+    inline bool operator!=(const Transaction &other) const {
+      return !(*this == other);
+    }
+
     outcome::result<Bytes> hash(Runtime &runtime) const;
   };
   CBOR_TUPLE(Transaction, to, value, method, params, approved)
@@ -72,6 +76,16 @@ namespace fc::vm::actor::builtin::types::multisig {
           value(transaction.value),
           method(transaction.method),
           params(transaction.params) {}
+
+    inline bool operator==(const ProposalHashData &other) const {
+      return requester == other.requester && to == other.to
+             && value == other.value && method == other.method
+             && params == other.params;
+    }
+
+    inline bool operator!=(const ProposalHashData &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(ProposalHashData, requester, to, value, method, params)
 

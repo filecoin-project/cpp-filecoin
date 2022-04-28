@@ -9,6 +9,7 @@
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
+// TODO (m.tagirov) move to the proper directory
 namespace fc::vm::actor::builtin::v5::market {
   using primitives::DealId;
   using primitives::SpaceTime;

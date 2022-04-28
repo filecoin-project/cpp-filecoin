@@ -18,6 +18,14 @@ namespace fc::vm::actor::builtin::types::miner {
     constexpr QuantSpec(ChainEpoch unit, ChainEpoch offset)
         : unit{unit}, offset{offset} {}
 
+    inline bool operator==(const QuantSpec &other) const {
+      return unit == other.unit && offset == other.offset;
+    }
+
+    inline bool operator!=(const QuantSpec &other) const {
+      return !(*this == other);
+    }
+    
     // Rounds e to the nearest exact multiple of the quantization unit offset by
     // offsetSeed % unit, rounding up.
     // This function is equivalent to `unit * ceil(e - (offsetSeed % unit) /

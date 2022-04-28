@@ -16,11 +16,11 @@
 #include "miner/storage_fsm/impl/sector_stat_impl.hpp"
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
+#include "vm/actor/builtin/methods/miner.hpp"
 #include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v7/miner/miner_actor.hpp"
+#include "vm/actor/builtin/types/miner/replica_update.hpp"
 
 #define WAIT(cb)                                                         \
   logger_->info("sector {}: wait before retrying", info->sector_number); \
@@ -54,10 +54,8 @@ namespace fc::mining {
   using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
-  using vm::actor::builtin::v0::miner::PreCommitSector;
-  using vm::actor::builtin::v0::miner::ProveCommitSector;
-  using vm::actor::builtin::v7::miner::ProveReplicaUpdates;
-  using vm::actor::builtin::v7::miner::ReplicaUpdate;
+  using vm::actor::builtin::types::miner::ReplicaUpdate;
+  namespace miner = vm::actor::builtin::miner;
 
   std::chrono::milliseconds getWaitingTime(uint64_t errors_count = 0) {
     // TODO(ortyomka): Exponential backoff when we see consecutive failures
@@ -1463,7 +1461,7 @@ namespace fc::mining {
                                      precommit_params->deposit,
                                      fee_config_->max_precommit_gas_fee,
                                      {},
-                                     PreCommitSector::Number,
+                                     miner::PreCommitSector::Number,
                                      MethodParams{maybe_params.value()}),
         kPushNoSpec);
 
@@ -1761,7 +1759,7 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    const auto params = ProveCommitSector::Params{
+    const auto params = miner::ProveCommitSector::Params{
         .sector = info->sector_number,
         .proof = info->proof,
     };
@@ -1819,7 +1817,7 @@ namespace fc::mining {
             collateral,
             {},
             {},
-            vm::actor::builtin::v0::miner::ProveCommitSector::Number,
+            miner::ProveCommitSector::Number,
             MethodParams{maybe_params_encoded.value()}),
         api::kPushNoSpec);
 
@@ -2112,11 +2110,11 @@ namespace fc::mining {
     }
     const auto &proof{maybe_proof.value()};
 
-    ProveReplicaUpdates::Params params{
+    miner::ProveReplicaUpdates::Params params{
         {ReplicaUpdate{.sector = info->sector_number,
                        .deadline = state_partition.deadline,
                        .partition = state_partition.partition,
-                       .comm_r = info->update_sealed.get(),
+                       .new_sealed_sector_cid = info->update_sealed.get(),
                        .deals = info->getDealIDs(),
                        .update_type = proof,
                        .proof = info->update_proof.get()}}};
@@ -2185,7 +2183,7 @@ namespace fc::mining {
                                      collateral,
                                      fee_config_->max_commit_gas_fee,
                                      {},
-                                     ProveReplicaUpdates::Number,
+                                     miner::ProveReplicaUpdates::Number,
                                      MethodParams{maybe_encoded.value()}),
         kPushNoSpec);
 

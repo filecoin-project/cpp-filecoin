@@ -9,7 +9,7 @@
 #include "codec/cbor/light_reader/cid.hpp"
 #include "common/prometheus/metrics.hpp"
 #include "common/prometheus/since.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/methods/miner.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
@@ -27,6 +27,7 @@ namespace fc::vm::runtime {
   using actor::kSystemActorAddress;
   using toolchain::Toolchain;
   using version::getNetworkVersion;
+  namespace miner = actor::builtin::miner;
 
   auto &metricVmApplyCount() {
     static auto &x{prometheus::BuildCounter()
@@ -222,8 +223,7 @@ namespace fc::vm::runtime {
     auto no_fee{false};
     if (network_version <= NetworkVersion::kVersion12
         && epoch > kUpgradeClausHeight && exit_code == VMExitCode::kOk
-        && message.method
-               == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
+        && message.method == miner::SubmitWindowedPoSt::Number) {
       OUTCOME_TRY(to, state_tree->tryGet(message.to));
       if (to) {
         no_fee = address_matcher->isStorageMinerActor(to->code);

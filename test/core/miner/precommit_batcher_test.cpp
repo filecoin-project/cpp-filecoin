@@ -13,7 +13,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/mocks/api.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/v5/miner/miner_actor.hpp"
+#include "vm/actor/builtin/methods/miner.hpp"
 
 namespace fc::mining {
   using api::MinerInfo;
@@ -32,9 +32,9 @@ namespace fc::mining {
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using testing::_;
-  using vm::actor::builtin::v5::miner::PreCommitBatch;
   using BatcherCallbackMock =
       std::function<void(const outcome::result<CID> &cid)>;
+  namespace miner = vm::actor::builtin::miner;
 
   class PreCommitBatcherTest : public testing::Test {
    protected:
@@ -69,7 +69,7 @@ namespace fc::mining {
           [&](const UnsignedMessage &msg,
               const boost::optional<api::MessageSendSpec> &)
           -> outcome::result<SignedMessage> {
-        if (msg.method == PreCommitBatch::Number) {
+        if (msg.method == miner::PreCommitSectorBatch::Number) {
           is_called_ = true;
           return SignedMessage{.message = msg, .signature = BlsSignature()};
         }

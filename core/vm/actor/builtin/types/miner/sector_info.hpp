@@ -26,11 +26,11 @@ namespace fc::vm::actor::builtin::types::miner {
     std::vector<DealId> deals;
     ChainEpoch activation_epoch{};
     ChainEpoch expiration{};
-    DealWeight deal_weight{};
-    DealWeight verified_deal_weight{};
-    TokenAmount init_pledge{};
-    TokenAmount expected_day_reward{};
-    TokenAmount expected_storage_pledge{};
+    DealWeight deal_weight;
+    DealWeight verified_deal_weight;
+    TokenAmount init_pledge;
+    TokenAmount expected_day_reward;
+    TokenAmount expected_storage_pledge;
     ChainEpoch replaced_sector_age{};
     TokenAmount replaced_day_reward;
     boost::optional<CID> sector_key_cid;
@@ -63,10 +63,10 @@ namespace fc::vm::actor::builtin::types::miner {
      * The deadline to which the sectors are assigned, in range
      * [0..WPoStPeriodDeadlines)
      */
-    uint64_t deadline{0};
+    uint64_t deadline{};
 
     /** Partition index within the deadline containing the sectors. */
-    uint64_t partition{0};
+    uint64_t partition{};
 
     /** Sectors in the partition being declared faulty. */
     RleBitset sectors;
@@ -81,6 +81,9 @@ namespace fc::vm::actor::builtin::types::miner {
     }
   };
   CBOR_TUPLE(SectorDeclaration, deadline, partition, sectors)
+
+  using FaultDeclaration = SectorDeclaration;
+  using RecoveryDeclaration = SectorDeclaration;
 
   struct SectorPreCommitInfo {
     RegisteredSealProof registered_proof{RegisteredSealProof::kUndefined};
@@ -125,10 +128,10 @@ namespace fc::vm::actor::builtin::types::miner {
 
   struct SectorPreCommitOnChainInfo {
     SectorPreCommitInfo info;
-    TokenAmount precommit_deposit{};
+    TokenAmount precommit_deposit;
     ChainEpoch precommit_epoch{};
-    DealWeight deal_weight{};
-    DealWeight verified_deal_weight{};
+    DealWeight deal_weight;
+    DealWeight verified_deal_weight;
 
     inline bool operator==(const SectorPreCommitOnChainInfo &other) const {
       return info == other.info && precommit_deposit == other.precommit_deposit

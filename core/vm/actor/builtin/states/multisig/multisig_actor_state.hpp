@@ -9,7 +9,6 @@
 #include "adt/uvarint_key.hpp"
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/multisig/transaction.hpp"
 #include "vm/actor/builtin/types/universal/universal.hpp"

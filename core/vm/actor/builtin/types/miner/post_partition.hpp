@@ -16,6 +16,14 @@ namespace fc::vm::actor::builtin::types::miner {
     uint64_t index{0};
     // Sectors skipped while proving that weren't already declared faulty
     RleBitset skipped;
+
+    inline bool operator==(const PoStPartition &other) const {
+      return index == other.index && skipped == other.skipped;
+    }
+
+    inline bool operator!=(const PoStPartition &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(PoStPartition, index, skipped)
 

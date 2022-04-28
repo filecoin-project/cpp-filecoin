@@ -17,7 +17,7 @@
 #include "common/ptr.hpp"
 #include "const.hpp"
 #include "node/pubsub_gate.hpp"
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
+#include "vm/actor/builtin/methods/payment_channel.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/make_vm.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -32,6 +32,7 @@ namespace fc::storage::mpool {
   using vm::interpreter::InterpreterCache;
   using vm::message::UnsignedMessage;
   using vm::state::StateTreeImpl;
+  namespace paych = vm::actor::builtin::paych;
 
   constexpr GasAmount kMinGas{1298450};
   constexpr size_t kMaxBlocks{15};
@@ -670,8 +671,7 @@ namespace fc::storage::mpool {
       if (apply.receipt.exit_code != vm::VMExitCode::kOk) {
         return apply.receipt.exit_code;
       }
-      if (msg.method
-          == vm::actor::builtin::v0::payment_channel::Collect::Number) {
+      if (msg.method == paych::Collect::Number) {
         auto matcher{vm::toolchain::Toolchain::createAddressMatcher(
             vm::version::getNetworkVersion(height))};
         if (matcher->isPaymentChannelActor(actor.code)) {

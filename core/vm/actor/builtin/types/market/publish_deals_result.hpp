@@ -5,8 +5,8 @@
 
 #pragma once
 
+#include "vm/actor/builtin/methods/market.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/v6/market/market_actor.hpp"
 
 namespace fc::vm::actor::builtin::types::market {
   /**
@@ -30,13 +30,15 @@ namespace fc::vm::actor::builtin::types::market {
       return ERROR_TEXT("publishDealsResult: deal index out of bound");
     }
 
-    // actor version 6
+    // actor version 6 and above
     OUTCOME_TRY(
         res,
-        codec::cbor::decode<v6::market::PublishStorageDeals::Result>(cbor));
-    const auto it{res.valid.find(index)};
-    if (it != res.valid.end()) {
-      const auto i{gsl::narrow<size_t>(std::distance(res.valid.begin(), it))};
+        codec::cbor::decode<builtin::market::PublishStorageDeals::Result>(
+            cbor));
+    const auto it{res.valid_deals.find(index)};
+    if (it != res.valid_deals.end()) {
+      const auto i{
+          gsl::narrow<size_t>(std::distance(res.valid_deals.begin(), it))};
       if (i < res.deals.size()) {
         return res.deals[i];
       }

@@ -15,8 +15,8 @@
 #include "testutil/outcome.hpp"
 #include "testutil/vm/actor/builtin/actor_test_util.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/actor/builtin/methods/market.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
-#include "vm/actor/builtin/v5/market/market_actor.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
@@ -47,10 +47,10 @@ namespace fc::mining::checks {
   using vm::actor::builtin::types::Universal;
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
-  using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::runtime::MockRuntime;
+  namespace market = vm::actor::builtin::market;
 
-  auto commD(ComputeDataCommitment::Result result) {
+  auto commD(market::ComputeDataCommitment::Result result) {
     InvocResult invoc;
     invoc.receipt.exit_code = VMExitCode::kOk;
     invoc.receipt.return_value = codec::cbor::encode(result).value();
@@ -409,9 +409,9 @@ namespace fc::mining::checks {
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
     MOCK_API(api_, StateCall);
-    EXPECT_CALL(
-        mock_StateCall,
-        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
+    EXPECT_CALL(mock_StateCall,
+                Call(methodMatcher(market::ComputeDataCommitment::Number),
+                     precommit_key))
         .WillOnce(testing::Return(commD({{"010001020002"_cid}})));
 
     EXPECT_OUTCOME_ERROR(
@@ -478,9 +478,9 @@ namespace fc::mining::checks {
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
     MOCK_API(api_, StateCall);
-    EXPECT_CALL(
-        mock_StateCall,
-        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
+    EXPECT_CALL(mock_StateCall,
+                Call(methodMatcher(market::ComputeDataCommitment::Number),
+                     precommit_key))
         .WillOnce(testing::Return(commD({{*info->comm_d}})));
 
     MOCK_API(api_, StateNetworkVersion);
@@ -582,9 +582,9 @@ namespace fc::mining::checks {
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
     MOCK_API(api_, StateCall);
-    EXPECT_CALL(
-        mock_StateCall,
-        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
+    EXPECT_CALL(mock_StateCall,
+                Call(methodMatcher(market::ComputeDataCommitment::Number),
+                     precommit_key))
         .WillOnce(testing::Return(commD({{*info->comm_d}})));
 
     MOCK_API(api_, StateNetworkVersion);
@@ -688,9 +688,9 @@ namespace fc::mining::checks {
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
     MOCK_API(api_, StateCall);
-    EXPECT_CALL(
-        mock_StateCall,
-        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
+    EXPECT_CALL(mock_StateCall,
+                Call(methodMatcher(market::ComputeDataCommitment::Number),
+                     precommit_key))
         .WillOnce(testing::Return(commD({{*info->comm_d}})));
 
     MOCK_API(api_, StateNetworkVersion);

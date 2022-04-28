@@ -7,13 +7,14 @@
 
 #include "api/full_node/node_api.hpp"
 #include "common/outcome_fmt.hpp"
-#include "vm/actor/builtin/v0/init/init_actor.hpp"
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
+#include "vm/actor/builtin/methods/init.hpp"
+#include "vm/actor/builtin/methods/payment_channel.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::paych_maker {
-  using vm::actor::builtin::v0::init::Exec;
   using vm::message::UnsignedMessage;
+  namespace init = vm::actor::builtin::init;
+  namespace paych = vm::actor::builtin::paych;
 
   inline auto &log() {
     static auto log{common::createLogger("PaychMaker")};
@@ -22,7 +23,6 @@ namespace fc::paych_maker {
 
   inline UnsignedMessage msgCreate(const PaychMaker::It &it,
                                    NetworkVersion network) {
-    using vm::actor::builtin::v0::payment_channel::Construct;
     const auto &[from_to, queue]{*it};
     return {
         vm::actor::kInitAddress,
@@ -31,12 +31,12 @@ namespace fc::paych_maker {
         *queue.row.waiting_amount,
         {},
         {},
-        Exec::Number,
+        init::Exec::Number,
         codec::cbor::encode(
-            Exec::Params{
+            init::Exec::Params{
                 vm::toolchain::Toolchain::createAddressMatcher(network)
                     ->getPaymentChannelCodeId(),
-                codec::cbor::encode(Construct::Params{
+                codec::cbor::encode(paych::Construct::Params{
                                         from_to.first,
                                         from_to.second,
                                     })
@@ -200,7 +200,7 @@ namespace fc::paych_maker {
     }
     if (!queue.row.actor) {
       auto _result{
-          codec::cbor::decode<Exec::Result>(wait.receipt.return_value)};
+          codec::cbor::decode<init::Exec::Result>(wait.receipt.return_value)};
       if (!_result) {
         log()->error("onWait result decode {}",
                      common::hex_lower(wait.receipt.return_value));

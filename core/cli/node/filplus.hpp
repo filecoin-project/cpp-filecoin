@@ -4,7 +4,10 @@
  */
 
 #pragma once
+
 #include "api/full_node/node_api.hpp"
+#include "vm/actor/builtin/methods/verified_registry.hpp"
+#include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 
 namespace fc::cli::cli_node {
   using api::MsgWait;
@@ -14,6 +17,7 @@ namespace fc::cli::cli_node {
   using vm::actor::kVerifiedRegistryAddress;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::message::SignedMessage;
+  namespace verifreg = vm::actor::builtin::verifreg;
 
   StoragePower checkNotary(const std::shared_ptr<FullNodeApi> &api,
                            const Address &vaddr) {
@@ -62,18 +66,17 @@ namespace fc::cli::cli_node {
             allowance);
 
       auto encoded_params = cliTry(codec::cbor::encode(
-          vm::actor::builtin::v0::verified_registry::AddVerifiedClient::Params{
-              target, allowance}));
-      SignedMessage signed_message = cliTry(api->MpoolPushMessage(
-          {kVerifiedRegistryAddress,
-           *args.from,
-           {},
-           0,
-           0,
-           0,
-           vm::actor::builtin::v0::verified_registry::AddVerifiedClient::Number,
-           encoded_params},
-          api::kPushNoSpec));
+          verifreg::AddVerifiedClient::Params{target, allowance}));
+      SignedMessage signed_message =
+          cliTry(api->MpoolPushMessage({kVerifiedRegistryAddress,
+                                        *args.from,
+                                        {},
+                                        0,
+                                        0,
+                                        0,
+                                        verifreg::AddVerifiedClient::Number,
+                                        encoded_params},
+                                       api::kPushNoSpec));
 
       fmt::print("message sent, now waiting on cid: {}\n",
                  signed_message.getCid());
@@ -139,19 +142,17 @@ namespace fc::cli::cli_node {
           cliTry(getCbor<VerifiedRegistryActorStatePtr>(ipfs, actor.head));
 
       auto encoded_params = cliTry(codec::cbor::encode(
-          vm::actor::builtin::v0::verified_registry::AddVerifier::Params{
-              *args.from, *args.amount
-          }));
-      const SignedMessage signed_message = cliTry(api->MpoolPushMessage(
-          {kVerifiedRegistryAddress,
-           state->root_key,
-           {},
-           0,
-           0,
-           0,
-           vm::actor::builtin::v0::verified_registry::AddVerifier::Number,
-           encoded_params},
-          api::kPushNoSpec));
+          verifreg::AddVerifier::Params{*args.from, *args.amount}));
+      const SignedMessage signed_message =
+          cliTry(api->MpoolPushMessage({kVerifiedRegistryAddress,
+                                        state->root_key,
+                                        {},
+                                        0,
+                                        0,
+                                        0,
+                                        verifreg::AddVerifier::Number,
+                                        encoded_params},
+                                       api::kPushNoSpec));
       const MsgWait message_wait =
           cliTry(api->StateWaitMsg(signed_message.getCid(), 1, 10, false),
                  "Wait message");
