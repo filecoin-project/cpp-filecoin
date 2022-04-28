@@ -23,8 +23,10 @@
 #include "vm/actor/builtin/types/market/publish_deals_result.hpp"
 #include "vm/message/message.hpp"
 
-#define MOVE(x) \
-  x { std::move(x) }
+#define MOVE(x)  \
+  x {            \
+    std::move(x) \
+  }
 
 #define CALLBACK_ACTION(_action)                                    \
   [this](auto deal, auto event, auto context, auto from, auto to) { \

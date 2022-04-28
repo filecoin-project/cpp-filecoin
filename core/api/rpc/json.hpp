@@ -993,6 +993,7 @@ namespace fc::vm::actor::builtin::types {
     }
 
     JSON_DECODE(Universal<DealProposal>) {
+      v.actor_version = ActorVersion::kVersion0;
       Get(j, "PieceCID", v->piece_cid);
       Get(j, "PieceSize", v->piece_size);
       Get(j, "VerifiedDeal", v->verified);
