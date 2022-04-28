@@ -26,6 +26,10 @@ namespace fc::vm::actor::builtin::types::payment_channel {
     inline bool operator==(const LaneState &other) const {
       return redeem == other.redeem && nonce == other.nonce;
     }
+
+    inline bool operator!=(const LaneState &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(LaneState, redeem, nonce)
 
@@ -33,8 +37,12 @@ namespace fc::vm::actor::builtin::types::payment_channel {
     LaneId lane{};
     uint64_t nonce{};
 
-    inline bool operator==(const Merge &rhs) const {
-      return lane == rhs.lane && nonce == rhs.nonce;
+    inline bool operator==(const Merge &other) const {
+      return lane == other.lane && nonce == other.nonce;
+    }
+
+    inline bool operator!=(const Merge &other) const {
+      return !(*this == other);
     }
   };
   CBOR_TUPLE(Merge, lane, nonce)
@@ -47,8 +55,13 @@ namespace fc::vm::actor::builtin::types::payment_channel {
     MethodNumber method;
     Bytes params;
 
-    inline bool operator==(const ModularVerificationParameter &rhs) const {
-      return actor == rhs.actor && method == rhs.method && params == rhs.params;
+    inline bool operator==(const ModularVerificationParameter &other) const {
+      return actor == other.actor && method == other.method
+             && params == other.params;
+    }
+
+    inline bool operator!=(const ModularVerificationParameter &other) const {
+      return !(*this == other);
     }
   };
   CBOR_TUPLE(ModularVerificationParameter, actor, method, params)
@@ -66,13 +79,19 @@ namespace fc::vm::actor::builtin::types::payment_channel {
     std::vector<Merge> merges{};
     boost::optional<Bytes> signature_bytes;
 
-    inline bool operator==(const SignedVoucher &rhs) const {
-      return channel == rhs.channel && time_lock_min == rhs.time_lock_min
-             && time_lock_max == rhs.time_lock_max
-             && secret_preimage == rhs.secret_preimage && extra == rhs.extra
-             && lane == rhs.lane && nonce == rhs.nonce && amount == rhs.amount
-             && min_close_height == rhs.min_close_height && merges == rhs.merges
-             && signature_bytes == rhs.signature_bytes;
+    inline bool operator==(const SignedVoucher &other) const {
+      return channel == other.channel && time_lock_min == other.time_lock_min
+             && time_lock_max == other.time_lock_max
+             && secret_preimage == other.secret_preimage && extra == other.extra
+             && lane == other.lane && nonce == other.nonce
+             && amount == other.amount
+             && min_close_height == other.min_close_height
+             && merges == other.merges
+             && signature_bytes == other.signature_bytes;
+    }
+
+    inline bool operator!=(const SignedVoucher &other) const {
+      return !(*this == other);
     }
 
     inline outcome::result<Bytes> signingBytes() const {
@@ -81,7 +100,6 @@ namespace fc::vm::actor::builtin::types::payment_channel {
       return codec::cbor::encode(copy);
     }
   };
-  FC_OPERATOR_NOT_EQUAL(SignedVoucher)
   CBOR_TUPLE(SignedVoucher,
              channel,
              time_lock_min,
@@ -98,6 +116,14 @@ namespace fc::vm::actor::builtin::types::payment_channel {
   struct PaymentVerifyParams {
     Bytes extra;
     Bytes proof;
+
+    inline bool operator==(const PaymentVerifyParams &other) const {
+      return extra == other.extra && proof == other.proof;
+    }
+
+    inline bool operator!=(const PaymentVerifyParams &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(PaymentVerifyParams, extra, proof)
 }  // namespace fc::vm::actor::builtin::types::payment_channel

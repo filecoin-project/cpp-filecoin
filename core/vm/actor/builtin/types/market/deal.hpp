@@ -102,9 +102,9 @@ namespace fc::vm::actor::builtin::types::market {
              client_collateral)
 
   struct DealState {
-    ChainEpoch sector_start_epoch;
-    ChainEpoch last_updated_epoch;
-    ChainEpoch slash_epoch;
+    ChainEpoch sector_start_epoch{};
+    ChainEpoch last_updated_epoch{};
+    ChainEpoch slash_epoch{};
 
     inline bool operator==(const DealState &other) const {
       return sector_start_epoch == other.sector_start_epoch

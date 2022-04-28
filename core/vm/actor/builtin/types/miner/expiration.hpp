@@ -23,9 +23,21 @@ namespace fc::vm::actor::builtin::types::miner {
   struct ExpirationSet {
     RleBitset on_time_sectors;
     RleBitset early_sectors;
-    TokenAmount on_time_pledge{};
+    TokenAmount on_time_pledge;
     PowerPair active_power;
     PowerPair faulty_power;
+
+    inline bool operator==(const ExpirationSet &other) const {
+      return on_time_sectors == other.on_time_sectors
+             && early_sectors == other.early_sectors
+             && on_time_pledge == other.on_time_pledge
+             && active_power == other.active_power
+             && faulty_power == other.faulty_power;
+    }
+
+    inline bool operator!=(const ExpirationSet &other) const {
+      return !(*this == other);
+    }
 
     outcome::result<void> add(const RleBitset &on_time_sectors,
                               const RleBitset &early_sectors,
@@ -55,6 +67,15 @@ namespace fc::vm::actor::builtin::types::miner {
     RleBitset sectors;
     PowerPair power;
     TokenAmount pledge;
+
+    inline bool operator==(const SectorEpochSet &other) const {
+      return epoch == other.epoch && sectors == other.sectors
+             && power == other.power && pledge == other.pledge;
+    }
+
+    inline bool operator!=(const SectorEpochSet &other) const {
+      return !(*this == other);
+    }
   };
 
   using PartitionExpirationsArray = adt::Array<ExpirationSet, 4>;
@@ -139,6 +160,32 @@ namespace fc::vm::actor::builtin::types::miner {
   struct SectorExpirationSet {
     SectorEpochSet sector_epoch_set;
     ExpirationSet es;
+
+    inline bool operator==(const SectorExpirationSet &other) const {
+      return sector_epoch_set == other.sector_epoch_set && es == other.es;
+    }
+
+    inline bool operator!=(const SectorExpirationSet &other) const {
+      return !(*this == other);
+    }
   };
+
+  struct ExpirationExtension {
+    uint64_t deadline{};
+    uint64_t partition{};
+    RleBitset sectors;
+    ChainEpoch new_expiration{};
+
+    inline bool operator==(const ExpirationExtension &other) const {
+      return deadline == other.deadline && partition == other.partition
+             && sectors == other.sectors
+             && new_expiration == other.new_expiration;
+    }
+
+    inline bool operator!=(const ExpirationExtension &other) const {
+      return !(*this == other);
+    }
+  };
+  CBOR_TUPLE(ExpirationExtension, deadline, partition, sectors, new_expiration)
 
 }  // namespace fc::vm::actor::builtin::types::miner

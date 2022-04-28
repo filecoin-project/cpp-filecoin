@@ -16,8 +16,6 @@ namespace fc::mining {
   using primitives::sector::RegisteredSealProof;
   using sector_storage::SectorRef;
   using vm::actor::builtin::types::miner::kWPoStPeriodDeadlines;
-  using vm::actor::builtin::v0::miner::DeclareFaults;
-  using vm::actor::builtin::v0::miner::DeclareFaultsRecovered;
 
   inline const api::MessageSendSpec kSpec{50 * kFilecoinPrecision};
 
@@ -85,7 +83,7 @@ namespace fc::mining {
       if (auto _parts{
               api->StateMinerPartitions(miner, declare_index, apply->key)}) {
         auto declare{[&](auto faults) {
-          DeclareFaults::Params params;
+          miner::DeclareFaults::Params params;
           uint64_t _part{0};
           for (auto &part : _parts.value()) {
             if (auto _sectors{checkSectors(faults
@@ -103,9 +101,10 @@ namespace fc::mining {
             ++_part;
           }
           if (!params.faults.empty()) {
-            std::ignore = pushMessage(
-                faults ? DeclareFaults::Number : DeclareFaultsRecovered::Number,
-                codec::cbor::encode(params).value());
+            std::ignore =
+                pushMessage(faults ? miner::DeclareFaults::Number
+                                   : miner::DeclareFaultsRecovered::Number,
+                            codec::cbor::encode(params).value());
           }
         }};
         declare(false);
@@ -123,7 +122,7 @@ namespace fc::mining {
                 deadline.challenge,
                 seed)}) {
           auto prove{[&](auto _part, auto parts) -> outcome::result<void> {
-            SubmitWindowedPoSt::Params params;
+            miner::SubmitWindowedPoSt::Params params;
             params.deadline = deadline.index;
             std::vector<ExtendedSectorInfo> sectors;
             RleBitset post_skip;
@@ -199,7 +198,7 @@ namespace fc::mining {
           for (auto &params : cached.params) {
             params.chain_commit_epoch = open;
             params.chain_commit_rand = _rand.value();
-            std::ignore = pushMessage(SubmitWindowedPoSt::Number,
+            std::ignore = pushMessage(miner::SubmitWindowedPoSt::Number,
                                       codec::cbor::encode(params).value());
           }
           ++cached.submitted;
@@ -259,12 +258,13 @@ namespace fc::mining {
     OUTCOME_TRY(smsg, api->MpoolPushMessage(msg, kSpec));
     api->StateWaitMsg(
         [method](auto _r) {
-          auto name{method == DeclareFaultsRecovered::Number
+          auto name{method == miner::DeclareFaultsRecovered::Number
                         ? "DeclareFaultsRecovered"
-                    : method == DeclareFaults::Number ? "DeclareFaults"
-                    : method == SubmitWindowedPoSt::Number
-                        ? "SubmitWindowedPoSt"
-                        : "(unexpected)"};
+                        : method == miner::DeclareFaults::Number
+                              ? "DeclareFaults"
+                              : method == miner::SubmitWindowedPoSt::Number
+                                    ? "SubmitWindowedPoSt"
+                                    : "(unexpected)"};
           if (!_r) {
             spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
           } else {

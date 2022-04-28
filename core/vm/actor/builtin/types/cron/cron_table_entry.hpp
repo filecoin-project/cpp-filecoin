@@ -15,6 +15,14 @@ namespace fc::vm::actor::builtin::types::cron {
   struct CronTableEntry {
     Address to_addr;
     MethodNumber method_num{};
+
+    inline bool operator==(const CronTableEntry &other) const {
+      return to_addr == other.to_addr && method_num == other.method_num;
+    }
+
+    inline bool operator!=(const CronTableEntry &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(CronTableEntry, to_addr, method_num)
 }  // namespace fc::vm::actor::builtin::types::cron

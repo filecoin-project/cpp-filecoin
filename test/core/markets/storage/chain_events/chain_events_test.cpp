@@ -10,8 +10,8 @@
 #include "testutil/mocks/api.hpp"
 #include "testutil/mocks/std_function.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/v5/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v7/miner/miner_actor.hpp"
+#include "vm/actor/builtin/methods/miner.hpp"
+#include "vm/actor/builtin/types/miner/sector_info.hpp"
 
 namespace fc::markets::storage::chain_events {
   using adt::Channel;
@@ -25,13 +25,11 @@ namespace fc::markets::storage::chain_events {
   using primitives::tipset::Tipset;
   using testing::_;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::v5::miner::PreCommitSector;
-  using vm::actor::builtin::v5::miner::ProveCommitSector;
-  using vm::actor::builtin::v5::miner::SectorPreCommitInfo;
-  using vm::actor::builtin::v7::miner::ProveReplicaUpdates;
+  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::version::NetworkVersion;
+  namespace miner = vm::actor::builtin::miner;
 
   const outcome::result<void> void_success{outcome::success()};
   const auto cid0{"010001020001"_cid};
@@ -104,7 +102,7 @@ namespace fc::markets::storage::chain_events {
     pre_commit_info.sector = sector_number;
     UnsignedMessage pre_commit_message;
     pre_commit_message.to = provider;
-    pre_commit_message.method = PreCommitSector::Number;
+    pre_commit_message.method = miner::PreCommitSector::Number;
     pre_commit_message.params = codec::cbor::encode(pre_commit_info).value();
     EXPECT_CALL(mock_ChainGetBlockMessages, Call(CID{block1}))
         .WillOnce(testing::Return(BlockMessages{{pre_commit_message}, {}, {}}));
@@ -115,9 +113,9 @@ namespace fc::markets::storage::chain_events {
 
     UnsignedMessage prove_commit_message;
     prove_commit_message.to = provider;
-    prove_commit_message.method = ProveCommitSector::Number;
+    prove_commit_message.method = miner::ProveCommitSector::Number;
     prove_commit_message.params =
-        codec::cbor::encode(ProveCommitSector::Params{sector_number, {}})
+        codec::cbor::encode(miner::ProveCommitSector::Params{sector_number, {}})
             .value();
     EXPECT_CALL(mock_ChainGetBlockMessages, Call(CID{block2}))
         .WillOnce(
@@ -154,19 +152,20 @@ namespace fc::markets::storage::chain_events {
     MockCb cb;
     events->onDealSectorCommitted(provider, deal_id, cb.AsStdFunction());
 
-    ProveReplicaUpdates::Params params;
+    miner::ProveReplicaUpdates::Params params;
     auto &update{params.updates.emplace_back()};
     update.deals.emplace_back(deal_id);
-    update.comm_r = CID{CbCid{}};
+    update.new_sealed_sector_cid = CID{CbCid{}};
     UnsignedMessage msg;
     msg.to = provider;
-    msg.method = ProveReplicaUpdates::Number;
+    msg.method = miner::ProveReplicaUpdates::Number;
     msg.params = codec::cbor::encode(params).value();
     EXPECT_CALL(mock_ChainGetBlockMessages, Call(CID{block1}))
         .WillOnce(testing::Return(BlockMessages{{msg}, {}, {}}));
     api::MsgWait wait;
     wait.receipt.return_value =
-        codec::cbor::encode(ProveReplicaUpdates::Result{update.sector}).value();
+        codec::cbor::encode(miner::ProveReplicaUpdates::Result{update.sector})
+            .value();
     EXPECT_CALL(mock_StateWaitMsg, Call(_, _, _, _, _))
         .WillOnce([&](auto cb, auto, auto, auto, auto) {
           io.post([cb{std::move(cb)}, wait] { cb(wait); });

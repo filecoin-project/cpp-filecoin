@@ -140,6 +140,18 @@ namespace fc::primitives::sector {
     CID sealed_cid;
     /// CommD
     CID unsealed_cid;
+
+    inline bool operator==(const SealVerifyInfo &other) const {
+      return seal_proof == other.seal_proof && sector == other.sector
+             && deals == other.deals && randomness == other.randomness
+             && interactive_randomness == other.interactive_randomness
+             && proof == other.proof && sealed_cid == other.sealed_cid
+             && unsealed_cid == other.unsealed_cid;
+    }
+
+    inline bool operator!=(const SealVerifyInfo &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(SealVerifyInfo,
              seal_proof,
@@ -156,25 +168,32 @@ namespace fc::primitives::sector {
   struct PoStProof {
     RegisteredPoStProof registered_proof = RegisteredPoStProof::kUndefined;
     Proof proof;
-  };
 
-  inline bool operator==(const PoStProof &lhs, const PoStProof &rhs) {
-    return lhs.registered_proof == rhs.registered_proof
-           && lhs.proof == rhs.proof;
-  }
+    inline bool operator==(const PoStProof &other) const {
+      return registered_proof == other.registered_proof && proof == other.proof;
+    }
+
+    inline bool operator!=(const PoStProof &other) const {
+      return !(*this == other);
+    }
+  };
 
   struct SectorInfo {
     RegisteredSealProof registered_proof;
     SectorNumber sector;
     /// CommR
     CID sealed_cid;
+
+    inline bool operator==(const SectorInfo &other) const {
+      return registered_proof == other.registered_proof
+             && sector == other.sector && sealed_cid == other.sealed_cid;
+    }
+
+    inline bool operator!=(const SectorInfo &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(SectorInfo, registered_proof, sector, sealed_cid)
-
-  inline bool operator==(const SectorInfo &lhs, const SectorInfo &rhs) {
-    return lhs.registered_proof == rhs.registered_proof
-           && lhs.sector == rhs.sector && lhs.sealed_cid == rhs.sealed_cid;
-  }
 
   struct ExtendedSectorInfo {
     RegisteredSealProof registered_proof;
@@ -182,6 +201,16 @@ namespace fc::primitives::sector {
     boost::optional<CID> sector_key;
     /// CommR
     CID sealed_cid;
+
+    inline bool operator==(const ExtendedSectorInfo &other) const {
+      return registered_proof == other.registered_proof
+             && sector == other.sector && sector_key == other.sector_key
+             && sealed_cid == other.sealed_cid;
+    }
+
+    inline bool operator!=(const ExtendedSectorInfo &other) const {
+      return !(*this == other);
+    }
   };
 
   /**
@@ -206,6 +235,16 @@ namespace fc::primitives::sector {
     std::vector<PoStProof> proofs;
     std::vector<SectorInfo> challenged_sectors;
     ActorId prover;
+
+    inline bool operator==(const WinningPoStVerifyInfo &other) const {
+      return randomness == other.randomness && proofs == other.proofs
+             && challenged_sectors == other.challenged_sectors
+             && prover == other.prover;
+    }
+
+    inline bool operator!=(const WinningPoStVerifyInfo &other) const {
+      return !(*this == other);
+    }
   };
 
   // Information needed to verify a Window PoSt submitted directly to a miner
@@ -215,6 +254,16 @@ namespace fc::primitives::sector {
     std::vector<PoStProof> proofs;
     std::vector<SectorInfo> challenged_sectors;
     ActorId prover;
+
+    inline bool operator==(const WindowPoStVerifyInfo &other) const {
+      return randomness == other.randomness && proofs == other.proofs
+             && challenged_sectors == other.challenged_sectors
+             && prover == other.prover;
+    }
+
+    inline bool operator!=(const WindowPoStVerifyInfo &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(
       WindowPoStVerifyInfo, randomness, proofs, challenged_sectors, prover)
@@ -246,6 +295,17 @@ namespace fc::primitives::sector {
     InteractiveRandomness interactive_randomness;
     CID sealed_cid;
     CID unsealed_cid;
+
+    inline bool operator==(const AggregateSealVerifyInfo &other) const {
+      return number == other.number && randomness == other.randomness
+             && interactive_randomness == other.interactive_randomness
+             && sealed_cid == other.sealed_cid
+             && unsealed_cid == other.unsealed_cid;
+    }
+
+    inline bool operator!=(const AggregateSealVerifyInfo &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(AggregateSealVerifyInfo,
              number,
@@ -260,6 +320,18 @@ namespace fc::primitives::sector {
     RegisteredAggregationProof aggregate_proof;
     Bytes proof;
     std::vector<AggregateSealVerifyInfo> infos;
+
+    inline bool operator==(
+        const AggregateSealVerifyProofAndInfos &other) const {
+      return miner == other.miner && seal_proof == other.seal_proof
+             && aggregate_proof == other.aggregate_proof && proof == other.proof
+             && infos == other.infos;
+    }
+
+    inline bool operator!=(
+        const AggregateSealVerifyProofAndInfos &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(AggregateSealVerifyProofAndInfos,
              miner,
@@ -274,6 +346,18 @@ namespace fc::primitives::sector {
     CID new_sealed_sector_cid;
     CID new_unsealed_sector_cid;
     Bytes proof;
+
+    inline bool operator==(const ReplicaUpdateInfo &other) const {
+      return update_proof_type == other.update_proof_type
+             && old_sealed_sector_cid == other.old_sealed_sector_cid
+             && new_sealed_sector_cid == other.new_sealed_sector_cid
+             && new_unsealed_sector_cid == other.new_unsealed_sector_cid
+             && proof == other.proof;
+    }
+
+    inline bool operator!=(const ReplicaUpdateInfo &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(ReplicaUpdateInfo,
              update_proof_type,

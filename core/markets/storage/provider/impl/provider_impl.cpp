@@ -12,6 +12,7 @@
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "markets/storage/types.hpp"
 #include "storage/car/car.hpp"
+#include "vm/actor/builtin/methods/market.hpp"
 #include "vm/actor/builtin/types/market/publish_deals_result.hpp"
 
 #define CALLBACK_ACTION(_action)                                            \
@@ -44,9 +45,9 @@ namespace fc::markets::storage::provider {
   using mining::SealingState;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
+  namespace market = vm::actor::builtin::market;
 
   StorageProviderImpl::StorageProviderImpl(
       std::shared_ptr<Host> host,
@@ -356,7 +357,7 @@ namespace fc::markets::storage::provider {
         worker_info,
         api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
                              chain_head->key));
-    PublishStorageDeals::Params params{{deal->client_deal_proposal}};
+    market::PublishStorageDeals::Params params{{deal->client_deal_proposal}};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
     UnsignedMessage unsigned_message(vm::actor::kStorageMarketAddress,
                                      worker_info.worker,
@@ -364,7 +365,7 @@ namespace fc::markets::storage::provider {
                                      TokenAmount{0},
                                      {},
                                      {},
-                                     PublishStorageDeals::Number,
+                                     market::PublishStorageDeals::Number,
                                      MethodParams{encoded_params});
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));

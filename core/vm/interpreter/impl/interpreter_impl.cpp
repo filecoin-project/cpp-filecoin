@@ -12,8 +12,8 @@
 #include "common/prometheus/since.hpp"
 #include "const.hpp"
 #include "primitives/tipset/load.hpp"
-#include "vm/actor/builtin/v0/cron/cron_actor.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
+#include "vm/actor/builtin/methods/cron.hpp"
+#include "vm/actor/builtin/methods/reward.hpp"
 #include "vm/runtime/make_vm.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
@@ -39,12 +39,12 @@ namespace fc::vm::interpreter {
   using actor::kRewardAddress;
   using actor::kSystemActorAddress;
   using actor::MethodParams;
-  using actor::builtin::v0::cron::EpochTick;
-  using actor::builtin::v0::reward::AwardBlockReward;
   using message::UnsignedMessage;
   using primitives::address::Address;
   using primitives::tipset::MessageVisitor;
   using runtime::MessageReceipt;
+  namespace cron = actor::builtin::cron;
+  namespace reward = actor::builtin::reward;
 
   InterpreterImpl::InterpreterImpl(
       EnvironmentContext env_context,
@@ -159,7 +159,7 @@ namespace fc::vm::interpreter {
                       0,
                       0,
                       kBlockGasLimit * 10000,
-                      EpochTick::Number,
+                      cron::EpochTick::Number,
                       {},
                   }));
       if (receipt.exit_code != VMExitCode::kOk) {
@@ -197,7 +197,7 @@ namespace fc::vm::interpreter {
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld, true, true};
     for (const auto &block : tipset->blks) {
-      AwardBlockReward::Params reward{
+      reward::AwardBlockReward::Params reward{
           block.miner, 0, 0, block.election_proof.win_count};
       OUTCOME_TRY(message_visitor.visit(
           block,
@@ -221,7 +221,7 @@ namespace fc::vm::interpreter {
                       0,
                       0,
                       1 << 30,
-                      AwardBlockReward::Number,
+                      reward::AwardBlockReward::Number,
                       MethodParams{reward_encoded},
                   }));
       if (receipt.exit_code != VMExitCode::kOk) {

@@ -33,8 +33,6 @@
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_utils.hpp"
 #include "vm/actor/builtin/v3/verified_registry/verified_registry_actor_utils.hpp"
 
-#include "vm/actor/builtin/v4/todo.hpp"
-
 namespace fc::vm::toolchain {
   using namespace actor::builtin;
 
@@ -102,16 +100,8 @@ namespace fc::vm::toolchain {
         return std::make_shared<v0::market::MarketUtils>(runtime);
       case ActorVersion::kVersion2:
         return std::make_shared<v2::market::MarketUtils>(runtime);
-      case ActorVersion::kVersion3:
+      default:
         return std::make_shared<v3::market::MarketUtils>(runtime);
-      case ActorVersion::kVersion4:
-        TODO_ACTORS_V4();
-      case ActorVersion::kVersion5:
-        TODO_ACTORS_V5();
-      case ActorVersion::kVersion6:
-        TODO_ACTORS_V6();
-      case ActorVersion::kVersion7:
-        TODO_ACTORS_V7();
     }
   }
 
@@ -122,16 +112,8 @@ namespace fc::vm::toolchain {
         return std::make_shared<v0::miner::MinerUtils>(runtime);
       case ActorVersion::kVersion2:
         return std::make_shared<v2::miner::MinerUtils>(runtime);
-      case ActorVersion::kVersion3:
+      default:
         return std::make_shared<v3::miner::MinerUtils>(runtime);
-      case ActorVersion::kVersion4:
-        TODO_ACTORS_V4();
-      case ActorVersion::kVersion5:
-        TODO_ACTORS_V5();
-      case ActorVersion::kVersion6:
-        TODO_ACTORS_V6();
-      case ActorVersion::kVersion7:
-        TODO_ACTORS_V7();
     }
   }
 
@@ -142,16 +124,8 @@ namespace fc::vm::toolchain {
         return std::make_shared<v0::multisig::MultisigUtils>(runtime);
       case ActorVersion::kVersion2:
         return std::make_shared<v2::multisig::MultisigUtils>(runtime);
-      case ActorVersion::kVersion3:
+      default:
         return std::make_shared<v3::multisig::MultisigUtils>(runtime);
-      case ActorVersion::kVersion4:
-        TODO_ACTORS_V4();
-      case ActorVersion::kVersion5:
-        TODO_ACTORS_V5();
-      case ActorVersion::kVersion6:
-        TODO_ACTORS_V6();
-      case ActorVersion::kVersion7:
-        TODO_ACTORS_V7();
     }
   }
 
@@ -165,17 +139,9 @@ namespace fc::vm::toolchain {
       case ActorVersion::kVersion2:
         return std::make_shared<v2::payment_channel::PaymentChannelUtils>(
             runtime);
-      case ActorVersion::kVersion3:
+      default:
         return std::make_shared<v3::payment_channel::PaymentChannelUtils>(
             runtime);
-      case ActorVersion::kVersion4:
-        TODO_ACTORS_V4();
-      case ActorVersion::kVersion5:
-        TODO_ACTORS_V5();
-      case ActorVersion::kVersion6:
-        TODO_ACTORS_V6();
-      case ActorVersion::kVersion7:
-        TODO_ACTORS_V7();
     }
   }
 
@@ -186,16 +152,8 @@ namespace fc::vm::toolchain {
         return std::make_shared<v0::storage_power::PowerUtils>(runtime);
       case ActorVersion::kVersion2:
         return std::make_shared<v2::storage_power::PowerUtils>(runtime);
-      case ActorVersion::kVersion3:
+      default:
         return std::make_shared<v3::storage_power::PowerUtils>(runtime);
-      case ActorVersion::kVersion4:
-        TODO_ACTORS_V4();
-      case ActorVersion::kVersion5:
-        TODO_ACTORS_V5();
-      case ActorVersion::kVersion6:
-        TODO_ACTORS_V6();
-      case ActorVersion::kVersion7:
-        TODO_ACTORS_V7();
     }
   }
 
@@ -210,16 +168,8 @@ namespace fc::vm::toolchain {
         return std::make_shared<v0::verified_registry::VerifRegUtils>(runtime);
       case ActorVersion::kVersion2:
         return std::make_shared<v2::verified_registry::VerifRegUtils>(runtime);
-      case ActorVersion::kVersion3:
+      default:
         return std::make_shared<v3::verified_registry::VerifRegUtils>(runtime);
-      case ActorVersion::kVersion4:
-        TODO_ACTORS_V4();
-      case ActorVersion::kVersion5:
-        TODO_ACTORS_V5();
-      case ActorVersion::kVersion6:
-        TODO_ACTORS_V6();
-      case ActorVersion::kVersion7:
-        TODO_ACTORS_V7();
     }
   }
 }  // namespace fc::vm::toolchain
