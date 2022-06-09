@@ -40,5 +40,4 @@ target_link_libraries(store
         json
         sector_index
         tarutil
-        p2p::asio_scheduler
         )

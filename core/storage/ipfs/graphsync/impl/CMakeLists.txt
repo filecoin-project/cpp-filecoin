@@ -26,7 +26,6 @@ target_include_directories(graphsync PRIVATE "${CMAKE_BINARY_DIR}/generated/stor
 
 target_link_libraries(graphsync
     Boost::boost
-    p2p::asio_scheduler
     p2p::subscription
     cid
     cbor

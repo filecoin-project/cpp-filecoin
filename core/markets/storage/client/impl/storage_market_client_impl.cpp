@@ -7,7 +7,6 @@
 
 #include <boost/assert.hpp>
 #include <libp2p/peer/peer_id.hpp>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 
 #include "codec/cbor/cbor_codec.hpp"
 #include "common/enum.hpp"

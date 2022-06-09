@@ -8,7 +8,6 @@
 #include <boost/di/extension/scopes/shared.hpp>
 
 #include <libp2p/injector/host_injector.hpp>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 

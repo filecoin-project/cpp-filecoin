@@ -6,7 +6,6 @@
 #pragma once
 
 #include <libp2p/peer/peer_id.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
 
 #include "crypto/signature/signature.hpp"
 #include "node/events_fwd.hpp"
