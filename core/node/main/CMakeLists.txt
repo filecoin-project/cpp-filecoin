@@ -36,7 +36,6 @@ target_link_libraries(node_builder
     p2p::p2p_inmem_address_repository
     p2p::p2p_inmem_key_repository
     p2p::p2p_inmem_protocol_repository
-    p2p::asio_scheduler
     p2p::p2p_random_generator
     pieceio
     retrieval_market_client

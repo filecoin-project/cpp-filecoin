@@ -9,5 +9,4 @@ addtest(graphsync_acceptance_test
     )
 target_link_libraries(graphsync_acceptance_test
     graphsync
-    p2p::asio_scheduler
     )

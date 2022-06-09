@@ -41,7 +41,6 @@ add_library(batcher
         )
 target_link_libraries(batcher
         api
-        p2p::asio_scheduler
         )
 
 add_library(storage_fsm

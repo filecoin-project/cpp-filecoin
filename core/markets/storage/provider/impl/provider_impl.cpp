@@ -5,7 +5,6 @@
 
 #include "markets/storage/provider/impl/provider_impl.hpp"
 
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "markets/storage/provider/storage_provider_error.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
