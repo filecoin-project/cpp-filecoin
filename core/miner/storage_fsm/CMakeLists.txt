@@ -38,6 +38,7 @@ target_link_libraries(events
 
 add_library(batcher
         impl/precommit_batcher_impl.cpp
+        impl/commit_batcher_impl.cpp
         )
 target_link_libraries(batcher
         api

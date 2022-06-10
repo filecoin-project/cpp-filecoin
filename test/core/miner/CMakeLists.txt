@@ -12,6 +12,7 @@ target_link_libraries(events_test
 
 addtest(batcher_test
     precommit_batcher_test.cpp
+    commit_batcher_test.cpp
     )
 target_link_libraries(batcher_test
     batcher
