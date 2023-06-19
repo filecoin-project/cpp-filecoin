@@ -37,12 +37,12 @@ jobs:
               CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
               CXXFLAGS: "-isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
         name: checkout repo
       - name: cache
-        uses: actions/cache@v1.2.0
+        uses: actions/cache@v3
         env:
           cache-name: cache-filecoin-ffi-proofs
           version: v28
@@ -59,12 +59,12 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers libhwloc-dev libhidapi-dev
           fi
-          
+
           pip3 -V || sudo python3 -m pip install --upgrade pip
           sudo pip3 install scikit-build
           sudo pip3 install requests gitpython gcovr pyyaml
           sudo curl https://sh.rustup.rs -sSf | sh -s -- -y
-          
+
           # Workaround to provide additional free space for testing.
           #   https://github.com/actions/virtual-environments/issues/2875
           sudo rm -rf /usr/share/dotnet
@@ -91,7 +91,7 @@ jobs:
         run: cmake --build build --target ctest_coverage_norun
       - name: upload report to codecov
         if: runner.os == 'Linux' && matrix.compiler.cc == 'gcc'
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         with:

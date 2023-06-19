@@ -12,12 +12,12 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
         name: checkout repo
       - name: cache
-        uses: actions/cache@v1.2.0
+        uses: actions/cache@v3
         env:
           cache-name: cache-filecoin-ffi-proofs
           version: v28
