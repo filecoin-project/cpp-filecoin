@@ -28,7 +28,7 @@ jobs:
             "PR_NUM="+(.number|tostring),
             "PR_REPO="+.head.repo.full_name' >>$GITHUB_ENV
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{env.PR_REF}} ## not empty on issue_comment, else default value GITHUB_REF
           repository: ${{env.PR_REPO}} ## not empty on issue_comment, else default value github.repository, required by forks
@@ -77,7 +77,7 @@ jobs:
             "PR_NUM="+(.number|tostring),
             "PR_REPO="+.head.repo.full_name' >>$GITHUB_ENV
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{env.PR_REF}} ## not empty on issue_comment, else default value GITHUB_REF
           repository: ${{env.PR_REPO}} ## not empty on issue_comment, else default value github.repository, required by forks
@@ -95,7 +95,7 @@ jobs:
       - name: Login to DockerHub
         if: ${{ env.DOCKERHUB_TOKEN != '' && env.DOCKERHUB_USERNAME != '' }}
         id: docker_login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           registry: docker.soramitsu.co.jp
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -105,7 +105,7 @@ jobs:
         run: echo "::warning::DOCKERHUB_TOKEN and DOCKERHUB_USERNAME are empty. Will build but NOT push."
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4
         with:
           # registry.rocket.chat/rocketchat/rocket.chat:latest
           images: docker.soramitsu.co.jp/fuhon/node
@@ -125,16 +125,16 @@ jobs:
           ##  - tag 'edge' when branch support/1.2.x is pushed
           ##  - schedule, see the docs
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Cache Docker layers
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{env.dockertag}}
           restore-keys: ${{ runner.os }}-buildx-
       - id: build_and_push
         name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new

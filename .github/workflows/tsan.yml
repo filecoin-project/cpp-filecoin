@@ -12,12 +12,12 @@ jobs:
   build:
     runs-on: macOS-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
         name: checkout repo
       - name: cache
-        uses: actions/cache@v1.2.0
+        uses: actions/cache@v3
         env:
           cache-name: cache-filecoin-ffi-proofs
           version: v28
@@ -45,4 +45,3 @@ jobs:
           CTEST_OUTPUT_ON_FAILURE: 1
           TSAN_OPTIONS: "suppressions=${{ github.workspace }}/.github/workflows/tsan-ignorelist.txt"
         run: cmake --build build --target test
-
