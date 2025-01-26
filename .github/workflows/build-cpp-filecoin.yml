@@ -14,7 +14,7 @@ jobs:
   ## You should `pre-commit install` or use `pre-commit-hook.sh`,
   ## anyway please read .github/README.md
   check_workflow_yaml_coressponds_to_src_yaml:
-    runs-on: ubuntu-20.04 #ubuntu-latest
+    runs-on: ubuntu-latest
     #container: ubuntu:latest  ## This is required as barrier between AWS-hosted runners and GitHub-hosted runners - they have different set of software, so run in container
     name: Check if github workflows were properly made from sources
     steps:
@@ -43,7 +43,7 @@ jobs:
   ## Note: image is push only when DockerHub login-token pair available - not to PRs from forks.
   Docker-fuhon-builder:
     needs: check_workflow_yaml_coressponds_to_src_yaml
-    runs-on: ubuntu-20.04 #ubuntu-latest #[ self-hosted, Linux ]
+    runs-on: ubuntu-latest #[ self-hosted, Linux ]
     env:
       DOCKERHUB_ORG: soramitsu ## Cannot use ${{ secrets.DOCKERHUB_ORG }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -127,7 +127,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Cache Docker layers
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{env.dockertag}}

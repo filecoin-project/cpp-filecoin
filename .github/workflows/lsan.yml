@@ -10,14 +10,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
       name: checkout repo
     - name: cache
-      uses: actions/cache@v1.2.0
+      uses: actions/cache@v4
       env:
         cache-name: cache-filecoin-ffi-proofs
         version: v28
